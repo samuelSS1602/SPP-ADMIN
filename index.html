@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sri Padmavati Pleasants - Admin Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-wrapper">
+            <div class="login-content">
+                <div class="login-header">
+                    <img src="logo - Copy.jpeg" alt="Sri Padmavati Pleasants" class="login-logo">
+                    <h1>Sri Padmavati Pleasants</h1>
+                    <p>Admin Management System</p>
+                </div>
+
+                <form class="login-form" id="loginForm">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" placeholder="Enter your email" required>
+                        <span class="form-icon"><i class="fas fa-envelope"></i></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" placeholder="Enter your password" required>
+                        <span class="form-icon"><i class="fas fa-lock"></i></span>
+                    </div>
+
+                    <button type="submit" class="btn-login">Sign In</button>
+                </form>
+            </div>
+
+            <div class="login-side">
+                <div class="side-content">
+                    <h2>Welcome Back</h2>
+                    <p>Manage your hotel efficiently with our advanced dashboard system.</p>
+                    <div class="side-features">
+                        <div style="margin-bottom: 15px;">
+                            <i class="fas fa-chart-line" style="color: var(--primary-gold); margin-right: 10px;"></i>
+                            <span>Real-time Analytics</span>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <i class="fas fa-calendar-check" style="color: var(--primary-gold); margin-right: 10px;"></i>
+                            <span>Booking Management</span>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <i class="fas fa-door-open" style="color: var(--primary-gold); margin-right: 10px;"></i>
+                            <span>Room Control</span>
+                        </div>
+                        <div>
+                            <i class="fas fa-users" style="color: var(--primary-gold); margin-right: 10px;"></i>
+                            <span>Guest Database</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboardPage" class="dashboard-container" style="display: none;">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo">
+                    <img src="logo - Copy.jpeg" alt="Logo" class="sidebar-logo">
+                    <div class="brand-text">
+                        <h3>Sri Padmavati</h3>
+                        <p>Pleasants</p>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" onclick="navigateTo('dashboard', this)">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" onclick="navigateTo('bookings', this)">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Bookings</span>
+                </button>
+                <button class="nav-item" onclick="navigateTo('rooms', this)">
+                    <i class="fas fa-door-open"></i>
+                    <span>Room Management</span>
+                </button>
+                <button class="nav-item" onclick="navigateTo('pricing', this)">
+                    <i class="fas fa-tag"></i>
+                    <span>Room Pricing</span>
+                </button>
+                <button class="nav-item" onclick="navigateTo('customers', this)">
+                    <i class="fas fa-id-card"></i>
+                    <span>Customer Details</span>
+                </button>
+                <button class="nav-item" onclick="navigateTo('guests', this)">
+                    <i class="fas fa-users"></i>
+                    <span>Guests</span>
+                </button>
+                <button class="nav-item" onclick="navigateTo('payments', this)">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Payments</span>
+                </button>
+                <button class="nav-item" onclick="navigateTo('analytics', this)">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analytics</span>
+                </button>
+            </nav>
+
+            <div style="margin-top: auto;">
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+                <div class="footer-credit">
+                    <small>Developed by</small><br>
+                    ⚡ CodeCrafters
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-header">
+                <div class="header-left">
+                    <h2 id="pageTitle">Dashboard</h2>
+                    <small id="liveDateTime" style="color: var(--text-light); font-weight: 600;"></small>
+                </div>
+                <div class="header-right">
+                    <div class="user-profile">
+                        <div class="profile-pic">A</div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 13px;">Admin User</div>
+                            <small style="color: var(--text-light);">admin@sripadmavati.com</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <!-- Dashboard -->
+                <div id="dashboard" class="page-content active">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-label">Total Bookings</span>
+                                <i class="fas fa-calendar-check metric-icon"></i>
+                            </div>
+                            <div class="metric-value" id="metricTotalBookings">0</div>
+                            <div class="metric-change" id="metricTotalBookingsInfo">Live booking count</div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-label">Occupancy Rate</span>
+                                <i class="fas fa-chart-pie metric-icon"></i>
+                            </div>
+                            <div class="metric-value" id="metricOccupancyRate">0%</div>
+                            <div class="metric-change" id="metricOccupancyInfo">0 occupied of 0 rooms</div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-label">Revenue Today</span>
+                                <i class="fas fa-money-bill metric-icon"></i>
+                            </div>
+                            <div class="metric-value" id="metricRevenueToday">₹0</div>
+                            <div class="metric-change" id="metricRevenueTodayInfo">From today's check-ins</div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-label">Available Rooms</span>
+                                <i class="fas fa-door-open metric-icon"></i>
+                            </div>
+                            <div class="metric-value" id="metricAvailableRooms">0</div>
+                            <div class="metric-change" id="metricAvailableRoomsInfo">Out of 0 rooms</div>
+                        </div>
+                    </div>
+
+                    <div class="stats-row">
+                        <div class="stat-box checkin">
+                            <div class="stat-icon"><i class="fas fa-sign-in-alt"></i></div>
+                            <div>
+                                <div class="stat-label">Check-ins Today</div>
+                                <div class="stat-number" id="statCheckinsToday">0</div>
+                            </div>
+                        </div>
+
+                        <div class="stat-box checkout">
+                            <div class="stat-icon"><i class="fas fa-sign-out-alt"></i></div>
+                            <div>
+                                <div class="stat-label">Check-outs Today</div>
+                                <div class="stat-number" id="statCheckoutsToday">0</div>
+                            </div>
+                        </div>
+
+                        <div class="stat-box maintenance">
+                            <div class="stat-icon"><i class="fas fa-wrench"></i></div>
+                            <div>
+                                <div class="stat-label">Maintenance</div>
+                                <div class="stat-number" id="statMaintenance">0</div>
+                            </div>
+                        </div>
+
+                        <div class="stat-box monthly">
+                            <div class="stat-icon"><i class="fas fa-calendar-month"></i></div>
+                            <div>
+                                <div class="stat-label">Monthly Revenue</div>
+                                <div class="stat-number" id="statMonthlyRevenue">₹0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Revenue Trend</h3>
+                                <div class="chart-controls">
+                                    <button class="btn-control active">Day</button>
+                                    <button class="btn-control">Week</button>
+                                    <button class="btn-control">Month</button>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Room Occupancy</h3>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="occupancyChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Recent Activity</h3>
+                        </div>
+                        <div class="activity-list">
+                            <div class="activity-item">
+                                <div class="activity-icon booking"><i class="fas fa-calendar-check"></i></div>
+                                <div>
+                                    <div class="activity-title">Live Activity Feed</div>
+                                    <div class="activity-description">New booking and payment events will appear here.</div>
+                                    <small style="color: var(--text-light);">Waiting for first activity</small>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon payment"><i class="fas fa-credit-card"></i></div>
+                                <div>
+                                    <div class="activity-title">No Seed Data</div>
+                                    <div class="activity-description">This system starts clean and uses real-time records only.</div>
+                                    <small style="color: var(--text-light);">Ready for production usage</small>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon booking"><i class="fas fa-calendar-check"></i></div>
+                                <div>
+                                    <div class="activity-title">Tip</div>
+                                    <div class="activity-description">Create your first booking to populate dashboard analytics.</div>
+                                    <small style="color: var(--text-light);">Real data updates instantly</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bookings -->
+                <div id="bookings" class="page-content">
+                    <div class="page-header">
+                        <h2>Booking Management</h2>
+                        <button class="btn-primary" onclick="openNewBookingPage()">
+                            <i class="fas fa-plus"></i> New Booking
+                        </button>
+                    </div>
+                    <div class="card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Booking ID</th>
+                                    <th>Guest Name</th>
+                                    <th>Room</th>
+                                    <th>Check-in</th>
+                                    <th>Check-out</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Receipt</th>
+                                    <th>Checkout</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookingsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="new-booking" class="page-content">
+                    <div class="page-header">
+                        <h2>Create New Booking</h2>
+                        <button class="btn-primary" onclick="openBookingsPage()">
+                            <i class="fas fa-arrow-left"></i> Back To Bookings
+                        </button>
+                    </div>
+                    <div class="card" style="margin-bottom: 24px;">
+                        <div class="pricing-info" style="margin-bottom: 0;">
+                            <h4>Booking Instructions</h4>
+                            <p>Only available rooms are shown here.</p>
+                            <p>Advance amount is collected during check-in and the booking is added directly to billing.</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <form id="newBookingForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Guest Name *</label>
+                                    <input type="text" id="bookingGuestName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Mobile Number *</label>
+                                    <input type="tel" id="bookingGuestPhone" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" id="bookingGuestEmail">
+                                </div>
+                                <div class="form-group">
+                                    <label>Select First Room *</label>
+                                    <select id="bookingRoomId" required></select>
+                                </div>
+                            </div>
+                            
+                            <!-- Guest Demographics -->
+                            <div class="form-row" style="margin-bottom: 20px;">
+                                <div class="form-group" style="flex: 1;">
+                                    <label>Male Adults *</label>
+                                    <input type="number" id="bookingMaleCount" value="1" min="0" required>
+                                </div>
+                                <div class="form-group" style="flex: 1;">
+                                    <label>Female Adults *</label>
+                                    <input type="number" id="bookingFemaleCount" value="0" min="0" required>
+                                </div>
+                                <div class="form-group" style="flex: 1;">
+                                    <label>Children</label>
+                                    <input type="number" id="bookingChildrenCount" value="0" min="0">
+                                </div>
+                            </div>
+
+                            <!-- Multi-Room Selection -->
+                            <div class="form-group" style="background: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <h4 style="margin: 0 0 12px 0; font-size: 14px;"><i class="fas fa-door-open"></i> Selected Rooms for This Guest</h4>
+                                <div id="selectedRoomsDisplay" style="margin-bottom: 12px; min-height: 40px; background: white; padding: 10px; border-radius: 4px; border-left: 3px solid var(--primary-gold);">
+                                    <small style="color: var(--text-light);">First room will be added when you select it above</small>
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <button type="button" class="btn-primary" id="addExtraRoomBtn" onclick="addExtraRoomToBooking()" style="flex: 1;">
+                                        <i class="fas fa-plus"></i> Add Extra Room for Same Guest
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>ID Proof Type *</label>
+                                    <select id="bookingIdProofType" required>
+                                        <option value="">Select ID Type</option>
+                                        <option value="Aadhar Card">Aadhar Card</option>
+                                        <option value="Driving License">Driving License</option>
+                                        <option value="Passport">Passport</option>
+                                        <option value="Voter ID">Voter ID</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>ID Proof Number *</label>
+                                    <input type="text" id="bookingIdProofNumber" required>
+                                    <small id="bookingIdProofHint" style="color: var(--text-light); font-size: 11px; display: block; margin-top: 6px;">Select ID type to see required format</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Vehicle Number</label>
+                                    <input type="text" id="bookingVehicleNumber" placeholder="e.g. TN-43-A-1234">
+                                </div>
+                                <div class="form-group">
+                                    <label>Company Name (Optional)</label>
+                                    <input type="text" id="bookingCompanyName" placeholder="e.g. TCS">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Check-in Date *</label>
+                                    <input type="date" id="bookingCheckIn" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Check-in Time *</label>
+                                    <div class="time-mode-row">
+                                        <select id="bookingCheckInTimeMode" class="time-mode-select">
+                                            <option value="manual">Manual Entry</option>
+                                            <option value="current">Current Time</option>
+                                        </select>
+                                    </div>
+                                    <input type="time" id="bookingCheckInTime" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Check-out Date *</label>
+                                    <input type="date" id="bookingCheckOut" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Check-out Time *</label>
+                                    <div class="time-mode-row">
+                                        <select id="bookingCheckOutTimeMode" class="time-mode-select">
+                                            <option value="manual">Manual Entry</option>
+                                            <option value="current">Current Time</option>
+                                        </select>
+                                    </div>
+                                    <input type="time" id="bookingCheckOutTime" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Payment Method *</label>
+                                    <select id="bookingPaymentMethod" required>
+                                        <option value="">Select payment method</option>
+                                        <option>Cash</option>
+                                        <option>Card</option>
+                                        <option>UPI</option>
+                                        <option>Net Banking</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Advance Amount (₹) *</label>
+                                    <input type="number" id="bookingAdvance" value="1000" min="0" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Extras Amount (₹) - Common</label>
+                                    <input type="number" id="bookingExtras" value="0" min="0" placeholder="Additional charges">
+                                    <small style="color: var(--text-light); margin-top: 4px;">Laundry, room service, etc.</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Extra Bed Charges (₹)</label>
+                                    <input type="number" id="bookingExtraBed" value="0" min="0" placeholder="Extra bed charge">
+                                    <small style="color: var(--text-light); margin-top: 4px;">Applied to entire booking</small>
+                                </div>
+                            </div>
+
+                            <div class="camera-capture-section">
+                                <div class="camera-capture-header">
+                                    <h4><i class="fas fa-camera"></i> Customer Verification Photos</h4>
+                                    <p>Capture both customer photo and ID proof photo using webcam.</p>
+                                </div>
+
+                                <div class="camera-controls-row">
+                                    <button type="button" class="btn-primary" id="startBookingCameraBtn">
+                                        <i class="fas fa-video"></i> Start Camera
+                                    </button>
+                                    <button type="button" class="btn-primary" id="stopBookingCameraBtn" style="display: none;">
+                                        <i class="fas fa-video-slash"></i> Stop Camera
+                                    </button>
+                                </div>
+
+                                <div class="camera-live-box">
+                                    <video id="bookingCameraPreview" autoplay playsinline muted></video>
+                                    <div class="camera-placeholder" id="bookingCameraPlaceholder">
+                                        <i class="fas fa-camera"></i>
+                                        <span>Camera preview will appear here</span>
+                                    </div>
+                                </div>
+
+                                <div class="camera-cards-grid">
+                                    <div class="capture-card">
+                                        <h5>Customer Photo *</h5>
+                                        <div class="capture-preview" id="customerPhotoPreviewWrap">
+                                            <img id="customerPhotoPreview" alt="Customer Photo Preview" style="display: none;">
+                                            <span id="customerPhotoEmpty">No photo captured</span>
+                                        </div>
+                                        <button type="button" class="btn-primary capture-btn" id="captureCustomerPhotoBtn">
+                                            <i class="fas fa-user"></i> Capture Customer Photo
+                                        </button>
+                                    </div>
+
+                                    <div class="capture-card">
+                                        <h5>ID Proof Photo *</h5>
+                                        <div class="capture-preview" id="idProofPhotoPreviewWrap">
+                                            <img id="idProofPhotoPreview" alt="ID Proof Photo Preview" style="display: none;">
+                                            <span id="idProofPhotoEmpty">No ID proof photo captured</span>
+                                        </div>
+                                        <button type="button" class="btn-primary capture-btn" id="captureIdProofPhotoBtn">
+                                            <i class="fas fa-id-card"></i> Capture ID Proof Photo
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <input type="hidden" id="bookingCustomerPhotoData">
+                                <input type="hidden" id="bookingIdProofPhotoData">
+                            </div>
+
+                            <button type="submit" class="btn-primary" style="width: 100%; margin-top: 12px;">
+                                <i class="fas fa-check"></i> Create Booking
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Rooms -->
+                <div id="rooms" class="page-content">
+                    <div class="page-header">
+                        <h2>Room Management</h2>
+                    </div>
+                    
+                    <div class="floor-section">
+                        <h3 class="floor-title"><i class="fas fa-building"></i> F1 (5 Rooms)</h3>
+                        <div class="rooms-grid" id="floor1Rooms"></div>
+                    </div>
+
+                    <div class="floor-section">
+                        <h3 class="floor-title"><i class="fas fa-building"></i> F2 (4 Rooms)</h3>
+                        <div class="rooms-grid" id="floor2Rooms"></div>
+                    </div>
+
+                    <div class="room-legend">
+                        <h4>Room Status Legend</h4>
+                        <div class="legend-items">
+                            <div class="legend-item">
+                                <span class="legend-color" style="background: #27AE60;"></span>
+                                <span>Available</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background: #E74C3C;"></span>
+                                <span>Occupied</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background: #F39C12;"></span>
+                                <span>Cleaning</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color" style="background: #95A5A6;"></span>
+                                <span>Maintenance</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Room Pricing -->
+                <div id="pricing" class="page-content">
+                    <div class="page-header">
+                        <h2>Room Pricing Management</h2>
+                    </div>
+                    <div class="card">
+                        <div class="pricing-info">
+                            <h4>Payment Structure</h4>
+                            <p><strong>Advance Payment (Check-in):</strong> ₹1,000</p>
+                            <p><strong>Room Rate:</strong> ₹2,500 (can be changed)</p>
+                            <p><strong>Balance Due (Checkout):</strong> Room Rate - Advance + Extras</p>
+                            <p><strong>Extras:</strong> Water bottles, coffee, room service, etc.</p>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Room Name</th>
+                                    <th>Floor</th>
+                                    <th>Type</th>
+                                    <th>Current Price</th>
+                                    <th>New Price (₹)</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pricingTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Customer Details PAGE -->
+                <div id="customers" class="page-content">
+                    <div class="page-header">
+                        <h2>Customer Details</h2>
+                        <button class="btn-primary" onclick="showAddCustomerModal()">
+                            <i class="fas fa-plus"></i> Add Customer
+                        </button>
+                    </div>
+                    <div class="card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Customer ID</th>
+                                    <th>Name</th>
+                                    <th>Mobile</th>
+                                    <th>ID Proof</th>
+                                    <th>Previous Customer</th>
+                                    <th>Visits</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customersTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Guests -->
+                <div id="guests" class="page-content">
+                    <div class="page-header">
+                        <h2>Guest Management</h2>
+                    </div>
+                    <div class="card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Guest Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Visits</th>
+                                    <th>Last Visit</th>
+                                </tr>
+                            </thead>
+                            <tbody id="guestsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Payments -->
+                <div id="payments" class="page-content">
+                    <div class="page-header">
+                        <h2>Payment & Billing</h2>
+                    </div>
+                    <div class="payment-summary">
+                        <div class="payment-card">
+                            <h4>Total Revenue</h4>
+                            <p class="payment-amount" id="paymentTotalRevenue">₹0</p>
+                        </div>
+                        <div class="payment-card">
+                            <h4>Pending Balance</h4>
+                            <p class="payment-amount" style="color: var(--warning);" id="paymentPendingBalance">₹0</p>
+                        </div>
+                        <div class="payment-card">
+                            <h4>Received Amount</h4>
+                            <p class="payment-amount" style="color: var(--success);" id="paymentReceivedAmount">₹0</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Guest Invoices</h3>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Invoice ID</th>
+                                    <th>Guest</th>
+                                    <th>Room</th>
+                                    <th>Check-in</th>
+                                    <th>Advance</th>
+                                    <th>Balance</th>
+                                    <th>Extras</th>
+                                    <th>Status</th>
+                                    <th>Add Extra</th>
+                                    <th>Receipt</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Analytics -->
+                <div id="analytics" class="page-content">
+                    <div class="page-header">
+                        <h2>Analytics & Reports</h2>
+                    </div>
+                    <div class="analytics-buttons">
+                        <button class="btn-primary" onclick="downloadDailyRevenue()">
+                            <i class="fas fa-download"></i> Daily Revenue
+                        </button>
+                        <button class="btn-primary" onclick="downloadMonthlyRevenue()">
+                            <i class="fas fa-download"></i> Monthly Revenue
+                        </button>
+                        <button class="btn-primary" onclick="downloadYearlyRevenue()">
+                            <i class="fas fa-download"></i> Yearly Revenue
+                        </button>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Monthly Revenue</h3>
+                        </div>
+                        <div style="position: relative; height: 350px;">
+                            <canvas id="monthlyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Customer Details Modal -->
+    <div id="customerDetailsModal" class="modal">
+        <div class="modal-content customer-modal-large">
+            <span class="close-btn" onclick="closeCustomerDetailsModal()">&times;</span>
+            <div id="customerDetailsContent"></div>
+        </div>
+    </div>
+
+    <!-- Add Customer Modal -->
+    <div id="addCustomerModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeAddCustomerModal()">&times;</span>
+            <h3><i class="fas fa-user-plus"></i> Add New Customer</h3>
+            <form id="addCustomerForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Customer Name *</label>
+                        <input type="text" id="customerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Mobile Number *</label>
+                        <input type="tel" id="customerMobile" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="customerEmail">
+                    </div>
+                    <div class="form-group">
+                        <label>ID Proof Type *</label>
+                        <select id="idProofType" required>
+                            <option>Select ID Type</option>
+                            <option>Aadhar Card</option>
+                            <option>PAN Card</option>
+                            <option>Passport</option>
+                            <option>Driving License</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>ID Proof Number *</label>
+                    <input type="text" id="idProofNumber" required>
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <textarea id="customerAddress" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%;">
+                    <i class="fas fa-check"></i> Add Customer
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Receipt Modal -->
+    <div id="receiptModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeReceiptModal()">&times;</span>
+            <div id="receiptBody" class="receipt-body"></div>
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="printReceipt()">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button class="btn-primary" onclick="downloadReceiptPDF()">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Price Change Modal -->
+    <div id="priceModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closePriceModal()">&times;</span>
+            <h3>Change Room Price</h3>
+            <div class="form-group">
+                <label>Room: <strong id="roomNameDisplay"></strong></label>
+            </div>
+            <div class="form-group">
+                <label>Current Price: <strong id="currentPriceDisplay"></strong></label>
+            </div>
+            <div class="form-group">
+                <label>New Price (₹)</label>
+                <input type="number" id="newPriceInput" placeholder="Enter new price" min="100">
+            </div>
+            <button class="btn-primary" onclick="updateRoomPrice()" style="width: 100%; margin-top: 20px;">
+                Update Price
+            </button>
+        </div>
+    </div>
+
+    <!-- Add Extra Amount Modal -->
+    <div id="extraAmountModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeExtraAmountModal()">&times;</span>
+            <h3>Add Extra Amount</h3>
+            <div class="form-group">
+                <label>Invoice: <strong id="extraInvoiceDisplay"></strong></label>
+            </div>
+            <div class="form-group">
+                <label>Current Extras: <strong id="currentExtraDisplay"></strong></label>
+            </div>
+            <div class="form-group">
+                <label>Extra Amount (₹)</label>
+                <input type="number" id="extraAmountInput" placeholder="Enter amount" min="1">
+            </div>
+            <button class="btn-primary" onclick="updateExtraAmount()" style="width: 100%; margin-top: 20px;">
+                Add Amount
+            </button>
+        </div>
+    </div>
+
+    <!-- Room Details Modal -->
+    <div id="roomDetailsModal" class="modal">
+        <div class="modal-content customer-modal-large">
+            <span class="close-btn" onclick="closeRoomDetailsModal()">&times;</span>
+            <div id="roomDetailsContent"></div>
+        </div>
+    </div>
+
+    <!-- Photo Viewer Modal -->
+    <div id="photoViewerModal" class="modal">
+        <div class="modal-content customer-modal-large" style="max-width: 800px; text-align: center;">
+            <span class="close-btn" onclick="document.getElementById('photoViewerModal').style.display='none'">&times;</span>
+            <h3 id="photoViewerTitle" style="color: var(--primary-brand); font-family: 'Inter', sans-serif;">Guest Photos</h3>
+            
+            <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
+                <div style="flex: 1; min-width: 300px;">
+                    <h4 style="margin-bottom: 10px;">Customer Profile</h4>
+                    <img id="viewerCustomerPhoto" src="" alt="Customer Photo" style="width: 100%; height: 350px; object-fit: contain; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <p id="viewerCustomerPhotoStatus" style="color: #64748b; font-style: italic; display: none; margin-top:10px;">Not Available</p>
+                </div>
+                <div style="flex: 1; min-width: 300px;">
+                    <h4 style="margin-bottom: 10px;">ID Proof Document</h4>
+                    <img id="viewerIdProofPhoto" src="" alt="ID Proof" style="width: 100%; height: 350px; object-fit: contain; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <p id="viewerIdProofPhotoStatus" style="color: #64748b; font-style: italic; display: none; margin-top:10px;">Not Available</p>
+                </div>
+            </div>
+            
+            <button class="btn-primary" onclick="document.getElementById('photoViewerModal').style.display='none'" style="margin-top: 25px; width: 200px; padding: 10px; border-radius: 6px;">Close Window</button>
+        </div>
+    </div>
+
+    <script>
+        window.firebaseConfig = {
+            apiKey: "AIzaSyD1d53LVXEVRscJl5dWS8LDoPi7s6x2C1I",
+            authDomain: "adminlodge.firebaseapp.com",
+            projectId: "adminlodge",
+            storageBucket: "adminlodge.firebasestorage.app",
+            messagingSenderId: "420131634685",
+            appId: "1:420131634685:web:978017c2cfa6f833432d94",
+            measurementId: "G-J41F52DYHD"
+        };
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
+    <script src="receipt.js"></script>
+    <script src="booking.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
