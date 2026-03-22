@@ -428,6 +428,24 @@ function showRoomDetails(roomId) {
                     <div class="detail-text">No guest is currently assigned to this room.</div>
                 </div>
             </div>
+            
+            <div class="detail-section">
+                <h4><i class="fas fa-magic"></i> Manage Room Status</h4>
+                <div class="modal-actions" style="margin-top: 10px; padding-top: 0; border-top: none; gap: 10px; display: flex; flex-wrap: wrap;">
+                    <button class="btn-primary" style="background: #27AE60; flex: 1;" onclick="updateRoomStatus(${roomId}, 'available')">
+                        <i class="fas fa-check-circle"></i> Available
+                    </button>
+                    <button class="btn-primary" style="background: #E74C3C; flex: 1;" onclick="updateRoomStatus(${roomId}, 'occupied')">
+                        <i class="fas fa-bed"></i> Occupied
+                    </button>
+                    <button class="btn-primary" style="background: #F39C12; flex: 1;" onclick="updateRoomStatus(${roomId}, 'cleaning')">
+                        <i class="fas fa-broom"></i> Cleaning
+                    </button>
+                    <button class="btn-primary" style="background: #95A5A6; flex: 1;" onclick="updateRoomStatus(${roomId}, 'maintenance')">
+                        <i class="fas fa-tools"></i> Maintenance
+                    </button>
+                </div>
+            </div>
         `;
     } else {
         content += `
@@ -521,12 +539,25 @@ function closeRoomDetailsModal() {
     document.getElementById('roomDetailsModal').classList.remove('active');
 }
 
+window.updateRoomStatus = function(roomId, status) {
+    const room = data.rooms.find(r => r.id === roomId);
+    if (!room) return;
+    
+    room.status = status;
+    saveDataToStorage();
+    
+    // Refresh the rooms grid and the modal
+    loadRooms();
+    showRoomDetails(roomId);
+};
+
 function getActiveBookingForRoom(roomId) {
+    const numericRoomId = parseInt(roomId, 10);
     const activeStatuses = ['confirmed', 'pending', 'paid'];
     return [...data.bookings]
         .filter(booking => {
-            const hasRoom = booking.roomId === roomId || 
-                (booking.rooms && booking.rooms.some(r => r.roomId === roomId));
+            const hasRoom = parseInt(booking.roomId, 10) === numericRoomId || 
+                (booking.rooms && booking.rooms.some(r => parseInt(r.roomId, 10) === numericRoomId));
             return hasRoom && activeStatuses.includes(booking.status);
         })
         .sort((first, second) => new Date(second.checkIn) - new Date(first.checkIn))[0] || null;
@@ -582,11 +613,13 @@ function showCustomerDetails(customerId) {
     const customer = data.customers.find(c => c.id === customerId);
     if (!customer) return;
 
-    const faceIdStatus = customer.faceId.includes('Verified') ? 'verified' : 'pending';
-    const faceIdIcon = customer.faceId.includes('Verified') ? '✓' : '⏳';
+    const faceIdStr = customer.faceId || '';
+    const faceIdStatus = faceIdStr.includes('Verified') ? 'verified' : 'pending';
+    const faceIdIcon = faceIdStr.includes('Verified') ? '✓' : '⏳';
     
     let bookingHistoryHTML = '';
-    customer.bookingHistory.forEach(booking => {
+    if (Array.isArray(customer.bookingHistory)) {
+        customer.bookingHistory.forEach(booking => {
         const badgeClass = booking.status === 'completed' ? 'completed' : 'ongoing';
         bookingHistoryHTML += `
             <div class="booking-item">
@@ -603,12 +636,13 @@ function showCustomerDetails(customerId) {
                 </div>
             </div>
         `;
-    });
+        });
+    }
 
     const detailsHTML = `
         <div class="customer-detail-header">
             <div class="customer-photo">
-                <div class="customer-photo-frame" style="font-size: 60px;">${customer.name.charAt(0)}</div>
+                <div class="customer-photo-frame" style="font-size: 60px;">${(customer.name || 'C').charAt(0)}</div>
                 <div class="customer-photo-label">Customer Photo</div>
                 <div class="customer-photo-edit" onclick="alert('Photo upload feature coming soon')">📸 Upload Photo</div>
             </div>
@@ -698,7 +732,7 @@ function showCustomerDetails(customerId) {
                 </div>
                 <div class="detail-item">
                     <div class="detail-label-text">Avg Spending</div>
-                    <div class="detail-text highlight">₹${formatNumber(Math.round(customer.totalSpent / customer.visits))}</div>
+                    <div class="detail-text highlight">₹${formatNumber(customer.visits > 0 ? Math.round((customer.totalSpent || 0) / customer.visits) : 0)}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label-text">Customer Status</div>
@@ -1061,10 +1095,10 @@ function enforceRequestedRoomSetup() {
         .forEach(booking => {
             if (booking.rooms && Array.isArray(booking.rooms)) {
                 // Multi-room booking
-                booking.rooms.forEach(room => activeRoomIds.add(room.roomId));
+                booking.rooms.forEach(room => activeRoomIds.add(parseInt(room.roomId, 10)));
             } else if (booking.roomId) {
                 // Legacy single-room booking
-                activeRoomIds.add(booking.roomId);
+                activeRoomIds.add(parseInt(booking.roomId, 10));
             }
         });
 
@@ -1075,7 +1109,7 @@ function enforceRequestedRoomSetup() {
 
         return {
             ...room,
-            status: activeRoomIds.has(room.id) ? 'occupied' : 'available'
+            status: activeRoomIds.has(parseInt(room.id, 10)) ? 'occupied' : 'available'
         };
     });
 

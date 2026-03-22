@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sri Padmavati Pleasants - Admin Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
 </head>
+
 <body>
     <!-- Login Page -->
     <div id="loginPage" class="login-container">
@@ -48,7 +52,8 @@
                             <span>Real-time Analytics</span>
                         </div>
                         <div style="margin-bottom: 15px;">
-                            <i class="fas fa-calendar-check" style="color: var(--primary-gold); margin-right: 10px;"></i>
+                            <i class="fas fa-calendar-check"
+                                style="color: var(--primary-gold); margin-right: 10px;"></i>
                             <span>Booking Management</span>
                         </div>
                         <div style="margin-bottom: 15px;">
@@ -251,7 +256,8 @@
                                 <div class="activity-icon booking"><i class="fas fa-calendar-check"></i></div>
                                 <div>
                                     <div class="activity-title">Live Activity Feed</div>
-                                    <div class="activity-description">New booking and payment events will appear here.</div>
+                                    <div class="activity-description">New booking and payment events will appear here.
+                                    </div>
                                     <small style="color: var(--text-light);">Waiting for first activity</small>
                                 </div>
                             </div>
@@ -259,7 +265,8 @@
                                 <div class="activity-icon payment"><i class="fas fa-credit-card"></i></div>
                                 <div>
                                     <div class="activity-title">No Seed Data</div>
-                                    <div class="activity-description">This system starts clean and uses real-time records only.</div>
+                                    <div class="activity-description">This system starts clean and uses real-time
+                                        records only.</div>
                                     <small style="color: var(--text-light);">Ready for production usage</small>
                                 </div>
                             </div>
@@ -267,7 +274,8 @@
                                 <div class="activity-icon booking"><i class="fas fa-calendar-check"></i></div>
                                 <div>
                                     <div class="activity-title">Tip</div>
-                                    <div class="activity-description">Create your first booking to populate dashboard analytics.</div>
+                                    <div class="activity-description">Create your first booking to populate dashboard
+                                        analytics.</div>
                                     <small style="color: var(--text-light);">Real data updates instantly</small>
                                 </div>
                             </div>
@@ -314,7 +322,8 @@
                         <div class="pricing-info" style="margin-bottom: 0;">
                             <h4>Booking Instructions</h4>
                             <p>Only available rooms are shown here.</p>
-                            <p>Advance amount is collected during check-in and the booking is added directly to billing.</p>
+                            <p>Advance amount is collected during check-in and the booking is added directly to billing.
+                            </p>
                         </div>
                     </div>
                     <div class="card">
@@ -339,7 +348,7 @@
                                     <select id="bookingRoomId" required></select>
                                 </div>
                             </div>
-                            
+
                             <!-- Guest Demographics -->
                             <div class="form-row" style="margin-bottom: 20px;">
                                 <div class="form-group" style="flex: 1;">
@@ -357,13 +366,18 @@
                             </div>
 
                             <!-- Multi-Room Selection -->
-                            <div class="form-group" style="background: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                                <h4 style="margin: 0 0 12px 0; font-size: 14px;"><i class="fas fa-door-open"></i> Selected Rooms for This Guest</h4>
-                                <div id="selectedRoomsDisplay" style="margin-bottom: 12px; min-height: 40px; background: white; padding: 10px; border-radius: 4px; border-left: 3px solid var(--primary-gold);">
-                                    <small style="color: var(--text-light);">First room will be added when you select it above</small>
+                            <div class="form-group"
+                                style="background: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <h4 style="margin: 0 0 12px 0; font-size: 14px;"><i class="fas fa-door-open"></i>
+                                    Selected Rooms for This Guest</h4>
+                                <div id="selectedRoomsDisplay"
+                                    style="margin-bottom: 12px; min-height: 40px; background: white; padding: 10px; border-radius: 4px; border-left: 3px solid var(--primary-gold);">
+                                    <small style="color: var(--text-light);">First room will be added when you select it
+                                        above</small>
                                 </div>
                                 <div style="display: flex; gap: 10px;">
-                                    <button type="button" class="btn-primary" id="addExtraRoomBtn" onclick="addExtraRoomToBooking()" style="flex: 1;">
+                                    <button type="button" class="btn-primary" id="addExtraRoomBtn"
+                                        onclick="addExtraRoomToBooking()" style="flex: 1;">
                                         <i class="fas fa-plus"></i> Add Extra Room for Same Guest
                                     </button>
                                 </div>
@@ -382,10 +396,12 @@
                                 <div class="form-group">
                                     <label>ID Proof Number *</label>
                                     <input type="text" id="bookingIdProofNumber" required>
-                                    <small id="bookingIdProofHint" style="color: var(--text-light); font-size: 11px; display: block; margin-top: 6px;">Select ID type to see required format</small>
+                                    <small id="bookingIdProofHint"
+                                        style="color: var(--text-light); font-size: 11px; display: block; margin-top: 6px;">Select
+                                        ID type to see required format</small>
                                 </div>
                             </div>
-                            
+
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Vehicle Number</label>
@@ -447,13 +463,17 @@
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Extras Amount (₹) - Common</label>
-                                    <input type="number" id="bookingExtras" value="0" min="0" placeholder="Additional charges">
-                                    <small style="color: var(--text-light); margin-top: 4px;">Laundry, room service, etc.</small>
+                                    <input type="number" id="bookingExtras" value="0" min="0"
+                                        placeholder="Additional charges">
+                                    <small style="color: var(--text-light); margin-top: 4px;">Laundry, room service,
+                                        etc.</small>
                                 </div>
                                 <div class="form-group">
                                     <label>Extra Bed Charges (₹)</label>
-                                    <input type="number" id="bookingExtraBed" value="0" min="0" placeholder="Extra bed charge">
-                                    <small style="color: var(--text-light); margin-top: 4px;">Applied to entire booking</small>
+                                    <input type="number" id="bookingExtraBed" value="0" min="0"
+                                        placeholder="Extra bed charge">
+                                    <small style="color: var(--text-light); margin-top: 4px;">Applied to entire
+                                        booking</small>
                                 </div>
                             </div>
 
@@ -467,7 +487,8 @@
                                     <button type="button" class="btn-primary" id="startBookingCameraBtn">
                                         <i class="fas fa-video"></i> Start Camera
                                     </button>
-                                    <button type="button" class="btn-primary" id="stopBookingCameraBtn" style="display: none;">
+                                    <button type="button" class="btn-primary" id="stopBookingCameraBtn"
+                                        style="display: none;">
                                         <i class="fas fa-video-slash"></i> Stop Camera
                                     </button>
                                 </div>
@@ -484,10 +505,12 @@
                                     <div class="capture-card">
                                         <h5>Customer Photo *</h5>
                                         <div class="capture-preview" id="customerPhotoPreviewWrap">
-                                            <img id="customerPhotoPreview" alt="Customer Photo Preview" style="display: none;">
+                                            <img id="customerPhotoPreview" alt="Customer Photo Preview"
+                                                style="display: none;">
                                             <span id="customerPhotoEmpty">No photo captured</span>
                                         </div>
-                                        <button type="button" class="btn-primary capture-btn" id="captureCustomerPhotoBtn">
+                                        <button type="button" class="btn-primary capture-btn"
+                                            id="captureCustomerPhotoBtn">
                                             <i class="fas fa-user"></i> Capture Customer Photo
                                         </button>
                                     </div>
@@ -495,10 +518,12 @@
                                     <div class="capture-card">
                                         <h5>ID Proof Photo *</h5>
                                         <div class="capture-preview" id="idProofPhotoPreviewWrap">
-                                            <img id="idProofPhotoPreview" alt="ID Proof Photo Preview" style="display: none;">
+                                            <img id="idProofPhotoPreview" alt="ID Proof Photo Preview"
+                                                style="display: none;">
                                             <span id="idProofPhotoEmpty">No ID proof photo captured</span>
                                         </div>
-                                        <button type="button" class="btn-primary capture-btn" id="captureIdProofPhotoBtn">
+                                        <button type="button" class="btn-primary capture-btn"
+                                            id="captureIdProofPhotoBtn">
                                             <i class="fas fa-id-card"></i> Capture ID Proof Photo
                                         </button>
                                     </div>
@@ -520,7 +545,7 @@
                     <div class="page-header">
                         <h2>Room Management</h2>
                     </div>
-                    
+
                     <div class="floor-section">
                         <h3 class="floor-title"><i class="fas fa-building"></i> F1 (5 Rooms)</h3>
                         <div class="rooms-grid" id="floor1Rooms"></div>
@@ -826,23 +851,30 @@
     <!-- Photo Viewer Modal -->
     <div id="photoViewerModal" class="modal">
         <div class="modal-content customer-modal-large" style="max-width: 800px; text-align: center;">
-            <span class="close-btn" onclick="document.getElementById('photoViewerModal').style.display='none'">&times;</span>
-            <h3 id="photoViewerTitle" style="color: var(--primary-brand); font-family: 'Inter', sans-serif;">Guest Photos</h3>
-            
+            <span class="close-btn"
+                onclick="document.getElementById('photoViewerModal').style.display='none'">&times;</span>
+            <h3 id="photoViewerTitle" style="color: var(--primary-brand); font-family: 'Inter', sans-serif;">Guest
+                Photos</h3>
+
             <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
                 <div style="flex: 1; min-width: 300px;">
                     <h4 style="margin-bottom: 10px;">Customer Profile</h4>
-                    <img id="viewerCustomerPhoto" src="" alt="Customer Photo" style="width: 100%; height: 350px; object-fit: contain; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <p id="viewerCustomerPhotoStatus" style="color: #64748b; font-style: italic; display: none; margin-top:10px;">Not Available</p>
+                    <img id="viewerCustomerPhoto" src="" alt="Customer Photo"
+                        style="width: 100%; height: 350px; object-fit: contain; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <p id="viewerCustomerPhotoStatus"
+                        style="color: #64748b; font-style: italic; display: none; margin-top:10px;">Not Available</p>
                 </div>
                 <div style="flex: 1; min-width: 300px;">
                     <h4 style="margin-bottom: 10px;">ID Proof Document</h4>
-                    <img id="viewerIdProofPhoto" src="" alt="ID Proof" style="width: 100%; height: 350px; object-fit: contain; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <p id="viewerIdProofPhotoStatus" style="color: #64748b; font-style: italic; display: none; margin-top:10px;">Not Available</p>
+                    <img id="viewerIdProofPhoto" src="" alt="ID Proof"
+                        style="width: 100%; height: 350px; object-fit: contain; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <p id="viewerIdProofPhotoStatus"
+                        style="color: #64748b; font-style: italic; display: none; margin-top:10px;">Not Available</p>
                 </div>
             </div>
-            
-            <button class="btn-primary" onclick="document.getElementById('photoViewerModal').style.display='none'" style="margin-top: 25px; width: 200px; padding: 10px; border-radius: 6px;">Close Window</button>
+
+            <button class="btn-primary" onclick="document.getElementById('photoViewerModal').style.display='none'"
+                style="margin-top: 25px; width: 200px; padding: 10px; border-radius: 6px;">Close Window</button>
         </div>
     </div>
 
@@ -865,4 +897,5 @@
     <script src="booking.js"></script>
     <script src="script.js"></script>
 </body>
+
 </html>
