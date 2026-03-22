@@ -1103,14 +1103,13 @@ function enforceRequestedRoomSetup() {
         });
 
     data.rooms = data.rooms.map(room => {
-        if (room.status === 'maintenance' || room.status === 'cleaning') {
-            return room;
+        // If there is an active booking on this room, forcefully mark it as occupied
+        if (activeRoomIds.has(parseInt(room.id, 10))) {
+            return { ...room, status: 'occupied' };
         }
 
-        return {
-            ...room,
-            status: activeRoomIds.has(parseInt(room.id, 10)) ? 'occupied' : 'available'
-        };
+        // Otherwise, respect whatever status it currently has (so manual overrides stick)
+        return room;
     });
 
     data.bookings.forEach(booking => {
