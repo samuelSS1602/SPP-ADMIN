@@ -65,6 +65,16 @@ function showReceipt(bookingId) {
     // Convert newlines in address to <br> if exist
     guestAddress = guestAddress.replace(/\n/g, '<br>');
 
+    let isFullyPaid = false;
+    if (typeof getBookingBalance === 'function') {
+        isFullyPaid = getBookingBalance(booking) <= 0 || booking.status === 'paid' || booking.status === 'completed';
+    }
+    
+    const paidBtnStyle = isFullyPaid 
+        ? "padding:6px 14px; background:#95a5a6; color:#fff; border:none; border-radius:6px; cursor:not-allowed; font-weight:600; font-family:'Inter',sans-serif; margin-left:10px;" 
+        : "padding:6px 14px; background:#27AE60; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-family:'Inter',sans-serif; box-shadow:0 4px 6px rgba(39, 174, 96, 0.2); transition:all 0.2s; margin-left:10px;";
+    const paidBtnText = isFullyPaid ? `<i class="fas fa-check"></i> Already Paid` : `<i class="fas fa-check-circle"></i> Mark as Paid`;
+
     // Display all rooms for multi-room bookings
     const roomsDisplay = (booking.rooms && booking.rooms.length > 1)
         ? booking.rooms.map(r => r.roomName).join(', ')
@@ -103,6 +113,7 @@ function showReceipt(bookingId) {
                     <input type="number" id="inlineChildInput" value="${cCount}" style="padding:4px 8px; width:50px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; font-weight:600;">
                 </div>
                 <button onclick="applyDiscountToReceipt()" style="padding:6px 14px; background:var(--primary-brand); color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-family:'Inter',sans-serif; box-shadow:0 4px 6px rgba(79, 70, 229, 0.2); transition:all 0.2s; margin-left:10px;">↻ Update Invoice</button>
+                <button onclick="markReceiptAsPaid()" style="${paidBtnStyle}" id="markPaidBtn" ${isFullyPaid ? 'disabled' : ''}>${paidBtnText}</button>
             </div>
             <p style="margin:0; font-size:11px; color:#64748b;">Adjust any charges or guest counts and click Update.</p>
         </div>
@@ -288,6 +299,34 @@ window.applyDiscountToReceipt = function () {
         booking.extras = ext;
         if (typeof saveDataToStorage === 'function') saveDataToStorage();
         if (typeof syncBookingToFirebase === 'function') syncBookingToFirebase(booking);
+        
+        if (typeof loadPayments === 'function') loadPayments();
+        if (typeof updateRealtimeDashboardMetrics === 'function') updateRealtimeDashboardMetrics();
+        if (typeof loadBookings === 'function') loadBookings();
+        
+        showReceipt(currentReceiptBookingId);
+    }
+};
+
+window.markReceiptAsPaid = function () {
+    const booking = data.bookings.find(b => b.id === currentReceiptBookingId);
+    if (booking) {
+        if (booking.status !== 'completed' && booking.status !== 'paid') {
+            booking.status = 'paid';
+        }
+        
+        if (typeof getBookingTotal === 'function') {
+            booking.advance = getBookingTotal(booking);
+        }
+
+        if (typeof saveDataToStorage === 'function') saveDataToStorage();
+        if (typeof syncBookingToFirebase === 'function') syncBookingToFirebase(booking);
+        
+        if (typeof loadPayments === 'function') loadPayments();
+        if (typeof updateRealtimeDashboardMetrics === 'function') updateRealtimeDashboardMetrics();
+        if (typeof loadBookings === 'function') loadBookings();
+        
+        alert(`Booking ${booking.id} marked as fully paid!`);
         showReceipt(currentReceiptBookingId);
     }
 };

@@ -30,7 +30,7 @@ const LODGE_GST_NUMBER = '33ANCPP8116B1ZF';
 // Multi-room booking support
 let multiRoomBookingSelection = [];  // Array to store {roomId, roomName, floor, price} objects
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initFirebaseServices();
     hydrateDataFromStorage();
     purgeLegacySeedData();
@@ -101,7 +101,7 @@ function showDashboard() {
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('dashboardPage').style.display = 'grid';
     startCheckoutReminderService();
-    
+
     setTimeout(() => {
         loadDashboard();
         createCharts();
@@ -131,7 +131,7 @@ function setupMultiRoomBookingListeners() {
     const roomSelect = document.getElementById('bookingRoomId');
     if (!roomSelect) return;
 
-    roomSelect.addEventListener('change', function() {
+    roomSelect.addEventListener('change', function () {
         const selectedRoomId = parseInt(this.value, 10);
         if (!selectedRoomId) {
             multiRoomBookingSelection = [];
@@ -166,8 +166,8 @@ function addExtraRoomToBooking() {
         return;
     }
 
-    const availableRooms = data.rooms.filter(room => 
-        room.status === 'available' && 
+    const availableRooms = data.rooms.filter(room =>
+        room.status === 'available' &&
         !multiRoomBookingSelection.some(r => r.roomId === room.id)
     );
 
@@ -177,7 +177,7 @@ function addExtraRoomToBooking() {
     }
 
     // Show a simple modal or dropdown to select extra room
-    let roomOptions = availableRooms.map(room => 
+    let roomOptions = availableRooms.map(room =>
         `<option value="${room.id}">${room.name} - Floor ${room.floor} - ₹${formatNumber(room.price)}</option>`
     ).join('');
 
@@ -186,12 +186,12 @@ function addExtraRoomToBooking() {
             <h4>Select Additional Room for Same Guest</h4>
             <p style="font-size: 13px; color: var(--text-light);">These rooms are currently selected:</p>
             <div style="background: #f0f4f8; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                ${multiRoomBookingSelection.map((r, idx) => 
-                    `<div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #ddd;">
+                ${multiRoomBookingSelection.map((r, idx) =>
+        `<div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #ddd;">
                         <span><strong>${r.roomName}</strong> (Floor ${r.floor})</span>
                         <span>₹${formatNumber(r.price)}${idx > 0 ? ` <button style="padding: 2px 6px; color: red;" onclick="removeRoomFromSelection(${r.roomId})">Remove</button>` : ''}</span>
                     </div>`
-                ).join('')}
+    ).join('')}
             </div>
             <select id="extraRoomSelect" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 12px;">
                 <option value="">-- Select room to add --</option>
@@ -299,12 +299,12 @@ function navigateTo(page, navElement) {
 
     const titles = {
         dashboard: 'Dashboard', bookings: 'Booking Management', rooms: 'Room Management',
-        pricing: 'Room Pricing', customers: 'Customer Details', guests: 'Guest Management', 
+        pricing: 'Room Pricing', customers: 'Customer Details', guests: 'Guest Management',
         payments: 'Payment & Billing', analytics: 'Analytics & Reports', 'new-booking': 'Create New Booking'
     };
     document.getElementById('pageTitle').textContent = titles[page];
 
-    switch(page) {
+    switch (page) {
         case 'dashboard': loadDashboard(); break;
         case 'bookings': loadBookings(); break;
         case 'new-booking': loadNewBookingPage(); break;
@@ -539,13 +539,13 @@ function closeRoomDetailsModal() {
     document.getElementById('roomDetailsModal').classList.remove('active');
 }
 
-window.updateRoomStatus = function(roomId, status) {
+window.updateRoomStatus = function (roomId, status) {
     const room = data.rooms.find(r => r.id === roomId);
     if (!room) return;
-    
+
     room.status = status;
     saveDataToStorage();
-    
+
     // Refresh the rooms grid and the modal
     loadRooms();
     showRoomDetails(roomId);
@@ -556,7 +556,7 @@ function getActiveBookingForRoom(roomId) {
     const activeStatuses = ['confirmed', 'pending', 'paid'];
     return [...data.bookings]
         .filter(booking => {
-            const hasRoom = parseInt(booking.roomId, 10) === numericRoomId || 
+            const hasRoom = parseInt(booking.roomId, 10) === numericRoomId ||
                 (booking.rooms && booking.rooms.some(r => parseInt(r.roomId, 10) === numericRoomId));
             return hasRoom && activeStatuses.includes(booking.status);
         })
@@ -616,12 +616,12 @@ function showCustomerDetails(customerId) {
     const faceIdStr = customer.faceId || '';
     const faceIdStatus = faceIdStr.includes('Verified') ? 'verified' : 'pending';
     const faceIdIcon = faceIdStr.includes('Verified') ? '✓' : '⏳';
-    
+
     let bookingHistoryHTML = '';
     if (Array.isArray(customer.bookingHistory)) {
         customer.bookingHistory.forEach(booking => {
-        const badgeClass = booking.status === 'completed' ? 'completed' : 'ongoing';
-        bookingHistoryHTML += `
+            const badgeClass = booking.status === 'completed' ? 'completed' : 'ongoing';
+            bookingHistoryHTML += `
             <div class="booking-item">
                 <div class="booking-dates">
                     <strong>${booking.id}</strong>
@@ -821,17 +821,18 @@ function loadPayments() {
     let totalReceived = 0;
 
     data.bookings.forEach(booking => {
-        const total = booking.roomRate + booking.extras;
-        const balance = booking.roomRate - booking.advance + booking.extras;
-        const status = balance <= 0 ? 'paid' : 'pending';
-        const pendingAmount = Math.max(balance, 0);
+        const total = getBookingTotal(booking);
+        const balance = getBookingBalance(booking);
+        const isFullyPaid = balance <= 0 || booking.status === 'paid';
+        const statusBadge = isFullyPaid ? 'paid' : 'pending';
+        const pendingAmount = isFullyPaid ? 0 : balance;
         const receivedAmount = total - pendingAmount;
 
         totalRevenue += total;
         totalPending += pendingAmount;
         totalReceived += receivedAmount;
 
-        html += `<tr><td><strong>INV-${booking.id}</strong></td><td>${booking.guestName}</td><td>${booking.roomName}</td><td>${formatDate(booking.checkIn)}</td><td>₹${formatNumber(booking.advance)}</td><td>₹${formatNumber(Math.max(balance, 0))}</td><td>₹${formatNumber(booking.extras)}</td><td><span class="status-badge ${status}">${capitalizeFirst(status)}</span></td><td><button class="btn-primary" onclick="openExtraAmountModal('${booking.id}')" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-plus"></i> Extra</button></td><td><button class="btn-primary" onclick="showReceipt('${booking.id}')" style="padding: 6px 12px; font-size: 11px;"><i class="fas fa-download"></i></button></td></tr>`;
+        html += `<tr><td><strong>INV-${booking.id}</strong></td><td>${booking.guestName}</td><td>${booking.roomName}</td><td>${formatDate(booking.checkIn)}</td><td>₹${formatNumber(booking.advance)}</td><td>₹${formatNumber(pendingAmount)}</td><td>₹${formatNumber(booking.extras)}</td><td><span class="status-badge ${statusBadge}">${capitalizeFirst(statusBadge)}</span></td><td><button class="btn-primary" onclick="openExtraAmountModal('${booking.id}')" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-plus"></i> Extra</button></td><td><button class="btn-primary" onclick="showReceipt('${booking.id}')" style="padding: 6px 12px; font-size: 11px;"><i class="fas fa-download"></i></button></td></tr>`;
     });
 
     const tableBody = document.getElementById('paymentsTable');
@@ -909,12 +910,12 @@ function closePriceModal() {
 function updateRoomPrice() {
     const newPrice = parseFloat(document.getElementById('newPriceInput').value);
     const roomId = parseInt(document.getElementById('newPriceInput').dataset.roomId);
-    
+
     if (!newPrice || newPrice < 100) {
         alert('Please enter a valid price (minimum ₹100)');
         return;
     }
-    
+
     const room = data.rooms.find(r => r.id === roomId);
     if (room) {
         const oldPrice = room.price;
@@ -945,14 +946,14 @@ function updateRealtimeDashboardMetrics() {
 
     const revenueToday = data.bookings
         .filter(booking => booking.checkIn === today)
-        .reduce((sum, booking) => sum + (booking.roomRate + booking.extras), 0);
+        .reduce((sum, booking) => sum + getBookingTotal(booking), 0);
 
     const monthlyRevenue = data.bookings
         .filter(booking => {
             const checkInDate = new Date(booking.checkIn);
             return checkInDate.getMonth() === currentMonth && checkInDate.getFullYear() === currentYear;
         })
-        .reduce((sum, booking) => sum + (booking.roomRate + booking.extras), 0);
+        .reduce((sum, booking) => sum + getBookingTotal(booking), 0);
 
     setTextById('metricTotalBookings', String(totalBookings));
     setTextById('metricTotalBookingsInfo', 'Updated from current bookings');
@@ -970,7 +971,7 @@ function updateRealtimeDashboardMetrics() {
 }
 
 function startLiveClock() {
-    const renderClock = function() {
+    const renderClock = function () {
         const node = document.getElementById('liveDateTime');
         if (!node) return;
         node.textContent = new Date().toLocaleString('en-IN', {
@@ -1013,6 +1014,32 @@ function getCustomerRecordForBooking(booking) {
     ) || null;
 }
 
+function updateRoomStatusesFromBookings() {
+    if (!data.rooms || !data.bookings) return;
+
+    const activeStatuses = ['confirmed', 'pending', 'paid'];
+    const activeBookings = data.bookings.filter(b => activeStatuses.includes(b.status));
+
+    // Collect all occupied room IDs based on valid bookings
+    const occupiedRoomIds = new Set();
+    activeBookings.forEach(booking => {
+        if (booking.rooms && booking.rooms.length > 0) {
+            booking.rooms.forEach(br => occupiedRoomIds.add(parseInt(br.roomId, 10)));
+        } else if (booking.roomId) {
+            occupiedRoomIds.add(parseInt(booking.roomId, 10));
+        }
+    });
+
+    // Update rooms array
+    data.rooms.forEach(room => {
+        if (occupiedRoomIds.has(room.id)) {
+            room.status = 'occupied';
+        } else if (room.status === 'occupied') {
+            room.status = 'available'; // Only revert if it was occupied but has no booking
+        }
+    });
+}
+
 function hydrateDataFromStorage() {
     try {
         const storedRaw = localStorage.getItem('lodgeAdminData');
@@ -1025,6 +1052,8 @@ function hydrateDataFromStorage() {
         if (Array.isArray(storedData.bookings)) data.bookings = storedData.bookings;
         if (Array.isArray(storedData.customers)) data.customers = storedData.customers;
         if (Array.isArray(storedData.guests)) data.guests = storedData.guests;
+
+        updateRoomStatusesFromBookings();
     } catch (error) {
         console.warn('Could not load saved data:', error);
     }
@@ -1088,7 +1117,7 @@ function enforceRequestedRoomSetup() {
     });
 
     const activeRoomIds = new Set();
-    
+
     // Collect room IDs from both new multi-room bookings and legacy single-room bookings
     data.bookings
         .filter(booking => booking.status !== 'completed')
@@ -1202,7 +1231,7 @@ function processCheckoutReminders() {
         const oneHourBeforeCheckout = new Date(checkoutDateTime.getTime() - 60 * 60 * 1000);
         if (now < oneHourBeforeCheckout) return;
 
-        const message = buildCheckoutWhatsAppMessage(booking);
+        const message = buildCheckoutReminderWhatsAppMessage(booking);
         const shouldSend = confirm(`Checkout reminder is due for ${booking.guestName} (${booking.roomName}). Send WhatsApp now?`);
         if (!shouldSend) return;
 
@@ -1214,11 +1243,42 @@ function processCheckoutReminders() {
 }
 
 function buildCheckInWhatsAppMessage(booking) {
-    return `Welcome to Sripadmavati Pleasants, Palani 🙏\n\nDear Guest,\nYour room booking has been successfully confirmed.\n\n🗓 Check-in Date: ${formatDate(booking.checkIn)}\n🕒 Check-in Time: ${booking.checkInTime}\n🛏 Room No: ${booking.roomName}\n\nAddress: Sripadmavati Pleasants, Palani.\n\nIf you need any assistance, please contact the reception.\n\nWe wish you a pleasant and comfortable stay with us.\n\nThank you,\nSripadmavati Pleasants\nPalani\n\n--- Tamil Message ---\n\nஸ்ரீ பத்மாவதி ப்ளீசன்ட்ஸ், பழனி வரவேற்கிறது 🙏\n\nஅன்பார்ந்த விருந்தினருக்கு,\nஉங்கள் அறை முன்பதிவு வெற்றிகரமாக உறுதிசெய்யப்பட்டுள்ளது.\n\n📅 செக்-இன் தேதி: ${formatDate(booking.checkIn)}\n🕒 செக்-இன் நேரம்: ${booking.checkInTime}\n🛏 அறை எண்: ${booking.roomName}\n\nமுகவரி: ஸ்ரீ பத்மாவதி ப்ளீசன்ட்ஸ், பழனி.\n\nஉங்களுக்கு ஏதேனும் உதவி தேவைப்பட்டால், தயவுசெய்து ரிசெப்ஷனை தொடர்பு கொள்ளவும்.\n\nஉங்கள் தங்கும் காலம் இனிமையாக அமைய எங்கள் மனமார்ந்த வாழ்த்துகள்.\n\nநன்றி,\nஸ்ரீ பத்மாவதி ப்ளீசன்ட்ஸ்\nபழனி`;
+    return `Welcome to Sri Padmavati Pleasants, Palani 🙏
+Room: ${booking.roomName}
+
+We wish you a comfortable stay. Need help? Call Reception.
+
+ஸ்ரீ பத்மாவதி ப்ளீசன்ட்ஸ், பழனிக்கு வரவேற்கிறோம் 🙏
+அறை: ${booking.roomName}
+
+உங்கள் வருகைக்கு நன்றி. உதவிக்கு ரிசப்ஷனைத் தொடர்புகொள்ளவும்.`;
+}
+
+function buildCheckoutReminderWhatsAppMessage(booking) {
+    return `Hello from Sri Padmavati Pleasants 🙏
+A gentle reminder: your check-out time is approaching. Please ensure all your belongings are packed.
+
+வணக்கம் 🙏
+உங்கள் செக்-அவுட் நேரம் நெருங்குகிறது. தயவுசெய்து உங்கள் உடைமைகளை எடுத்துக்கொள்ளவும்.`;
 }
 
 function buildCheckoutWhatsAppMessage(booking) {
-    return `Thank you for staying with Sripadmavati Pleasants, Palani 🙏\n\nDear Guest,\nWe hope you had a pleasant stay with us.\n\n🕒 Check-out Time: ${booking.checkOutTime}\nRoom No: ${booking.roomName}\n\nPlease ensure all personal belongings are collected before leaving.\n\nWe look forward to welcoming you again.\n\nThank you,\nSripadmavati Pleasants\nPalani\n\n--- Tamil Message ---\n\nஸ்ரீ பத்மாவதி ப்ளீசன்ட்ஸ், பழனியில் தங்கியதற்கு நன்றி 🙏\n\nஅன்பார்ந்த விருந்தினருக்கு,\nஎங்களுடன் தங்கிய உங்களுக்கு எங்கள் மனமார்ந்த நன்றி.\n\n🕒 செக்-அவுட் நேரம்: ${booking.checkOutTime}\n🛏 அறை எண்: ${booking.roomName}\n\nவெளியேறும் முன் உங்கள் தனிப்பட்ட பொருட்களை சரிபார்த்து எடுத்துச் செல்லுங்கள்.\n\nமீண்டும் உங்களை வரவேற்க ஆவலுடன் காத்திருக்கிறோம்.\n\nநன்றி,\nஸ்ரீ பத்மாவதி ப்ளீசன்ட்ஸ்\nபழனி`;
+    return `Thank you for staying at Sri Padmavati Pleasants, Palani 🙏
+We hope you enjoyed your stay. Have a safe journey!
+
+ஸ்ரீ பத்மாவதி ப்ளீசன்ட்ஸ்-ல் தங்கியதற்கு நன்றி 🙏
+உங்கள் பயணம் இனியதாக அமைய வாழ்த்துக்கள்!`;
+}
+
+function sendCheckoutWhatsAppMessage(booking) {
+    const phone = normalizePhoneForWhatsApp(booking.guestPhone || '');
+    if (!phone) return;
+
+    const message = buildCheckoutWhatsAppMessage(booking);
+    const shouldSend = confirm(`Send WhatsApp checkout thank you message to ${booking.guestName}?`);
+    if (!shouldSend) return;
+
+    openWhatsAppMessage(phone, message);
 }
 
 function normalizePhoneForWhatsApp(phoneNumber) {
@@ -1301,9 +1361,9 @@ async function syncBookingToFirebase(booking) {
 
     // To avoid CORS issues with Firebase Storage on localhost, 
     // we save massive base64 image strings into a separate Firestore collection.
-    if ((booking.customerPhoto && booking.customerPhoto.startsWith('data:image')) || 
+    if ((booking.customerPhoto && booking.customerPhoto.startsWith('data:image')) ||
         (booking.idProofPhoto && booking.idProofPhoto.startsWith('data:image'))) {
-        
+
         firebaseDb.collection('booking_photos').doc(String(booking.id)).set({
             customerPhoto: booking.customerPhoto || null,
             idProofPhoto: booking.idProofPhoto || null,
@@ -1318,14 +1378,14 @@ async function syncBookingToFirebase(booking) {
             cloudBooking[key] = booking[key];
         }
     }
-    
+
     if (booking.customerPhoto || booking.customerPhotoUrl) {
         cloudBooking.hasCustomerPhoto = true;
     }
     if (booking.idProofPhoto || booking.idProofPhotoUrl) {
         cloudBooking.hasIdProofPhoto = true;
     }
-    
+
     cloudBooking.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
 
     firebaseDb
@@ -1353,7 +1413,7 @@ function syncCustomerToFirebase(customer) {
             cloudCustomer[key] = customer[key];
         }
     }
-    
+
     cloudCustomer.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
 
     firebaseDb
@@ -1381,13 +1441,18 @@ function downloadDailyRevenue() {
         data_export.push(['No records', '-', '-', 0, 0, 0, 0]);
     } else {
         todaysBookings.forEach(booking => {
+            const days = calculateBookingDays(booking);
+            const totalRoom = (Number(booking.roomRate) || 0) * days;
+            const discount = Number(booking.discount) || 0;
+            const totalGrossRoom = Math.max(0, totalRoom - discount);
+
             data_export.push([
                 booking.checkInTime || 'N/A',
                 booking.roomName || '-',
                 booking.guestName || '-',
-                Number(booking.roomRate) || 0,
+                totalGrossRoom,
                 Number(booking.advance) || 0,
-                Number(booking.extras) || 0,
+                (Number(booking.extras) || 0) + (Number(booking.extraBed) || 0),
                 getBookingTotal(booking)
             ]);
         });
@@ -1416,7 +1481,7 @@ function downloadMonthlyRevenue() {
 
         const advance = monthBookings.reduce((sum, booking) => sum + (Number(booking.advance) || 0), 0);
         const balance = monthBookings.reduce((sum, booking) => sum + getBookingBalance(booking), 0);
-        const extras = monthBookings.reduce((sum, booking) => sum + (Number(booking.extras) || 0), 0);
+        const extras = monthBookings.reduce((sum, booking) => sum + (Number(booking.extras) || 0) + (Number(booking.extraBed) || 0), 0);
         const total = monthBookings.reduce((sum, booking) => sum + getBookingTotal(booking), 0);
 
         return [`${month} ${currentYear}`, monthBookings.length, advance, balance, extras, total];
@@ -1457,10 +1522,15 @@ function downloadYearlyRevenue() {
 
         const yearSummary = yearlyMap.get(year);
         yearSummary.bookings += 1;
-        yearSummary.roomRateRevenue += Number(booking.roomRate) || 0;
+        const days = calculateBookingDays(booking);
+        const totalRoom = (Number(booking.roomRate) || 0) * days;
+        const discount = Number(booking.discount) || 0;
+        const totalGrossRoom = Math.max(0, totalRoom - discount);
+
+        yearSummary.roomRateRevenue += totalGrossRoom;
         yearSummary.advanceCollected += Number(booking.advance) || 0;
         yearSummary.balanceCollected += getBookingBalance(booking);
-        yearSummary.extrasRevenue += Number(booking.extras) || 0;
+        yearSummary.extrasRevenue += (Number(booking.extras) || 0) + (Number(booking.extraBed) || 0);
         yearSummary.totalRevenue += getBookingTotal(booking);
     });
 
@@ -1636,14 +1706,14 @@ function capitalizeFirst(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-window.onclick = function(event) {
+window.onclick = function (event) {
     const receiptModal = document.getElementById('receiptModal');
     const priceModal = document.getElementById('priceModal');
     const customerDetailsModal = document.getElementById('customerDetailsModal');
     const addCustomerModal = document.getElementById('addCustomerModal');
     const extraAmountModal = document.getElementById('extraAmountModal');
     const roomDetailsModal = document.getElementById('roomDetailsModal');
-    
+
     if (event.target == receiptModal) closeReceiptModal();
     if (event.target == priceModal) closePriceModal();
     if (event.target == customerDetailsModal) closeCustomerDetailsModal();
@@ -1652,7 +1722,7 @@ window.onclick = function(event) {
     if (event.target == roomDetailsModal) closeRoomDetailsModal();
 }
 
-window.addEventListener('beforeunload', function() {
+window.addEventListener('beforeunload', function () {
     stopBookingCameraStream();
     stopCheckoutReminderService();
     if (liveClockTimer) {
@@ -1669,7 +1739,7 @@ async function uploadBase64ToStorage(base64Data, path) {
         const storageRef = firebaseStorage.ref().child(path);
         await storageRef.put(blob);
         return await storageRef.getDownloadURL();
-    } catch(err) {
+    } catch (err) {
         console.error("Storage upload failed for", path, err);
         return null;
     }
@@ -1677,7 +1747,7 @@ async function uploadBase64ToStorage(base64Data, path) {
 
 async function fetchAllDataFromFirebase() {
     if (!firebaseEnabled || !firebaseDb) return;
-    
+
     try {
         console.log("Fetching cloud data...");
         // 1. Fetch Customers
@@ -1687,7 +1757,7 @@ async function fetchAllDataFromFirebase() {
             const cData = doc.data();
             if (cData.id) firebaseCustomers.push(cData);
         });
-        
+
         // Merge Customers
         const localCustIds = new Set(data.customers.map(c => c.id));
         firebaseCustomers.forEach(fc => {
@@ -1706,7 +1776,7 @@ async function fetchAllDataFromFirebase() {
             const bData = doc.data();
             if (bData.id) firebaseBookings.push(bData);
         });
-        
+
         // Merge Bookings
         const localBookIds = new Set(data.bookings.map(b => b.id));
         firebaseBookings.forEach(fb => {
@@ -1717,13 +1787,15 @@ async function fetchAllDataFromFirebase() {
                 data.bookings[idx] = { ...data.bookings[idx], ...fb }; // Cloud overrides local
             }
         });
-        
+
+        updateRoomStatusesFromBookings();
         saveDataToStorage();
 
         // If UI is already loaded, gently refresh the arrays
         if (typeof loadBookings === 'function') loadBookings();
+        if (typeof loadRooms === 'function') loadRooms();
         if (typeof refreshDashboardStats === 'function') refreshDashboardStats();
-        
+
         console.log("Cloud sync complete!");
     } catch (error) {
         console.error("Could not fetch remote data:", error);

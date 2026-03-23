@@ -294,17 +294,15 @@ function calculateBookingDays(booking) {
 
 function getBookingTotal(booking) {
     const days = calculateBookingDays(booking);
-    return ((Number(booking.roomRate) || 0) * days) + (Number(booking.extras) || 0) + (Number(booking.extraBed) || 0);
+    const totalRoom = (Number(booking.roomRate) || 0) * days;
+    const discount = Number(booking.discount) || 0;
+    const totalGrossRoom = Math.max(0, totalRoom - discount);
+    return totalGrossRoom + (Number(booking.extras) || 0) + (Number(booking.extraBed) || 0);
 }
 
 function getBookingBalance(booking) {
-    const days = calculateBookingDays(booking);
-    const totalRoom = (Number(booking.roomRate) || 0) * days;
     const advance = Number(booking.advance) || 0;
-    const extras = Number(booking.extras) || 0;
-    const extraBed = Number(booking.extraBed) || 0;
-    const discount = Number(booking.discount) || 0;
-    return Math.max(totalRoom - advance + extras + extraBed - discount, 0);
+    return Math.max(getBookingTotal(booking) - advance, 0);
 }
 function initBookingCameraSection() {
     if (bookingCameraInitialized) return;
