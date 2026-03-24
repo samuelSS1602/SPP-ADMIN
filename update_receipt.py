@@ -53,7 +53,7 @@ function showReceipt(bookingId) {
                 <div style="width:250px; text-align:center;">
                    <!-- Hardcoded matching SRC for the logo to appear like Sri Jawahar Logo, using the user's existing logo or just text -->
                    <img src="logo - Copy.jpeg" style="width:120px; height:auto; margin-bottom:5px;" alt="Logo" onerror="this.style.display='none';">
-                   <br><span style="font-size:16px; font-weight:bold; letter-spacing:1px; font-family: 'Times New Roman', serif;">SRI PADMAVATI</span><br><span style="font-size:10px;">RESIDENCY</span>
+                   <br><span style="font-size:16px; font-weight:bold; letter-spacing:1px; font-family: 'Times New Roman', serif;">SRI PADMAVATI</span><br><span style="font-size:10px;">PLEASANTS</span>
                 </div>
                 <div style="text-align:right; font-size:13px;">
                     <strong style="font-size:16px;">SRI PADMAVATI PLEASANTS</strong><br>

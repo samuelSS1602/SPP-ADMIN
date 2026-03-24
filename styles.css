@@ -216,7 +216,6 @@ body {
 
 .sidebar {
     background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
     border-right: 1px solid var(--border-light);
     color: var(--text-dark);
     padding: 30px 20px;
@@ -426,7 +425,6 @@ body {
 
 .metric-card {
     background: var(--card-bg);
-    backdrop-filter: blur(8px);
     border-radius: var(--radius-lg);
     padding: 25px;
     box-shadow: var(--shadow-sm);
@@ -542,7 +540,6 @@ body {
 
 .card {
     background: var(--card-bg);
-    backdrop-filter: blur(8px);
     border-radius: var(--radius-lg);
     padding: 25px;
     box-shadow: var(--shadow-sm);
@@ -1124,7 +1121,6 @@ body {
     height: 100%;
     overflow: auto;
     background-color: rgba(10, 26, 37, 0.54);
-    backdrop-filter: blur(3px);
 }
 
 .modal.active {
