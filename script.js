@@ -546,9 +546,28 @@ window.updateRoomStatus = function (roomId, status) {
     room.status = status;
     saveDataToStorage();
 
+    // Sync room status to Firebase
+    if (firebaseEnabled && firebaseDb) {
+        try {
+            firebaseDb.collection('rooms').doc(String(roomId)).set({
+                id: room.id,
+                name: room.name,
+                floor: room.floor,
+                type: room.type,
+                capacity: room.capacity,
+                price: room.price,
+                status: room.status,
+                updatedAt: new Date().toISOString()
+            }, { merge: true });
+        } catch (e) {
+            console.warn('Could not sync room status to Firebase:', e);
+        }
+    }
+
     // Refresh the rooms grid and the modal
     loadRooms();
     showRoomDetails(roomId);
+    updateRealtimeDashboardMetrics();
 };
 
 function getActiveBookingForRoom(roomId) {
@@ -823,7 +842,7 @@ function loadPayments() {
     data.bookings.forEach(booking => {
         const total = getBookingTotal(booking);
         const balance = getBookingBalance(booking);
-        const isFullyPaid = balance <= 0 || booking.status === 'paid';
+        const isFullyPaid = balance <= 0 || booking.status === 'paid' || booking.status === 'completed';
         const statusBadge = isFullyPaid ? 'paid' : 'pending';
         const pendingAmount = isFullyPaid ? 0 : balance;
         const receivedAmount = total - pendingAmount;
@@ -832,7 +851,12 @@ function loadPayments() {
         totalPending += pendingAmount;
         totalReceived += receivedAmount;
 
-        html += `<tr><td><strong>INV-${booking.id}</strong></td><td>${booking.guestName}</td><td>${booking.roomName}</td><td>${formatDate(booking.checkIn)}</td><td>₹${formatNumber(booking.advance)}</td><td>₹${formatNumber(pendingAmount)}</td><td>₹${formatNumber(booking.extras)}</td><td><span class="status-badge ${statusBadge}">${capitalizeFirst(statusBadge)}</span></td><td><button class="btn-primary" onclick="openExtraAmountModal('${booking.id}')" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-plus"></i> Extra</button></td><td><button class="btn-primary" onclick="showReceipt('${booking.id}')" style="padding: 6px 12px; font-size: 11px;"><i class="fas fa-download"></i></button></td></tr>`;
+        // Use rooms array for multi-room display, fallback to roomName
+        const roomDisplayName = (booking.rooms && booking.rooms.length > 0)
+            ? booking.rooms.map(r => r.roomName).join(', ')
+            : (booking.roomName || 'N/A');
+
+        html += `<tr><td><strong>INV-${booking.id}</strong></td><td>${booking.guestName}</td><td>${roomDisplayName}</td><td>${formatDate(booking.checkIn)}</td><td>₹${formatNumber(booking.advance)}</td><td>₹${formatNumber(pendingAmount)}</td><td>₹${formatNumber(booking.extras)}</td><td><span class="status-badge ${statusBadge}">${capitalizeFirst(statusBadge)}</span></td><td><button class="btn-primary" onclick="openExtraAmountModal('${booking.id}')" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-plus"></i> Extra</button></td><td><button class="btn-primary" onclick="showReceipt('${booking.id}')" style="padding: 6px 12px; font-size: 11px;"><i class="fas fa-download"></i></button></td></tr>`;
     });
 
     const tableBody = document.getElementById('paymentsTable');
@@ -1054,6 +1078,14 @@ function hydrateDataFromStorage() {
         if (Array.isArray(storedData.guests)) data.guests = storedData.guests;
 
         updateRoomStatusesFromBookings();
+
+        // One-time patch: set Guest GST on BK002
+        const bk002 = data.bookings.find(b => b.id === 'BK002');
+        if (bk002 && !bk002.guestGST) {
+            bk002.guestGST = '33AAACV5492Q1ZP';
+            localStorage.setItem('lodgeAdminData', JSON.stringify(data));
+            console.log('Patched BK002 with Guest GST: 33AAACV5492Q1ZP');
+        }
     } catch (error) {
         console.warn('Could not load saved data:', error);
     }
@@ -1243,30 +1275,44 @@ function processCheckoutReminders() {
 }
 
 function buildCheckInWhatsAppMessage(booking) {
+    const guestName = booking.guestName || '';
+    const ciTime = booking.checkInTime || '12:00 PM';
+    const ciDateTime = booking.checkIn ? formatDateTime(booking.checkIn, ciTime) : 'N/A';
+    const coTime = booking.checkOutTime || '11:00 AM';
+    const coDateTime = booking.checkOut ? formatDateTime(booking.checkOut, coTime) : 'N/A';
+
     return `Welcome to Sri Padmavati Pleasants, Palani 🙏
+Guest Name: ${guestName}
 Room: ${booking.roomName}
+Check-In: ${ciDateTime}
+Check-Out: ${coDateTime}
 
 We wish you a comfortable stay. Need help? Call Reception.
 
-ஸ்ரீ பத்மாவதி ப்ளீசன்ட்ஸ், பழனிக்கு வரவேற்கிறோம் 🙏
+ஸ்ரீ பத்மாவதி பிளஸன்ட்ஸ், பழனிக்கு வரவேற்கிறோம் 🙏
+பயணிகள் பெயர்: ${guestName}
 அறை: ${booking.roomName}
+செக்-இன்: ${ciDateTime}
+செக்-அவுட்: ${coDateTime}
 
 உங்கள் வருகைக்கு நன்றி. உதவிக்கு ரிசப்ஷனைத் தொடர்புகொள்ளவும்.`;
 }
 
 function buildCheckoutReminderWhatsAppMessage(booking) {
-    return `Hello from Sri Padmavati Pleasants 🙏
+    const guestName = booking.guestName || '';
+    return `Hello ${guestName} from Sri Padmavati Pleasants 🙏
 A gentle reminder: your check-out time is approaching. Please ensure all your belongings are packed.
 
-வணக்கம் 🙏
+வணக்கம் ${guestName} 🙏
 உங்கள் செக்-அவுட் நேரம் நெருங்குகிறது. தயவுசெய்து உங்கள் உடைமைகளை எடுத்துக்கொள்ளவும்.`;
 }
 
 function buildCheckoutWhatsAppMessage(booking) {
-    return `Thank you for staying at Sri Padmavati Pleasants, Palani 🙏
+    const guestName = booking.guestName || '';
+    return `Thank you ${guestName} for staying at Sri Padmavati Pleasants, Palani 🙏
 We hope you enjoyed your stay. Have a safe journey!
 
-ஸ்ரீ பத்மாவதி ப்ளீசன்ட்ஸ்-ல் தங்கியதற்கு நன்றி 🙏
+ஸ்ரீ பத்மாவதி பிளஸன்ட்ஸ்-ல் தங்கியதற்கு நன்றி ${guestName} 🙏
 உங்கள் பயணம் இனியதாக அமைய வாழ்த்துக்கள்!`;
 }
 

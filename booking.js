@@ -6,9 +6,17 @@ function loadBookings() {
     data.bookings.forEach(booking => {
         const total = getBookingTotal(booking);
         const isCheckedOut = booking.status === 'completed';
-        const checkoutButton = isCheckedOut
-            ? '<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #27AE60; cursor: default;" disabled><i class="fas fa-check"></i> Checked Out</button>'
-            : `<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #27AE60;" onclick="checkoutBooking('${booking.id}')"><i class="fas fa-sign-out-alt"></i> Checkout</button>`;
+        let actionsHtml = `<div style="display:flex; gap:5px;">`;
+        if (booking.status === 'cancelled') {
+            actionsHtml += '<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #EF4444; cursor: default;" disabled><i class="fas fa-ban"></i> Cancelled</button>';
+        } else if (isCheckedOut) {
+            actionsHtml += '<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #27AE60; cursor: default;" disabled><i class="fas fa-check"></i> Checked Out</button>';
+        } else {
+            actionsHtml += `<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #27AE60;" onclick="checkoutBooking('${booking.id}')" title="Checkout"><i class="fas fa-sign-out-alt"></i></button>`;
+            actionsHtml += `<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #F59E0B;" onclick="openEditBookingModal('${booking.id}')" title="Edit"><i class="fas fa-edit"></i></button>`;
+            actionsHtml += `<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #EF4444;" onclick="cancelBooking('${booking.id}')" title="Cancel"><i class="fas fa-times"></i></button>`;
+        }
+        actionsHtml += `</div>`;
 
         // Display all rooms for multi-room bookings
         const roomDisplayText = booking.rooms && booking.rooms.length > 1
@@ -21,7 +29,7 @@ function loadBookings() {
             <button class="btn-primary" style="padding: 6px 12px; font-size: 11px;" onclick="showReceipt('${booking.id}')" title="Receipt"><i class="fas fa-receipt"></i></button>
             ${(booking.customerPhoto || booking.customerPhotoUrl) ? `<button class="btn-primary" style="padding: 6px 12px; font-size: 11px; background:#4F46E5; margin-left:4px;" onclick="viewBookingPhotos('${booking.id}')" title="Photos"><i class="fas fa-camera"></i></button>` : ''}
         </td>
-        <td>${checkoutButton}</td></tr>`;
+        <td>${actionsHtml}</td></tr>`;
     });
     const tableBody = document.getElementById('bookingsTable');
     if (tableBody) tableBody.innerHTML = html;
@@ -172,6 +180,7 @@ function handleNewBooking(e) {
     const childrenCount = parseInt(document.getElementById('bookingChildrenCount') ? document.getElementById('bookingChildrenCount').value : '0', 10);
     const vehicleNumber = document.getElementById('bookingVehicleNumber') ? document.getElementById('bookingVehicleNumber').value.trim() : '';
     const companyName = document.getElementById('bookingCompanyName') ? document.getElementById('bookingCompanyName').value.trim() : '';
+    const guestGST = document.getElementById('bookingGuestGST') ? document.getElementById('bookingGuestGST').value.trim().toUpperCase() : '';
 
     // Validate multi-room selection
     if (!multiRoomBookingSelection || multiRoomBookingSelection.length === 0) {
@@ -241,6 +250,7 @@ function handleNewBooking(e) {
         childrenCount,
         vehicleNumber,
         companyName,
+        guestGST,
         discount: 0,
         customerPhoto: customerPhotoData,
         idProofPhoto: idProofPhotoData,
@@ -253,12 +263,16 @@ function handleNewBooking(e) {
         room.status = 'occupied';
     });
 
+    // Save room info for alert BEFORE resetting
     const createdBooking = data.bookings[data.bookings.length - 1];
     
     // Set legacy fields for rooms for compatibility with existing code
     createdBooking.roomId = selectedRoomIds[0];
     createdBooking.roomName = multiRoomBookingSelection[0].roomName;
     createdBooking.floor = multiRoomBookingSelection[0].floor;
+
+    const bookedRoomNames = createdBooking.rooms.map(r => r.roomName);
+    const bookedRoomCount = bookedRoomNames.length;
     
     sendCheckInWhatsAppMessage(createdBooking);
 
@@ -274,11 +288,11 @@ function handleNewBooking(e) {
     loadPayments();
     loadRooms();
     
-    const roomsList = multiRoomBookingSelection.length > 1 
-        ? `${multiRoomBookingSelection[0].roomName} + ${multiRoomBookingSelection.length - 1} more`
-        : multiRoomBookingSelection[0].roomName;
+    const roomsList = bookedRoomCount > 1 
+        ? `${bookedRoomNames[0]} + ${bookedRoomCount - 1} more`
+        : bookedRoomNames[0];
     
-    alert(`Booking ${bookingId} created successfully for ${multiRoomBookingSelection.length} room(s): ${roomsList}`);
+    alert(`Booking ${bookingId} created successfully for ${bookedRoomCount} room(s): ${roomsList}`);
     openBookingsPage();
 }
 function calculateBookingDays(booking) {
@@ -503,6 +517,136 @@ function getCurrentTimeValue() {
     return `${hours}:${minutes}`;
 }
 
+async function populateDateToInput(dateString, inputId) {
+    const input = document.getElementById(inputId);
+    if (input && dateString) {
+        input.value = dateString;
+    }
+}
+function populateTimeToInput(timeString, inputId) {
+    const input = document.getElementById(inputId);
+    if (input && timeString) {
+        // Convert display time (12:00 PM) to input time (12:00)
+        let hours = 12;
+        let mins = '00';
+        try {
+            const timeMatch = /^([0-9]{1,2}):([0-9]{2})\s?(AM|PM)$/i.exec(timeString.trim());
+            if (timeMatch) {
+                hours = parseInt(timeMatch[1], 10);
+                mins = timeMatch[2];
+                if (timeMatch[3].toUpperCase() === 'PM' && hours < 12) hours += 12;
+                if (timeMatch[3].toUpperCase() === 'AM' && hours === 12) hours = 0;
+            } else {
+                [hours, mins] = timeString.split(':');
+            }
+        } catch(e) {}
+        input.value = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+    }
+}
+
+window.openEditBookingModal = function(bookingId) {
+    const booking = data.bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    document.getElementById('editBookingId').value = booking.id;
+    document.getElementById('editGuestName').value = booking.guestName || '';
+    document.getElementById('editGuestPhone').value = booking.guestPhone || '';
+    document.getElementById('editGuestEmail').value = booking.guestEmail || '';
+    document.getElementById('editAdvanceAmount').value = booking.advance || 0;
+    
+    document.getElementById('editAdultsCount').value = booking.adultsCount || 1;
+    document.getElementById('editChildrenCount').value = booking.childrenCount || 0;
+    
+    document.getElementById('editVehicleNumber').value = booking.vehicleNumber || '';
+    document.getElementById('editCompanyName').value = booking.companyName || '';
+    document.getElementById('editGuestGST').value = booking.guestGST || '';
+
+    document.getElementById('editCheckInDate').value = booking.checkIn || '';
+    populateTimeToInput(booking.checkInTime, 'editCheckInTime');
+
+    document.getElementById('editCheckOutDate').value = booking.checkOut || '';
+    populateTimeToInput(booking.checkOutTime, 'editCheckOutTime');
+
+    document.getElementById('editBookingModal').classList.add('active');
+};
+
+window.closeEditBookingModal = function() {
+    document.getElementById('editBookingModal').classList.remove('active');
+};
+
+window.saveEditedBooking = function() {
+    const bookingId = document.getElementById('editBookingId').value;
+    const booking = data.bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    booking.guestName = document.getElementById('editGuestName').value.trim();
+    booking.guestPhone = document.getElementById('editGuestPhone').value.trim();
+    booking.guestEmail = document.getElementById('editGuestEmail').value.trim();
+    booking.advance = parseFloat(document.getElementById('editAdvanceAmount').value) || 0;
+    
+    booking.adultsCount = parseInt(document.getElementById('editAdultsCount').value) || 1;
+    booking.childrenCount = parseInt(document.getElementById('editChildrenCount').value) || 0;
+    
+    booking.vehicleNumber = document.getElementById('editVehicleNumber').value.trim();
+    booking.companyName = document.getElementById('editCompanyName').value.trim();
+    booking.guestGST = document.getElementById('editGuestGST').value.trim().toUpperCase();
+
+    booking.checkIn = document.getElementById('editCheckInDate').value;
+    booking.checkInTime = toDisplayTime(document.getElementById('editCheckInTime').value);
+
+    booking.checkOut = document.getElementById('editCheckOutDate').value;
+    booking.checkOutTime = toDisplayTime(document.getElementById('editCheckOutTime').value);
+
+    closeEditBookingModal();
+    saveDataToStorage();
+    syncBookingToFirebase(booking);
+    
+    loadBookings();
+    loadPayments();
+    updateRealtimeDashboardMetrics();
+    alert(`Booking ${bookingId} details updated.`);
+};
+
+window.cancelBooking = function(bookingId) {
+    const booking = data.bookings.find(item => item.id === bookingId);
+    if (!booking) return;
+
+    if (booking.status === 'completed' || booking.status === 'cancelled') {
+        alert(`This booking is already ${booking.status}.`);
+        return;
+    }
+
+    const shouldCancel = confirm(`Are you sure you want to CANCEL booking ${booking.id} for ${booking.guestName}?`);
+    if (!shouldCancel) return;
+
+    booking.status = 'cancelled';
+    
+    // Free all rooms in the booking
+    if (booking.rooms && booking.rooms.length > 0) {
+        booking.rooms.forEach(roomData => {
+            const room = data.rooms.find(item => item.id === roomData.roomId);
+            if (room) {
+                room.status = 'available';
+            }
+        });
+    } else if (booking.roomId) {
+        // Fallback for old single-room bookings
+        const room = data.rooms.find(item => item.id == booking.roomId);
+        if (room) {
+            room.status = 'available';
+        }
+    }
+
+    saveDataToStorage();
+    syncBookingToFirebase(booking);
+    
+    loadBookings();
+    loadRooms();
+    loadPayments();
+    updateRealtimeDashboardMetrics();
+
+    alert(`Booking ${bookingId} has been cancelled.`);
+};
 async function startBookingCamera() {
     const video = document.getElementById('bookingCameraPreview');
     const placeholder = document.getElementById('bookingCameraPlaceholder');

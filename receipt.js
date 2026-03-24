@@ -61,6 +61,7 @@ function showReceipt(bookingId) {
     const guestSubLine = `Male : ${mCount} Female : ${fCount} Child : ${cCount}`;
 
     const printGst = typeof LODGE_GST_NUMBER !== 'undefined' ? LODGE_GST_NUMBER : '33AMHPM8819J2ZN';
+    const guestGST = booking.guestGST || '';
 
     // Convert newlines in address to <br> if exist
     guestAddress = guestAddress.replace(/\n/g, '<br>');
@@ -69,9 +70,9 @@ function showReceipt(bookingId) {
     if (typeof getBookingBalance === 'function') {
         isFullyPaid = getBookingBalance(booking) <= 0 || booking.status === 'paid' || booking.status === 'completed';
     }
-    
-    const paidBtnStyle = isFullyPaid 
-        ? "padding:6px 14px; background:#95a5a6; color:#fff; border:none; border-radius:6px; cursor:not-allowed; font-weight:600; font-family:'Inter',sans-serif; margin-left:10px;" 
+
+    const paidBtnStyle = isFullyPaid
+        ? "padding:6px 14px; background:#95a5a6; color:#fff; border:none; border-radius:6px; cursor:not-allowed; font-weight:600; font-family:'Inter',sans-serif; margin-left:10px;"
         : "padding:6px 14px; background:#27AE60; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-family:'Inter',sans-serif; box-shadow:0 4px 6px rgba(39, 174, 96, 0.2); transition:all 0.2s; margin-left:10px;";
     const paidBtnText = isFullyPaid ? `<i class="fas fa-check"></i> Already Paid` : `<i class="fas fa-check-circle"></i> Mark as Paid`;
 
@@ -145,6 +146,7 @@ function showReceipt(bookingId) {
                     <table style="width:100%; font-size:12px; line-height: 1.6;">
                         <tr><td style="width:110px;">Name</td><td><strong>MR. ${guestName.toUpperCase()}</strong></td></tr>
                         <tr><td>Company Name</td><td><strong>${booking.companyName || ''}</strong></td></tr>
+                        ${guestGST ? `<tr><td>Guest GSTIN</td><td><strong>${guestGST}</strong></td></tr>` : ''}
                         <tr><td style="vertical-align:top;">Address</td><td>${guestAddress}</td></tr>
                         <tr><td>Vehicle No.</td><td><strong>${booking.vehicleNumber || ''}</strong></td></tr>
                         <tr><td>Mobile</td><td>${guestPhone}</td></tr>
@@ -299,11 +301,11 @@ window.applyDiscountToReceipt = function () {
         booking.extras = ext;
         if (typeof saveDataToStorage === 'function') saveDataToStorage();
         if (typeof syncBookingToFirebase === 'function') syncBookingToFirebase(booking);
-        
+
         if (typeof loadPayments === 'function') loadPayments();
         if (typeof updateRealtimeDashboardMetrics === 'function') updateRealtimeDashboardMetrics();
         if (typeof loadBookings === 'function') loadBookings();
-        
+
         showReceipt(currentReceiptBookingId);
     }
 };
@@ -314,18 +316,18 @@ window.markReceiptAsPaid = function () {
         if (booking.status !== 'completed' && booking.status !== 'paid') {
             booking.status = 'paid';
         }
-        
+
         if (typeof getBookingTotal === 'function') {
             booking.advance = getBookingTotal(booking);
         }
 
         if (typeof saveDataToStorage === 'function') saveDataToStorage();
         if (typeof syncBookingToFirebase === 'function') syncBookingToFirebase(booking);
-        
+
         if (typeof loadPayments === 'function') loadPayments();
         if (typeof updateRealtimeDashboardMetrics === 'function') updateRealtimeDashboardMetrics();
         if (typeof loadBookings === 'function') loadBookings();
-        
+
         alert(`Booking ${booking.id} marked as fully paid!`);
         showReceipt(currentReceiptBookingId);
     }
