@@ -315,6 +315,24 @@ function navigateTo(page, navElement) {
         case 'payments': loadPayments(); break;
         case 'analytics': setTimeout(createAnalyticsChart, 100); break;
     }
+
+    if (window.innerWidth <= 768) {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (sidebar && sidebar.classList.contains('active')) {
+            sidebar.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
+        }
+    }
+}
+
+function toggleMobileMenu() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) {
+        sidebar.classList.toggle('active');
+        if (overlay) overlay.classList.toggle('active');
+    }
 }
 
 function loadDashboard() {

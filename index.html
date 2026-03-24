@@ -72,7 +72,8 @@
 
     <!-- Dashboard -->
     <div id="dashboardPage" class="dashboard-container" style="display: none;">
-        <aside class="sidebar">
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileMenu()"></div>
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="brand-logo">
                     <img src="logo - Copy.jpeg" alt="Logo" class="sidebar-logo">
@@ -132,9 +133,14 @@
 
         <main class="main-content">
             <div class="top-header">
-                <div class="header-left">
-                    <h2 id="pageTitle">Dashboard</h2>
-                    <small id="liveDateTime" style="color: var(--text-light); font-weight: 600;"></small>
+                <div class="header-left" style="display: flex; gap: 15px; align-items: center;">
+                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" style="display: none; background: none; border: none; font-size: 20px; color: var(--primary-brand); cursor: pointer;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h2 id="pageTitle" style="margin: 0; padding: 0;">Dashboard</h2>
+                        <small id="liveDateTime" style="color: var(--text-light); font-weight: 600;"></small>
+                    </div>
                 </div>
                 <div class="header-right">
                     <div class="user-profile">
