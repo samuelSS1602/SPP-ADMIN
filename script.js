@@ -48,17 +48,38 @@ async function handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('email').value.trim().toLowerCase();
     const password = document.getElementById('password').value;
+    const loginBtn = document.querySelector('.btn-login');
+    const originalBtnHtml = loginBtn.innerHTML;
 
     if (firebaseEnabled && firebaseAuth) {
         try {
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
+            loginBtn.disabled = true;
+            loginBtn.style.cursor = 'not-allowed';
+            loginBtn.style.opacity = '0.7';
+
             await firebaseAuth.signInWithEmailAndPassword(email, password);
+
             // First, securely pull all cloud data to populate empty devices
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching Data...';
             await fetchAllDataFromFirebase();
+
             showDashboard();
             syncAllBookingsToFirebase();
             syncAllCustomersToFirebase();
+
+            // Reset button state just in case it's shown again after logout
+            loginBtn.innerHTML = originalBtnHtml;
+            loginBtn.disabled = false;
+            loginBtn.style.cursor = 'pointer';
+            loginBtn.style.opacity = '1';
+
             return;
         } catch (error) {
+            loginBtn.innerHTML = originalBtnHtml;
+            loginBtn.disabled = false;
+            loginBtn.style.cursor = 'pointer';
+            loginBtn.style.opacity = '1';
             alert(getFirebaseLoginErrorMessage(error));
             return;
         }
@@ -1853,12 +1874,24 @@ async function fetchAllDataFromFirebase() {
         });
 
         updateRoomStatusesFromBookings();
+
+
+        data.guests = [];
+        data.bookings.forEach(booking => {
+            if (booking.guestName && (booking.guestPhone || booking.guestEmail)) {
+                upsertGuestRecord(booking.guestName, booking.guestPhone || 'N/A', booking.guestEmail || '', booking.checkOut || booking.checkIn || new Date().toISOString().split('T')[0]);
+            }
+        });
+
         saveDataToStorage();
 
         // If UI is already loaded, gently refresh the arrays
         if (typeof loadBookings === 'function') loadBookings();
         if (typeof loadRooms === 'function') loadRooms();
-        if (typeof refreshDashboardStats === 'function') refreshDashboardStats();
+        if (typeof loadCustomers === 'function') loadCustomers();
+        if (typeof loadGuests === 'function') loadGuests();
+        if (typeof loadPayments === 'function') loadPayments();
+        if (typeof updateRealtimeDashboardMetrics === 'function') updateRealtimeDashboardMetrics();
 
         console.log("Cloud sync complete!");
     } catch (error) {
