@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', function () {
     purgeLegacySeedData();
     enforceRequestedRoomSetup();
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
-    document.getElementById('addCustomerForm').addEventListener('submit', handleAddCustomer);
     document.getElementById('newBookingForm').addEventListener('submit', handleNewBooking);
     initBookingCameraSection();
     initBookingTimeModeSection();
@@ -66,7 +65,6 @@ async function handleLogin(e) {
 
             showDashboard();
             syncAllBookingsToFirebase();
-            syncAllCustomersToFirebase();
 
             // Reset button state just in case it's shown again after logout
             loginBtn.innerHTML = originalBtnHtml;
@@ -320,7 +318,7 @@ function navigateTo(page, navElement) {
 
     const titles = {
         dashboard: 'Dashboard', bookings: 'Booking Management', rooms: 'Room Management',
-        pricing: 'Room Pricing', customers: 'Customer Details', guests: 'Guest Management',
+        pricing: 'Room Pricing', guests: 'Guest Management',
         payments: 'Payment & Billing', analytics: 'Analytics & Reports', 'new-booking': 'Create New Booking'
     };
     document.getElementById('pageTitle').textContent = titles[page];
@@ -331,7 +329,6 @@ function navigateTo(page, navElement) {
         case 'new-booking': loadNewBookingPage(); break;
         case 'rooms': loadRooms(); break;
         case 'pricing': loadPricingPage(); break;
-        case 'customers': loadCustomers(); break;
         case 'guests': loadGuests(); break;
         case 'payments': loadPayments(); break;
         case 'analytics': setTimeout(createAnalyticsChart, 100); break;
@@ -364,7 +361,7 @@ function loadDashboard() {
 }
 
 
-function upsertGuestRecord(name, phone, email, lastVisit) {
+function upsertGuestRecord(name, phone, email, lastVisit, lastBookingId) {
     const existingGuest = data.guests.find(guest => guest.phone === phone || guest.name === name);
 
     if (existingGuest) {
@@ -373,6 +370,7 @@ function upsertGuestRecord(name, phone, email, lastVisit) {
         existingGuest.email = email || existingGuest.email;
         existingGuest.visits += 1;
         existingGuest.lastVisit = lastVisit;
+        if (lastBookingId) existingGuest.lastBookingId = lastBookingId;
         return;
     }
 
@@ -381,7 +379,8 @@ function upsertGuestRecord(name, phone, email, lastVisit) {
         email: email || 'N/A',
         phone,
         visits: 1,
-        lastVisit
+        lastVisit,
+        lastBookingId: lastBookingId || null
     });
 }
 
@@ -648,225 +647,15 @@ function loadPricingPage() {
     if (tableBody) tableBody.innerHTML = html;
 }
 
-// CUSTOMER DETAILS FUNCTIONS
-function loadCustomers() {
-    let html = '';
-    data.customers.forEach(customer => {
-        const statusTag = customer.isPreviousCustomer ? '<span style="color: #27AE60; font-weight: 700;">✓ Yes</span>' : '<span style="color: #F39C12; font-weight: 700;">New</span>';
-        html += `<tr>
-                    <td><strong>${customer.id}</strong></td>
-                    <td>${customer.name}</td>
-                    <td>${customer.mobile}</td>
-                    <td><span style="background: #E8F8F5; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; color: var(--primary-teal);">${customer.idProofType}</span></td>
-                    <td>${statusTag}</td>
-                    <td><span style="background: var(--light-bg); padding: 6px 12px; border-radius: 6px; font-weight: 700;">${customer.visits}</span></td>
-                    <td><button class="btn-primary" onclick="showCustomerDetails('${customer.id}')" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-eye"></i> View</button></td>
-                </tr>`;
-    });
-    const tableBody = document.getElementById('customersTable');
-    if (tableBody) tableBody.innerHTML = html;
-}
-
-function showCustomerDetails(customerId) {
-    const customer = data.customers.find(c => c.id === customerId);
-    if (!customer) return;
-
-    const faceIdStr = customer.faceId || '';
-    const faceIdStatus = faceIdStr.includes('Verified') ? 'verified' : 'pending';
-    const faceIdIcon = faceIdStr.includes('Verified') ? '✓' : '⏳';
-
-    let bookingHistoryHTML = '';
-    if (Array.isArray(customer.bookingHistory)) {
-        customer.bookingHistory.forEach(booking => {
-            const badgeClass = booking.status === 'completed' ? 'completed' : 'ongoing';
-            bookingHistoryHTML += `
-            <div class="booking-item">
-                <div class="booking-dates">
-                    <strong>${booking.id}</strong>
-                    <div>${booking.dates}</div>
-                </div>
-                <div class="booking-details">
-                    <div class="booking-info">
-                        <strong>${booking.room}</strong>
-                        <small>Amount Paid: ₹${formatNumber(booking.amount)}</small>
-                    </div>
-                    <span class="booking-badge ${badgeClass}">${capitalizeFirst(booking.status)}</span>
-                </div>
-            </div>
-        `;
-        });
-    }
-
-    const detailsHTML = `
-        <div class="customer-detail-header">
-            <div class="customer-photo">
-                <div class="customer-photo-frame" style="font-size: 60px;">${(customer.name || 'C').charAt(0)}</div>
-                <div class="customer-photo-label">Customer Photo</div>
-                <div class="customer-photo-edit" onclick="alert('Photo upload feature coming soon')">📸 Upload Photo</div>
-            </div>
-            <div class="customer-info-header">
-                <h2>${customer.name}</h2>
-                <div>
-                    <span class="customer-id-badge">${customer.id}</span>
-                    <span class="customer-status-tag ${customer.isPreviousCustomer ? 'previous' : 'new'}">
-                        ${customer.isPreviousCustomer ? '👥 Previous Customer' : '✨ New Customer'}
-                    </span>
-                </div>
-                <div class="customer-quick-info">
-                    <div class="info-item">
-                        <div class="info-icon">📞</div>
-                        <div class="info-content">
-                            <h4>Mobile Number</h4>
-                            <p>${customer.mobile}</p>
-                        </div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-icon">📧</div>
-                        <div class="info-content">
-                            <h4>Email</h4>
-                            <p>${customer.email}</p>
-                        </div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-icon">🏠</div>
-                        <div class="info-content">
-                            <h4>Address</h4>
-                            <p>${customer.address}</p>
-                        </div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-icon">🔢</div>
-                        <div class="info-content">
-                            <h4>Total Visits</h4>
-                            <p>${customer.visits}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="detail-section">
-            <h4><i class="fas fa-id-card"></i> ID Proof Details</h4>
-            <div class="detail-grid">
-                <div class="detail-item">
-                    <div class="detail-label-text">ID Proof Type</div>
-                    <div class="detail-text highlight">${customer.idProofType}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label-text">ID Proof Number</div>
-                    <div class="detail-text">${customer.idProofNumber}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label-text">Face ID Status</div>
-                    <div class="detail-text ${faceIdStatus === 'verified' ? 'highlight' : ''}" style="color: ${faceIdStatus === 'verified' ? '#27AE60' : '#F39C12'};">
-                        ${faceIdIcon} ${customer.faceId}
-                    </div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label-text">Document Verified</div>
-                    <div class="detail-text" style="color: #27AE60;">✓ Verified on 2024-03-01</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="detail-section">
-            <h4><i class="fas fa-history"></i> Customer Summary</h4>
-            <div class="detail-grid">
-                <div class="detail-item">
-                    <div class="detail-label-text">Total Visits</div>
-                    <div class="detail-text highlight">${customer.visits}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label-text">Total Spent</div>
-                    <div class="detail-text highlight">₹${formatNumber(customer.totalSpent)}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label-text">First Visit</div>
-                    <div class="detail-text">${formatDate(customer.firstVisit)}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label-text">Last Visit</div>
-                    <div class="detail-text">${formatDate(customer.lastVisit)}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label-text">Avg Spending</div>
-                    <div class="detail-text highlight">₹${formatNumber(customer.visits > 0 ? Math.round((customer.totalSpent || 0) / customer.visits) : 0)}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label-text">Customer Status</div>
-                    <div class="detail-text" style="color: ${customer.isPreviousCustomer ? '#27AE60' : '#F39C12'};">
-                        ${customer.isPreviousCustomer ? '✓ Regular' : '⭐ New'}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="detail-section">
-            <h4><i class="fas fa-book"></i> Booking History</h4>
-            <div class="booking-history">
-                ${bookingHistoryHTML}
-            </div>
-        </div>
-    `;
-
-    document.getElementById('customerDetailsContent').innerHTML = detailsHTML;
-    document.getElementById('customerDetailsModal').classList.add('active');
-}
-
-function closeCustomerDetailsModal() {
-    document.getElementById('customerDetailsModal').classList.remove('active');
-}
-
-function showAddCustomerModal() {
-    document.getElementById('addCustomerModal').classList.add('active');
-}
-
-function closeAddCustomerModal() {
-    document.getElementById('addCustomerModal').classList.remove('active');
-    document.getElementById('addCustomerForm').reset();
-}
-
-function handleAddCustomer(e) {
-    e.preventDefault();
-    const name = document.getElementById('customerName').value;
-    const mobile = document.getElementById('customerMobile').value;
-    const email = document.getElementById('customerEmail').value;
-    const idType = document.getElementById('idProofType').value;
-    const idNumber = document.getElementById('idProofNumber').value;
-    const address = document.getElementById('customerAddress').value;
-
-    if (!name || !mobile || idType === 'Select ID Type' || !idNumber) {
-        alert('Please fill in all required fields');
-        return;
-    }
-
-    const newCustomer = {
-        id: `CUST${String(data.customers.length + 1).padStart(3, '0')}`,
-        name, email, mobile, address,
-        phone: mobile,
-        idProofType: idType,
-        idProofNumber: idNumber,
-        faceId: '⏳ Pending',
-        isPreviousCustomer: false,
-        visits: 0,
-        firstVisit: new Date().toISOString().split('T')[0],
-        lastVisit: new Date().toISOString().split('T')[0],
-        totalSpent: 0,
-        bookingHistory: []
-    };
-
-    data.customers.push(newCustomer);
-    saveDataToStorage();
-    syncCustomerToFirebase(newCustomer);
-    closeAddCustomerModal();
-    loadCustomers();
-    alert(`Customer ${name} added successfully with ID: ${newCustomer.id}`);
-}
 
 function loadGuests() {
     let html = '';
     data.guests.forEach(guest => {
-        html += `<tr><td><strong>${guest.name}</strong></td><td>${guest.email}</td><td>${guest.phone}</td><td>${guest.visits}</td><td>${formatDate(guest.lastVisit)}</td></tr>`;
+        const photoBtn = guest.lastBookingId
+            ? `<button class="btn-primary" onclick="viewBookingPhotos('${guest.lastBookingId}')" style="padding: 6px 10px; font-size: 11px; background: #4F46E5;"><i class="fas fa-camera"></i> View</button>`
+            : '<span style="color: #94A3B8; font-size: 11px;">No Photo</span>';
+
+        html += `<tr><td><strong>${guest.name}</strong></td><td>${guest.email}</td><td>${guest.phone}</td><td>${guest.visits}</td><td>${formatDate(guest.lastVisit)}</td><td>${photoBtn}</td></tr>`;
     });
     const tableBody = document.getElementById('guestsTable');
     if (tableBody) tableBody.innerHTML = html;
@@ -1482,33 +1271,6 @@ async function syncBookingToFirebase(booking) {
         });
 }
 
-function syncAllCustomersToFirebase() {
-    if (!firebaseEnabled || !firebaseDb) return;
-    data.customers.forEach(customer => {
-        syncCustomerToFirebase(customer);
-    });
-}
-
-function syncCustomerToFirebase(customer) {
-    if (!firebaseEnabled || !firebaseDb || !customer || !customer.id) return;
-
-    const cloudCustomer = {};
-    for (const key in customer) {
-        if (customer[key] !== undefined) {
-            cloudCustomer[key] = customer[key];
-        }
-    }
-
-    cloudCustomer.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-
-    firebaseDb
-        .collection('customers')
-        .doc(String(customer.id))
-        .set(cloudCustomer, { merge: true })
-        .catch(error => {
-            console.warn(`Failed to sync customer ${customer.id} to Firebase:`, error);
-        });
-}
 
 function downloadDailyRevenue() {
     const today = getLocalISODate();
@@ -1794,15 +1556,11 @@ function capitalizeFirst(str) {
 window.onclick = function (event) {
     const receiptModal = document.getElementById('receiptModal');
     const priceModal = document.getElementById('priceModal');
-    const customerDetailsModal = document.getElementById('customerDetailsModal');
-    const addCustomerModal = document.getElementById('addCustomerModal');
     const extraAmountModal = document.getElementById('extraAmountModal');
     const roomDetailsModal = document.getElementById('roomDetailsModal');
 
     if (event.target == receiptModal) closeReceiptModal();
     if (event.target == priceModal) closePriceModal();
-    if (event.target == customerDetailsModal) closeCustomerDetailsModal();
-    if (event.target == addCustomerModal) closeAddCustomerModal();
     if (event.target == extraAmountModal) closeExtraAmountModal();
     if (event.target == roomDetailsModal) closeRoomDetailsModal();
 }
@@ -1879,7 +1637,13 @@ async function fetchAllDataFromFirebase() {
         data.guests = [];
         data.bookings.forEach(booking => {
             if (booking.guestName && (booking.guestPhone || booking.guestEmail)) {
-                upsertGuestRecord(booking.guestName, booking.guestPhone || 'N/A', booking.guestEmail || '', booking.checkOut || booking.checkIn || new Date().toISOString().split('T')[0]);
+                upsertGuestRecord(
+                    booking.guestName,
+                    booking.guestPhone || 'N/A',
+                    booking.guestEmail || '',
+                    booking.checkOut || booking.checkIn || new Date().toISOString().split('T')[0],
+                    booking.id
+                );
             }
         });
 
@@ -1888,7 +1652,6 @@ async function fetchAllDataFromFirebase() {
         // If UI is already loaded, gently refresh the arrays
         if (typeof loadBookings === 'function') loadBookings();
         if (typeof loadRooms === 'function') loadRooms();
-        if (typeof loadCustomers === 'function') loadCustomers();
         if (typeof loadGuests === 'function') loadGuests();
         if (typeof loadPayments === 'function') loadPayments();
         if (typeof updateRealtimeDashboardMetrics === 'function') updateRealtimeDashboardMetrics();

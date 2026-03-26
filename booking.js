@@ -276,7 +276,7 @@ function handleNewBooking(e) {
     
     sendCheckInWhatsAppMessage(createdBooking);
 
-    upsertGuestRecord(guestName, guestPhone, guestEmail, checkOut);
+    upsertGuestRecord(guestName, guestPhone, guestEmail, checkOut, createdBooking.id);
     saveDataToStorage();
     syncBookingToFirebase(createdBooking);
 
