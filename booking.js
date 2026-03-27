@@ -150,6 +150,28 @@ function loadNewBookingPage() {
 
     // Setup multi-room booking listeners  
     setupMultiRoomBookingListeners();
+
+    // Setup payment method listener for online booking source
+    const paymentMethodSelect = document.getElementById('bookingPaymentMethod');
+    const onlineSourceGroup = document.getElementById('onlineBookingSourceGroup');
+    const bookingSourceSelect = document.getElementById('bookingSource');
+
+    if (paymentMethodSelect && onlineSourceGroup) {
+        paymentMethodSelect.addEventListener('change', function() {
+            if (this.value === 'Online') {
+                onlineSourceGroup.style.display = 'block';
+                if (bookingSourceSelect) bookingSourceSelect.required = true;
+            } else {
+                onlineSourceGroup.style.display = 'none';
+                if (bookingSourceSelect) {
+                    bookingSourceSelect.required = false;
+                    bookingSourceSelect.value = '';
+                }
+            }
+        });
+        // Initial state
+        onlineSourceGroup.style.display = 'none';
+    }
     
     // Update selected rooms display
     updateSelectedRoomsDisplay();
@@ -181,6 +203,7 @@ function handleNewBooking(e) {
     const vehicleNumber = document.getElementById('bookingVehicleNumber') ? document.getElementById('bookingVehicleNumber').value.trim() : '';
     const companyName = document.getElementById('bookingCompanyName') ? document.getElementById('bookingCompanyName').value.trim() : '';
     const guestGST = document.getElementById('bookingGuestGST') ? document.getElementById('bookingGuestGST').value.trim().toUpperCase() : '';
+    const bookingSource = paymentMethod === 'Online' && document.getElementById('bookingSource') ? document.getElementById('bookingSource').value : '';
 
     // Validate multi-room selection
     if (!multiRoomBookingSelection || multiRoomBookingSelection.length === 0) {
@@ -254,6 +277,7 @@ function handleNewBooking(e) {
         discount: 0,
         customerPhoto: customerPhotoData,
         idProofPhoto: idProofPhotoData,
+        bookingSource: bookingSource,
         checkInWhatsAppSent: false,
         checkoutReminderSent: false
     });
