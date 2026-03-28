@@ -93,6 +93,10 @@
                     <i class="fas fa-calendar-alt"></i>
                     <span>Bookings</span>
                 </button>
+                <button class="nav-item" onclick="navigateTo('diary', this)">
+                    <i class="fas fa-book-open"></i>
+                    <span>Room Diary</span>
+                </button>
                 <button class="nav-item" onclick="navigateTo('rooms', this)">
                     <i class="fas fa-door-open"></i>
                     <span>Room Management</span>
@@ -573,6 +577,73 @@
                                 <i class="fas fa-check"></i> Create Booking
                             </button>
                         </form>
+                    </div>
+                </div>
+
+                <!-- Room Diary (Reservation Reminder) -->
+                <div id="diary" class="page-content">
+                    <div class="page-header">
+                        <h2>Room Diary (Quick Reservation)</h2>
+                        <div class="diary-date-picker">
+                            <label for="diaryDate">Select Date:</label>
+                            <input type="date" id="diaryDate" onchange="loadDiary(this.value)">
+                        </div>
+                    </div>
+                    
+                    <div class="card diary-instructions">
+                        <p><i class="fas fa-info-circle"></i> This is a quick reminder tool. Guest names entered here are for internal tracking and do not create formal bookings. Formal bookings should be made via the <strong>Bookings</strong> tab.</p>
+                    </div>
+
+                    <div class="diary-grid">
+                        <!-- Floor 1 -->
+                        <div class="diary-floor-section">
+                            <h3><i class="fas fa-building"></i> Floor 1</h3>
+                            <div class="diary-rooms-grid">
+                                <div class="diary-room-item">
+                                    <label>Room 101</label>
+                                    <input type="text" id="diary-101" placeholder="Guest Name" onblur="saveDiaryRoom(101, this.value)">
+                                </div>
+                                <div class="diary-room-item">
+                                    <label>Room 102</label>
+                                    <input type="text" id="diary-102" placeholder="Guest Name" onblur="saveDiaryRoom(102, this.value)">
+                                </div>
+                                <div class="diary-room-item">
+                                    <label>Room 103</label>
+                                    <input type="text" id="diary-103" placeholder="Guest Name" onblur="saveDiaryRoom(103, this.value)">
+                                </div>
+                                <div class="diary-room-item">
+                                    <label>Room 104</label>
+                                    <input type="text" id="diary-104" placeholder="Guest Name" onblur="saveDiaryRoom(104, this.value)">
+                                </div>
+                                <div class="diary-room-item">
+                                    <label>Room 105</label>
+                                    <input type="text" id="diary-105" placeholder="Guest Name" onblur="saveDiaryRoom(105, this.value)">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Floor 2 -->
+                        <div class="diary-floor-section">
+                            <h3><i class="fas fa-building"></i> Floor 2</h3>
+                            <div class="diary-rooms-grid">
+                                <div class="diary-room-item">
+                                    <label>Room 201</label>
+                                    <input type="text" id="diary-201" placeholder="Guest Name" onblur="saveDiaryRoom(201, this.value)">
+                                </div>
+                                <div class="diary-room-item">
+                                    <label>Room 202</label>
+                                    <input type="text" id="diary-202" placeholder="Guest Name" onblur="saveDiaryRoom(202, this.value)">
+                                </div>
+                                <div class="diary-room-item">
+                                    <label>Room 203</label>
+                                    <input type="text" id="diary-203" placeholder="Guest Name" onblur="saveDiaryRoom(203, this.value)">
+                                </div>
+                                <div class="diary-room-item">
+                                    <label>Room 204</label>
+                                    <input type="text" id="diary-204" placeholder="Guest Name" onblur="saveDiaryRoom(204, this.value)">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
