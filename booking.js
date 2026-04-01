@@ -581,8 +581,9 @@ window.openEditBookingModal = function(bookingId) {
     document.getElementById('editExtras').value = booking.extras || 0;
     document.getElementById('editExtraBed').value = booking.extraBed || 0;
     
-    document.getElementById('editAdultsCount').value = booking.adultsCount || 1;
-    document.getElementById('editChildrenCount').value = booking.childrenCount || 0;
+    document.getElementById('editMaleCount').value = booking.maleCount !== undefined ? booking.maleCount : (booking.adultsCount || 1);
+    document.getElementById('editFemaleCount').value = booking.femaleCount || 0;
+    document.getElementById('editChildrenCount').value = booking.childrenCount !== undefined ? booking.childrenCount : 0;
     
     document.getElementById('editVehicleNumber').value = booking.vehicleNumber || '';
     document.getElementById('editCompanyName').value = booking.companyName || '';
@@ -614,8 +615,12 @@ window.saveEditedBooking = function() {
     booking.extras = parseFloat(document.getElementById('editExtras').value) || 0;
     booking.extraBed = parseFloat(document.getElementById('editExtraBed').value) || 0;
     
-    booking.adultsCount = parseInt(document.getElementById('editAdultsCount').value) || 1;
+    booking.maleCount = parseInt(document.getElementById('editMaleCount').value) || 0;
+    booking.femaleCount = parseInt(document.getElementById('editFemaleCount').value) || 0;
     booking.childrenCount = parseInt(document.getElementById('editChildrenCount').value) || 0;
+    
+    // Maintain legacy field for compatibility
+    booking.adultsCount = booking.maleCount + booking.femaleCount;
     
     booking.vehicleNumber = document.getElementById('editVehicleNumber').value.trim();
     booking.companyName = document.getElementById('editCompanyName').value.trim();

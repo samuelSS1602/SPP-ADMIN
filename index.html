@@ -913,9 +913,15 @@
                     </div>
                 </div>
                 <div class="form-row" style="margin-bottom: 15px;">
-                    <div class="form-group">
-                        <label>Adults</label>
-                        <input type="number" id="editAdultsCount" min="1" value="1">
+                    <div class="form-group" style="display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label>Male Adults</label>
+                            <input type="number" id="editMaleCount" min="0" value="1">
+                        </div>
+                        <div style="flex: 1;">
+                            <label>Female Adults</label>
+                            <input type="number" id="editFemaleCount" min="0" value="0">
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Children</label>
