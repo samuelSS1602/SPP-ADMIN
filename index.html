@@ -134,7 +134,8 @@
         <main class="main-content">
             <div class="top-header">
                 <div class="header-left" style="display: flex; gap: 15px; align-items: center;">
-                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" style="display: none; background: none; border: none; font-size: 20px; color: var(--primary-brand); cursor: pointer;">
+                    <button class="mobile-menu-btn" onclick="toggleMobileMenu()"
+                        style="display: none; background: none; border: none; font-size: 20px; color: var(--primary-brand); cursor: pointer;">
                         <i class="fas fa-bars"></i>
                     </button>
                     <div>
@@ -413,16 +414,23 @@
                                 <div class="form-group" style="margin-top: 20px;">
                                     <label>Select Room(s) *</label>
                                     <select id="bookingRoomId" required style="margin-bottom: 12px;"></select>
-                                    
-                                    <div style="background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0;">
-                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                            <span style="font-size: 13px; font-weight: 600; color: var(--text-light);">Current Selection</span>
-                                            <button type="button" class="btn-primary" id="addExtraRoomBtn" onclick="addExtraRoomToBooking()" style="padding: 6px 12px; font-size: 11px;">
+
+                                    <div
+                                        style="background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                                        <div
+                                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                            <span
+                                                style="font-size: 13px; font-weight: 600; color: var(--text-light);">Current
+                                                Selection</span>
+                                            <button type="button" class="btn-primary" id="addExtraRoomBtn"
+                                                onclick="addExtraRoomToBooking()"
+                                                style="padding: 6px 12px; font-size: 11px;">
                                                 <i class="fas fa-plus"></i> Add Another Room
                                             </button>
                                         </div>
                                         <div id="selectedRoomsDisplay">
-                                            <small style="color: var(--text-light);">Please select a room above to begin</small>
+                                            <small style="color: var(--text-light);">Please select a room above to
+                                                begin</small>
                                         </div>
                                     </div>
                                 </div>
@@ -447,8 +455,11 @@
                                     </div>
                                     <div class="form-group">
                                         <label>ID Proof Number *</label>
-                                        <input type="text" id="bookingIdProofNumber" required placeholder="Enter ID number">
-                                        <small id="bookingIdProofHint" style="color: var(--text-light); font-size: 11px; display: block; margin-top: 6px;">Select ID type</small>
+                                        <input type="text" id="bookingIdProofNumber" required
+                                            placeholder="Enter ID number">
+                                        <small id="bookingIdProofHint"
+                                            style="color: var(--text-light); font-size: 11px; display: block; margin-top: 6px;">Select
+                                            ID type</small>
                                     </div>
                                 </div>
                                 <div class="form-row">
@@ -464,7 +475,8 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label>Guest GST Number (Optional)</label>
-                                        <input type="text" id="bookingGuestGST" placeholder="15-character GSTIN" maxlength="15">
+                                        <input type="text" id="bookingGuestGST" placeholder="15-character GSTIN"
+                                            maxlength="15">
                                     </div>
                                 </div>
                             </div>
@@ -521,8 +533,9 @@
                                     <i class="fas fa-camera"></i>
                                     <h3>Identity Verification</h3>
                                 </div>
-                                <p style="font-size: 13px; color: var(--text-light); margin-bottom: 20px;">Capture both customer photo and ID proof photo using webcam.</p>
-                                
+                                <p style="font-size: 13px; color: var(--text-light); margin-bottom: 20px;">Capture both
+                                    customer photo and ID proof photo using webcam.</p>
+
                                 <input type="hidden" id="bookingCustomerPhotoData">
                                 <input type="hidden" id="bookingIdProofPhotoData">
 
@@ -589,9 +602,11 @@
                             <input type="date" id="diaryDate" onchange="loadDiary(this.value)">
                         </div>
                     </div>
-                    
+
                     <div class="card diary-instructions">
-                        <p><i class="fas fa-info-circle"></i> This is a quick reminder tool. Guest names entered here are for internal tracking and do not create formal bookings. Formal bookings should be made via the <strong>Bookings</strong> tab.</p>
+                        <p><i class="fas fa-info-circle"></i> This is a quick reminder tool. Guest names entered here
+                            are for internal tracking and do not create formal bookings. Formal bookings should be made
+                            via the <strong>Bookings</strong> tab.</p>
                     </div>
 
                     <div class="diary-grid">
@@ -601,23 +616,28 @@
                             <div class="diary-rooms-grid">
                                 <div class="diary-room-item">
                                     <label>Room 101</label>
-                                    <input type="text" id="diary-101" placeholder="Guest Name" onblur="saveDiaryRoom(101, this.value)">
+                                    <input type="text" id="diary-101" placeholder="Guest Name"
+                                        onblur="saveDiaryRoom(101, this.value)">
                                 </div>
                                 <div class="diary-room-item">
                                     <label>Room 102</label>
-                                    <input type="text" id="diary-102" placeholder="Guest Name" onblur="saveDiaryRoom(102, this.value)">
+                                    <input type="text" id="diary-102" placeholder="Guest Name"
+                                        onblur="saveDiaryRoom(102, this.value)">
                                 </div>
                                 <div class="diary-room-item">
                                     <label>Room 103</label>
-                                    <input type="text" id="diary-103" placeholder="Guest Name" onblur="saveDiaryRoom(103, this.value)">
+                                    <input type="text" id="diary-103" placeholder="Guest Name"
+                                        onblur="saveDiaryRoom(103, this.value)">
                                 </div>
                                 <div class="diary-room-item">
                                     <label>Room 104</label>
-                                    <input type="text" id="diary-104" placeholder="Guest Name" onblur="saveDiaryRoom(104, this.value)">
+                                    <input type="text" id="diary-104" placeholder="Guest Name"
+                                        onblur="saveDiaryRoom(104, this.value)">
                                 </div>
                                 <div class="diary-room-item">
                                     <label>Room 105</label>
-                                    <input type="text" id="diary-105" placeholder="Guest Name" onblur="saveDiaryRoom(105, this.value)">
+                                    <input type="text" id="diary-105" placeholder="Guest Name"
+                                        onblur="saveDiaryRoom(105, this.value)">
                                 </div>
                             </div>
                         </div>
@@ -628,19 +648,23 @@
                             <div class="diary-rooms-grid">
                                 <div class="diary-room-item">
                                     <label>Room 201</label>
-                                    <input type="text" id="diary-201" placeholder="Guest Name" onblur="saveDiaryRoom(201, this.value)">
+                                    <input type="text" id="diary-201" placeholder="Guest Name"
+                                        onblur="saveDiaryRoom(201, this.value)">
                                 </div>
                                 <div class="diary-room-item">
                                     <label>Room 202</label>
-                                    <input type="text" id="diary-202" placeholder="Guest Name" onblur="saveDiaryRoom(202, this.value)">
+                                    <input type="text" id="diary-202" placeholder="Guest Name"
+                                        onblur="saveDiaryRoom(202, this.value)">
                                 </div>
                                 <div class="diary-room-item">
                                     <label>Room 203</label>
-                                    <input type="text" id="diary-203" placeholder="Guest Name" onblur="saveDiaryRoom(203, this.value)">
+                                    <input type="text" id="diary-203" placeholder="Guest Name"
+                                        onblur="saveDiaryRoom(203, this.value)">
                                 </div>
                                 <div class="diary-room-item">
                                     <label>Room 204</label>
-                                    <input type="text" id="diary-204" placeholder="Guest Name" onblur="saveDiaryRoom(204, this.value)">
+                                    <input type="text" id="diary-204" placeholder="Guest Name"
+                                        onblur="saveDiaryRoom(204, this.value)">
                                 </div>
                             </div>
                         </div>
@@ -880,12 +904,28 @@
                 </div>
                 <div class="form-row" style="margin-bottom: 15px;">
                     <div class="form-group">
+                        <label>Room Rate (Tariff) (₹)</label>
+                        <input type="number" id="editRoomRate" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Extra Amount (₹)</label>
+                        <input type="number" id="editExtras" min="0">
+                    </div>
+                </div>
+                <div class="form-row" style="margin-bottom: 15px;">
+                    <div class="form-group">
                         <label>Adults</label>
                         <input type="number" id="editAdultsCount" min="1" value="1">
                     </div>
                     <div class="form-group">
                         <label>Children</label>
                         <input type="number" id="editChildrenCount" min="0" value="0">
+                    </div>
+                </div>
+                <div class="form-row" style="margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label>Extra Bed Charges (₹)</label>
+                        <input type="number" id="editExtraBed" min="0" value="0">
                     </div>
                 </div>
                 <div class="form-row" style="margin-bottom: 15px;">
@@ -922,7 +962,8 @@
                         <input type="time" id="editCheckOutTime">
                     </div>
                 </div>
-                <button class="btn-primary" onclick="saveEditedBooking()" style="width: 100%; justify-content: center; margin-top: 10px;">Save All Changes</button>
+                <button class="btn-primary" onclick="saveEditedBooking()"
+                    style="width: 100%; justify-content: center; margin-top: 10px;">Save All Changes</button>
             </div>
         </div>
     </div>

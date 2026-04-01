@@ -577,6 +577,9 @@ window.openEditBookingModal = function(bookingId) {
     document.getElementById('editGuestPhone').value = booking.guestPhone || '';
     document.getElementById('editGuestEmail').value = booking.guestEmail || '';
     document.getElementById('editAdvanceAmount').value = booking.advance || 0;
+    document.getElementById('editRoomRate').value = booking.roomRate || 0;
+    document.getElementById('editExtras').value = booking.extras || 0;
+    document.getElementById('editExtraBed').value = booking.extraBed || 0;
     
     document.getElementById('editAdultsCount').value = booking.adultsCount || 1;
     document.getElementById('editChildrenCount').value = booking.childrenCount || 0;
@@ -607,6 +610,9 @@ window.saveEditedBooking = function() {
     booking.guestPhone = document.getElementById('editGuestPhone').value.trim();
     booking.guestEmail = document.getElementById('editGuestEmail').value.trim();
     booking.advance = parseFloat(document.getElementById('editAdvanceAmount').value) || 0;
+    booking.roomRate = parseFloat(document.getElementById('editRoomRate').value) || 0;
+    booking.extras = parseFloat(document.getElementById('editExtras').value) || 0;
+    booking.extraBed = parseFloat(document.getElementById('editExtraBed').value) || 0;
     
     booking.adultsCount = parseInt(document.getElementById('editAdultsCount').value) || 1;
     booking.childrenCount = parseInt(document.getElementById('editChildrenCount').value) || 0;
