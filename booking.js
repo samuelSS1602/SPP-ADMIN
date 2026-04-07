@@ -1,38 +1,159 @@
 let bookingCameraStream = null;
 let bookingCameraInitialized = false;
 let bookingTimeModeInitialized = false;
+let bookingFilterYear = new Date().getFullYear();
+let bookingFilterMonth = 'all'; // 'all' or 0-11
+
+const MONTH_NAMES_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
 function loadBookings() {
-    let html = '';
-    data.bookings.forEach(booking => {
-        const total = getBookingTotal(booking);
-        const isCheckedOut = booking.status === 'completed';
-        let actionsHtml = `<div style="display:flex; gap:5px;">`;
-        if (booking.status === 'cancelled') {
-            actionsHtml += '<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #EF4444; cursor: default;" disabled><i class="fas fa-ban"></i> Cancelled</button>';
-        } else if (isCheckedOut) {
-            actionsHtml += '<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #27AE60; cursor: default;" disabled><i class="fas fa-check"></i> Checked Out</button>';
-        } else {
-            actionsHtml += `<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #27AE60;" onclick="checkoutBooking('${booking.id}')" title="Checkout"><i class="fas fa-sign-out-alt"></i></button>`;
-            actionsHtml += `<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #F59E0B;" onclick="openEditBookingModal('${booking.id}')" title="Edit"><i class="fas fa-edit"></i></button>`;
-            actionsHtml += `<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #EF4444;" onclick="cancelBooking('${booking.id}')" title="Cancel"><i class="fas fa-times"></i></button>`;
-        }
-        actionsHtml += `</div>`;
+    const container = document.getElementById('bookingsMonthContainer');
+    if (!container) return;
 
-        // Display all rooms for multi-room bookings
-        const roomDisplayText = booking.rooms && booking.rooms.length > 1
-            ? `${booking.rooms.map(r => r.roomName).join(', ')} (${booking.rooms.length} rooms)`
-            : (booking.rooms && booking.rooms.length === 1 
-                ? booking.rooms[0].roomName
-                : booking.roomName);  // Fallback for bookings created before multi-room support
+    // Update year label
+    const yearLabel = document.getElementById('bookingYearLabel');
+    if (yearLabel) yearLabel.textContent = bookingFilterYear;
 
-        html += `<tr><td><strong>${booking.id}</strong></td><td>${booking.guestName}</td><td>${roomDisplayText}</td><td>${formatDate(booking.checkIn)}</td><td>${formatDate(booking.checkOut)}</td><td>₹${formatNumber(total)}</td><td><span class="status-badge ${booking.status}">${capitalizeFirst(booking.status)}</span></td><td>
-            <button class="btn-primary" style="padding: 6px 12px; font-size: 11px;" onclick="showReceipt('${booking.id}')" title="Receipt"><i class="fas fa-receipt"></i></button>
-            ${(booking.customerPhoto || booking.customerPhotoUrl) ? `<button class="btn-primary" style="padding: 6px 12px; font-size: 11px; background:#4F46E5; margin-left:4px;" onclick="viewBookingPhotos('${booking.id}')" title="Photos"><i class="fas fa-camera"></i></button>` : ''}
-        </td>
-        <td>${actionsHtml}</td></tr>`;
+    // Get status filter
+    const statusFilter = document.getElementById('bookingStatusFilter');
+    const statusValue = statusFilter ? statusFilter.value : 'all';
+
+    // Filter bookings by year, month, status
+    let filtered = data.bookings.filter(booking => {
+        const d = new Date(booking.checkIn);
+        if (isNaN(d.getTime())) return false;
+        if (d.getFullYear() !== bookingFilterYear) return false;
+        if (bookingFilterMonth !== 'all' && d.getMonth() !== bookingFilterMonth) return false;
+        if (statusValue !== 'all' && booking.status !== statusValue) return false;
+        return true;
     });
-    const tableBody = document.getElementById('bookingsTable');
-    if (tableBody) tableBody.innerHTML = html;
+
+    // Group by month
+    const grouped = {};
+    filtered.forEach(booking => {
+        const d = new Date(booking.checkIn);
+        const monthIdx = d.getMonth();
+        if (!grouped[monthIdx]) grouped[monthIdx] = [];
+        grouped[monthIdx].push(booking);
+    });
+
+    // Sort months descending (most recent first)
+    const sortedMonths = Object.keys(grouped).map(Number).sort((a, b) => b - a);
+
+    if (sortedMonths.length === 0) {
+        container.innerHTML = `
+            <div class="card" style="text-align: center; padding: 60px 20px;">
+                <i class="fas fa-calendar-times" style="font-size: 48px; color: var(--text-light); margin-bottom: 16px;"></i>
+                <h3 style="color: var(--text-light); margin-bottom: 8px;">No bookings found</h3>
+                <p style="color: var(--text-light); font-size: 14px;">No bookings match the selected filters for ${bookingFilterYear}.</p>
+            </div>`;
+        return;
+    }
+
+    let html = '';
+    sortedMonths.forEach(monthIdx => {
+        const bookings = grouped[monthIdx];
+        const monthRevenue = bookings.reduce((sum, b) => sum + getBookingTotal(b), 0);
+        const confirmedCount = bookings.filter(b => b.status === 'confirmed').length;
+        const completedCount = bookings.filter(b => b.status === 'completed').length;
+        const cancelledCount = bookings.filter(b => b.status === 'cancelled').length;
+
+        html += `<div class="month-booking-section">`;
+        html += `<div class="month-section-header" onclick="toggleMonthSection(this)">
+            <div class="month-header-left">
+                <i class="fas fa-chevron-down month-toggle-icon"></i>
+                <h3><i class="fas fa-calendar-alt"></i> ${MONTH_NAMES_FULL[monthIdx]} ${bookingFilterYear}</h3>
+                <span class="month-booking-count">${bookings.length} booking${bookings.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div class="month-header-right">
+                <div class="month-stats-chips">
+                    ${confirmedCount > 0 ? `<span class="month-chip confirmed"><i class="fas fa-check-circle"></i> ${confirmedCount}</span>` : ''}
+                    ${completedCount > 0 ? `<span class="month-chip completed"><i class="fas fa-door-open"></i> ${completedCount}</span>` : ''}
+                    ${cancelledCount > 0 ? `<span class="month-chip cancelled"><i class="fas fa-ban"></i> ${cancelledCount}</span>` : ''}
+                </div>
+                <span class="month-revenue">₹${formatNumber(monthRevenue)}</span>
+            </div>
+        </div>`;
+
+        html += `<div class="month-section-body">
+        <div class="card" style="margin-bottom: 0; border-radius: 0 0 16px 16px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Booking ID</th>
+                        <th>Guest Name</th>
+                        <th>Room</th>
+                        <th>Check-in</th>
+                        <th>Check-out</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Receipt</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        bookings.forEach(booking => {
+            const total = getBookingTotal(booking);
+            const isCheckedOut = booking.status === 'completed';
+            let actionsHtml = `<div style="display:flex; gap:5px;">`;
+            if (booking.status === 'cancelled') {
+                actionsHtml += '<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #EF4444; cursor: default;" disabled><i class="fas fa-ban"></i> Cancelled</button>';
+            } else if (isCheckedOut) {
+                actionsHtml += '<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #27AE60; cursor: default;" disabled><i class="fas fa-check"></i> Checked Out</button>';
+            } else {
+                actionsHtml += `<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #27AE60;" onclick="checkoutBooking('${booking.id}')" title="Checkout"><i class="fas fa-sign-out-alt"></i></button>`;
+                actionsHtml += `<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #F59E0B;" onclick="openEditBookingModal('${booking.id}')" title="Edit"><i class="fas fa-edit"></i></button>`;
+                actionsHtml += `<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #EF4444;" onclick="cancelBooking('${booking.id}')" title="Cancel"><i class="fas fa-times"></i></button>`;
+            }
+            actionsHtml += `</div>`;
+
+            const roomDisplayText = booking.rooms && booking.rooms.length > 1
+                ? `${booking.rooms.map(r => r.roomName).join(', ')} (${booking.rooms.length} rooms)`
+                : (booking.rooms && booking.rooms.length === 1 
+                    ? booking.rooms[0].roomName
+                    : booking.roomName);
+
+            html += `<tr><td><strong>${booking.id}</strong></td><td>${booking.guestName}</td><td>${roomDisplayText}</td><td>${formatDate(booking.checkIn)}</td><td>${formatDate(booking.checkOut)}</td><td>₹${formatNumber(total)}</td><td><span class="status-badge ${booking.status}">${capitalizeFirst(booking.status)}</span></td><td>
+                <button class="btn-primary" style="padding: 6px 12px; font-size: 11px;" onclick="showReceipt('${booking.id}')" title="Receipt"><i class="fas fa-receipt"></i></button>
+                ${(booking.customerPhoto || booking.customerPhotoUrl) ? `<button class="btn-primary" style="padding: 6px 12px; font-size: 11px; background:#4F46E5; margin-left:4px;" onclick="viewBookingPhotos('${booking.id}')" title="Photos"><i class="fas fa-camera"></i></button>` : ''}
+            </td>
+            <td>${actionsHtml}</td></tr>`;
+        });
+
+        html += `</tbody></table></div></div></div>`;
+    });
+
+    container.innerHTML = html;
+}
+
+function changeBookingYear(delta) {
+    bookingFilterYear += delta;
+    loadBookings();
+}
+
+function selectBookingMonth(month, btn) {
+    bookingFilterMonth = month;
+    document.querySelectorAll('#bookingMonthPills .month-pill').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    loadBookings();
+}
+
+function resetBookingFilters() {
+    bookingFilterYear = new Date().getFullYear();
+    bookingFilterMonth = 'all';
+    const statusFilter = document.getElementById('bookingStatusFilter');
+    if (statusFilter) statusFilter.value = 'all';
+    document.querySelectorAll('#bookingMonthPills .month-pill').forEach(p => p.classList.remove('active'));
+    const allPill = document.querySelector('#bookingMonthPills .month-pill[data-month="all"]');
+    if (allPill) allPill.classList.add('active');
+    loadBookings();
+}
+
+function toggleMonthSection(headerEl) {
+    const section = headerEl.closest('.month-booking-section');
+    if (!section) return;
+    section.classList.toggle('collapsed');
 }
 
 function checkoutBooking(bookingId) {
