@@ -2343,3 +2343,43 @@ body {
         align-items: center;
     }
 }
+
+/* ===== ROLE-BASED ACCESS CONTROL ===== */
+
+/* Hide elements marked as receptionist-only when owner is logged in */
+.owner-view .receptionist-only {
+    display: none !important;
+}
+
+/* Hide revenue/financial elements from receptionist — shown only for owner */
+.owner-only {
+    display: none !important;
+}
+
+.owner-view .owner-only {
+    display: revert !important;
+}
+
+/* Role badge in header profile */
+.role-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-top: 3px;
+    text-transform: uppercase;
+}
+
+.role-badge.owner {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+}
+
+.role-badge.receptionist {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}

@@ -20,7 +20,8 @@
         <div class="login-wrapper">
             <div class="login-content">
                 <div class="login-header">
-                    <img src="logo - Copy.jpeg" alt="Sri Padmavati Pleasants" class="login-logo">
+                    <img src="WhatsApp Image 2026-04-16 at 2.00.16 PM.jpeg" alt="Sri Padmavati Pleasants"
+                        class="login-logo">
                     <h1>Sri Padmavati Pleasants</h1>
                     <p>Admin Management System</p>
                 </div>
@@ -109,11 +110,11 @@
                     <i class="fas fa-users"></i>
                     <span>Guests</span>
                 </button>
-                <button class="nav-item" onclick="navigateTo('payments', this)">
+                <button class="nav-item owner-only" onclick="navigateTo('payments', this)">
                     <i class="fas fa-credit-card"></i>
                     <span>Payments</span>
                 </button>
-                <button class="nav-item" onclick="navigateTo('analytics', this)">
+                <button class="nav-item owner-only" onclick="navigateTo('analytics', this)">
                     <i class="fas fa-chart-bar"></i>
                     <span>Analytics</span>
                 </button>
@@ -176,7 +177,7 @@
                             <div class="metric-change" id="metricOccupancyInfo">0 occupied of 0 rooms</div>
                         </div>
 
-                        <div class="metric-card">
+                        <div class="metric-card owner-only">
                             <div class="metric-header">
                                 <span class="metric-label">Revenue Today</span>
                                 <i class="fas fa-money-bill metric-icon"></i>
@@ -220,7 +221,7 @@
                             </div>
                         </div>
 
-                        <div class="stat-box monthly">
+                        <div class="stat-box monthly owner-only">
                             <div class="stat-icon"><i class="fas fa-calendar-month"></i></div>
                             <div>
                                 <div class="stat-label">Monthly Revenue</div>
@@ -230,7 +231,7 @@
                     </div>
 
                     <div class="dashboard-grid">
-                        <div class="card">
+                        <div class="card owner-only">
                             <div class="card-header">
                                 <h3>Revenue Trend</h3>
                                 <div class="chart-controls">
@@ -294,7 +295,7 @@
                 <div id="bookings" class="page-content">
                     <div class="page-header">
                         <h2>Booking Management</h2>
-                        <button class="btn-primary" onclick="openNewBookingPage()">
+                        <button class="btn-primary receptionist-only" onclick="openNewBookingPage()">
                             <i class="fas fa-plus"></i> New Booking
                         </button>
                     </div>
@@ -537,10 +538,15 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
+                                        <label>Room Fare / Rate (₹) *</label>
+                                        <input type="number" id="bookingRoomRate" value="0" min="0" required placeholder="Enter room fare per day">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
                                         <label>Advance Amount (₹) *</label>
                                         <input type="number" id="bookingAdvance" value="0" min="0" required>
                                     </div>
-                                </div>
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label>Extras (₹) - Common</label>
@@ -591,10 +597,16 @@
                                                 style="display: none;">
                                             <span id="customerPhotoEmpty">No photo captured</span>
                                         </div>
-                                        <button type="button" class="btn-primary capture-btn"
-                                            id="captureCustomerPhotoBtn">
-                                            <i class="fas fa-user"></i> Capture Customer Photo
-                                        </button>
+                                        <div class="capture-btn-group">
+                                            <button type="button" class="btn-primary capture-btn"
+                                                id="captureCustomerPhotoBtn">
+                                                <i class="fas fa-camera"></i> Capture
+                                            </button>
+                                            <label class="btn-primary capture-btn upload-btn" for="uploadCustomerPhotoInput">
+                                                <i class="fas fa-upload"></i> Upload
+                                            </label>
+                                            <input type="file" id="uploadCustomerPhotoInput" accept="image/*" style="display: none;" onchange="handlePhotoUpload(this, 'customer')">
+                                        </div>
                                     </div>
 
                                     <div class="capture-card">
@@ -604,10 +616,16 @@
                                                 style="display: none;">
                                             <span id="idProofPhotoEmpty">No ID proof photo captured</span>
                                         </div>
-                                        <button type="button" class="btn-primary capture-btn"
-                                            id="captureIdProofPhotoBtn">
-                                            <i class="fas fa-id-card"></i> Capture ID Proof Photo
-                                        </button>
+                                        <div class="capture-btn-group">
+                                            <button type="button" class="btn-primary capture-btn"
+                                                id="captureIdProofPhotoBtn">
+                                                <i class="fas fa-camera"></i> Capture
+                                            </button>
+                                            <label class="btn-primary capture-btn upload-btn" for="uploadIdProofPhotoInput">
+                                                <i class="fas fa-upload"></i> Upload
+                                            </label>
+                                            <input type="file" id="uploadIdProofPhotoInput" accept="image/*" style="display: none;" onchange="handlePhotoUpload(this, 'idProof')">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -789,7 +807,7 @@
                 </div>
 
                 <!-- Payments -->
-                <div id="payments" class="page-content">
+                <div id="payments" class="page-content owner-only">
                     <div class="page-header">
                         <h2>Payment & Billing</h2>
                     </div>
@@ -832,7 +850,7 @@
                 </div>
 
                 <!-- Analytics -->
-                <div id="analytics" class="page-content">
+                <div id="analytics" class="page-content owner-only">
                     <div class="page-header">
                         <h2>Analytics & Reports</h2>
                     </div>

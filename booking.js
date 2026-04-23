@@ -71,7 +71,7 @@ function loadBookings() {
                     ${completedCount > 0 ? `<span class="month-chip completed"><i class="fas fa-door-open"></i> ${completedCount}</span>` : ''}
                     ${cancelledCount > 0 ? `<span class="month-chip cancelled"><i class="fas fa-ban"></i> ${cancelledCount}</span>` : ''}
                 </div>
-                <span class="month-revenue">₹${formatNumber(monthRevenue)}</span>
+                <span class="month-revenue owner-only">₹${formatNumber(monthRevenue)}</span>
             </div>
         </div>`;
 
@@ -102,9 +102,9 @@ function loadBookings() {
             } else if (isCheckedOut) {
                 actionsHtml += '<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #27AE60; cursor: default;" disabled><i class="fas fa-check"></i> Checked Out</button>';
             } else {
-                actionsHtml += `<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #27AE60;" onclick="checkoutBooking('${booking.id}')" title="Checkout"><i class="fas fa-sign-out-alt"></i></button>`;
-                actionsHtml += `<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #F59E0B;" onclick="openEditBookingModal('${booking.id}')" title="Edit"><i class="fas fa-edit"></i></button>`;
-                actionsHtml += `<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #EF4444;" onclick="cancelBooking('${booking.id}')" title="Cancel"><i class="fas fa-times"></i></button>`;
+                actionsHtml += `<button class="btn-primary receptionist-only" style="padding: 6px 10px; font-size: 11px; background: #27AE60;" onclick="checkoutBooking('${booking.id}')" title="Checkout"><i class="fas fa-sign-out-alt"></i></button>`;
+                actionsHtml += `<button class="btn-primary owner-only" style="padding: 6px 10px; font-size: 11px; background: #F59E0B;" onclick="openEditBookingModal('${booking.id}')" title="Edit"><i class="fas fa-edit"></i></button>`;
+                actionsHtml += `<button class="btn-primary receptionist-only" style="padding: 6px 10px; font-size: 11px; background: #EF4444;" onclick="cancelBooking('${booking.id}')" title="Cancel"><i class="fas fa-times"></i></button>`;
             }
             actionsHtml += `</div>`;
 
@@ -316,6 +316,7 @@ function handleNewBooking(e) {
     const advance = parseFloat(document.getElementById('bookingAdvance').value);
     const extras = parseFloat(document.getElementById('bookingExtras').value || '0');
     const extraBed = parseFloat(document.getElementById('bookingExtraBed').value || '0');
+    const manualRoomRate = parseFloat(document.getElementById('bookingRoomRate').value || '0');
     const customerPhotoData = document.getElementById('bookingCustomerPhotoData').value;
     const idProofPhotoData = document.getElementById('bookingIdProofPhotoData').value;
     const maleCount = parseInt(document.getElementById('bookingMaleCount') ? document.getElementById('bookingMaleCount').value : '1', 10);
@@ -334,6 +335,12 @@ function handleNewBooking(e) {
 
     if (!guestName || !guestPhone || !idProofType || !idProofNumberRaw || !checkIn || !checkOut || !paymentMethod || Number.isNaN(advance) || Number.isNaN(extras)) {
         alert('Please fill in all required booking details');
+        return;
+    }
+
+    if (!manualRoomRate || manualRoomRate <= 0) {
+        alert('Please enter the Room Fare / Rate. This field is required.');
+        document.getElementById('bookingRoomRate').focus();
         return;
     }
 
@@ -385,7 +392,7 @@ function handleNewBooking(e) {
         checkOutTime,
         paymentMethod,
         status: 'confirmed',
-        roomRate: totalRoomRate,  // Total of all rooms
+        roomRate: manualRoomRate,  // Use manually entered room rate
         advance,
         extras,
         extraBed,
@@ -984,4 +991,57 @@ async function viewBookingPhotos(bookingId) {
         idProofStatus.textContent = "Not Available";
         idProofStatus.style.display = 'block';
     }
+}
+
+function handlePhotoUpload(inputElement, captureType) {
+    const file = inputElement.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        alert('Please select a valid image file.');
+        inputElement.value = '';
+        return;
+    }
+
+    // Limit file size to 5MB
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Image is too large. Please select a file under 5MB.');
+        inputElement.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const imageData = e.target.result;
+
+        if (captureType === 'customer') {
+            const hiddenInput = document.getElementById('bookingCustomerPhotoData');
+            const previewImg = document.getElementById('customerPhotoPreview');
+            const emptyText = document.getElementById('customerPhotoEmpty');
+
+            if (hiddenInput) hiddenInput.value = imageData;
+            if (previewImg) {
+                previewImg.src = imageData;
+                previewImg.style.display = 'block';
+            }
+            if (emptyText) emptyText.style.display = 'none';
+            alert('Customer photo uploaded successfully');
+        } else {
+            const hiddenInput = document.getElementById('bookingIdProofPhotoData');
+            const previewImg = document.getElementById('idProofPhotoPreview');
+            const emptyText = document.getElementById('idProofPhotoEmpty');
+
+            if (hiddenInput) hiddenInput.value = imageData;
+            if (previewImg) {
+                previewImg.src = imageData;
+                previewImg.style.display = 'block';
+            }
+            if (emptyText) emptyText.style.display = 'none';
+            alert('ID proof photo uploaded successfully');
+        }
+    };
+
+    reader.readAsDataURL(file);
+    // Reset file input so the same file can be re-selected
+    inputElement.value = '';
 }

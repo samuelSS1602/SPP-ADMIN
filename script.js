@@ -28,6 +28,12 @@ let firebaseStorage = null;
 let checkoutReminderTimer = null;
 const LODGE_GST_NUMBER = '33ANCPP8116B1ZF';
 
+// Role-based access control
+let currentUserRole = 'receptionist';
+let currentUserName = 'Receptionist';
+const OWNER_EMAIL = 'sppowner@gmail.com';
+const OWNER_WHATSAPP_PHONE = '919842816621';
+
 // Multi-room booking support
 let multiRoomBookingSelection = [];  // Array to store {roomId, roomName, floor, price} objects
 
@@ -64,7 +70,18 @@ async function handleLogin(e) {
             loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching Data...';
             await fetchAllDataFromFirebase();
 
+            // Detect user role from email
+            const loggedInEmail = firebaseAuth.currentUser.email.toLowerCase();
+            if (loggedInEmail === OWNER_EMAIL) {
+                currentUserRole = 'owner';
+                currentUserName = 'Owner';
+            } else {
+                currentUserRole = 'receptionist';
+                currentUserName = 'Receptionist';
+            }
+
             showDashboard();
+            applyRoleRestrictions();
             syncAllBookingsToFirebase();
 
             // Reset button state just in case it's shown again after logout
@@ -143,6 +160,11 @@ async function logout() {
         document.getElementById('loginForm').reset();
         destroyCharts();
         stopCheckoutReminderService();
+
+        // Reset role state
+        currentUserRole = 'receptionist';
+        currentUserName = 'Receptionist';
+        document.body.classList.remove('owner-view');
     }
 }
 
@@ -472,7 +494,7 @@ function showRoomDetails(roomId) {
             
             <div class="detail-section">
                 <h4><i class="fas fa-magic"></i> Manage Room Status</h4>
-                <div class="modal-actions" style="margin-top: 10px; padding-top: 0; border-top: none; gap: 10px; display: flex; flex-wrap: wrap;">
+                <div class="modal-actions receptionist-only" style="margin-top: 10px; padding-top: 0; border-top: none; gap: 10px; display: flex; flex-wrap: wrap;">
                     <button class="btn-primary" style="background: #27AE60; flex: 1;" onclick="updateRoomStatus(${roomId}, 'available')">
                         <i class="fas fa-check-circle"></i> Available
                     </button>
@@ -493,7 +515,7 @@ function showRoomDetails(roomId) {
             <div class="detail-section">
                 <h4><i class="fas fa-bolt"></i> Quick Actions</h4>
                 <div class="modal-actions" style="margin-top: 0; padding-top: 0; border-top: none;">
-                    <button class="btn-primary" onclick="openExtraAmountModal('${booking.id}', ${room.id})">
+                    <button class="btn-primary receptionist-only" onclick="openExtraAmountModal('${booking.id}', ${room.id})">
                         <i class="fas fa-plus"></i> Add Extra Amount
                     </button>
                     <button class="btn-primary" onclick="showReceipt('${booking.id}')">
@@ -644,7 +666,7 @@ function getGuestProfile(booking) {
 function loadPricingPage() {
     let html = '';
     data.rooms.forEach(room => {
-        html += `<tr><td><strong>${room.name}</strong></td><td>Floor ${room.floor}</td><td>${capitalizeFirst(room.type)}</td><td>₹${formatNumber(room.price)}</td><td><input type="number" class="price-input" id="price-input-${room.id}" placeholder="Enter new price" min="100"></td><td><button class="btn-primary" onclick="openPriceModal(${room.id}, '${room.name}', ${room.price})" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-edit"></i> Update</button></td></tr>`;
+        html += `<tr><td><strong>${room.name}</strong></td><td>Floor ${room.floor}</td><td>${capitalizeFirst(room.type)}</td><td>₹${formatNumber(room.price)}</td><td><input type="number" class="price-input" id="price-input-${room.id}" placeholder="Enter new price" min="100"></td><td><button class="btn-primary receptionist-only" onclick="openPriceModal(${room.id}, '${room.name}', ${room.price})" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-edit"></i> Update</button></td></tr>`;
     });
     const tableBody = document.getElementById('pricingTable');
     if (tableBody) tableBody.innerHTML = html;
@@ -687,7 +709,7 @@ function loadPayments() {
             ? booking.rooms.map(r => r.roomName).join(', ')
             : (booking.roomName || 'N/A');
 
-        html += `<tr><td><strong>INV-${booking.id}</strong></td><td>${booking.guestName}</td><td>${roomDisplayName}</td><td>${formatDate(booking.checkIn)}</td><td>₹${formatNumber(booking.advance)}</td><td>₹${formatNumber(pendingAmount)}</td><td>₹${formatNumber(booking.extras)}</td><td><span class="status-badge ${statusBadge}">${capitalizeFirst(statusBadge)}</span></td><td><button class="btn-primary" onclick="openExtraAmountModal('${booking.id}')" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-plus"></i> Extra</button></td><td><button class="btn-primary" onclick="showReceipt('${booking.id}')" style="padding: 6px 12px; font-size: 11px;"><i class="fas fa-download"></i></button></td></tr>`;
+        html += `<tr><td><strong>INV-${booking.id}</strong></td><td>${booking.guestName}</td><td>${roomDisplayName}</td><td>${formatDate(booking.checkIn)}</td><td>₹${formatNumber(booking.advance)}</td><td>₹${formatNumber(pendingAmount)}</td><td>₹${formatNumber(booking.extras)}</td><td><span class="status-badge ${statusBadge}">${capitalizeFirst(statusBadge)}</span></td><td><button class="btn-primary receptionist-only" onclick="openExtraAmountModal('${booking.id}')" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-plus"></i> Extra</button></td><td><button class="btn-primary" onclick="showReceipt('${booking.id}')" style="padding: 6px 12px; font-size: 11px;"><i class="fas fa-download"></i></button></td></tr>`;
     });
 
     const tableBody = document.getElementById('paymentsTable');
@@ -1055,14 +1077,121 @@ function sendCheckInWhatsAppMessage(booking) {
     if (!booking || booking.checkInWhatsAppSent) return;
 
     const phone = normalizePhoneForWhatsApp(booking.guestPhone || '');
-    if (!phone) return;
 
-    const message = buildCheckInWhatsAppMessage(booking);
-    const shouldSend = confirm(`Send WhatsApp check-in message to ${booking.guestName}?`);
-    if (!shouldSend) return;
+    // Send guest check-in message
+    if (phone) {
+        const message = buildCheckInWhatsAppMessage(booking);
+        const shouldSend = confirm(`Send WhatsApp check-in message to ${booking.guestName}?`);
+        if (shouldSend) {
+            openWhatsAppMessage(phone, message);
+        }
+    }
 
-    openWhatsAppMessage(phone, message);
     booking.checkInWhatsAppSent = true;
+
+    // Send owner notification (only when receptionist creates booking)
+    // Use a longer delay so the first WhatsApp tab fully opens before triggering the second
+    if (currentUserRole === 'receptionist') {
+        setTimeout(() => {
+            sendOwnerCheckinNotification(booking);
+        }, 2000);
+    }
+}
+
+function sendOwnerCheckinNotification(booking) {
+    if (!booking || !OWNER_WHATSAPP_PHONE) return;
+
+    const message = buildOwnerCheckinMessage(booking);
+
+    const shouldSend = confirm('Send check-in notification to Owner via WhatsApp?');
+    if (shouldSend) {
+        const url = `https://wa.me/${OWNER_WHATSAPP_PHONE}?text=${encodeURIComponent(message)}`;
+        const win = window.open(url, '_blank');
+        
+        // If popup was blocked, provide a fallback
+        if (!win || win.closed || typeof win.closed === 'undefined') {
+            // Try to copy the message and show URL
+            try {
+                navigator.clipboard.writeText(message);
+                alert('Popup was blocked! The owner notification message has been copied to your clipboard.\n\nPlease open WhatsApp manually and paste the message to the owner.');
+            } catch(e) {
+                alert('Popup was blocked! Please allow popups for this site, or manually send the following to the Owner:\n\n' + message);
+            }
+        }
+    }
+}
+
+function buildOwnerCheckinMessage(booking) {
+    const roomDisplay = (booking.rooms && booking.rooms.length > 0)
+        ? booking.rooms.map(r => `${r.roomName} (Floor ${r.floor})`).join(', ')
+        : `${booking.roomName || 'N/A'}`;
+
+    const ciTime = booking.checkInTime || '12:00 PM';
+    const ciDateTime = booking.checkIn ? formatDateTime(booking.checkIn, ciTime) : 'N/A';
+    const coTime = booking.checkOutTime || '11:00 AM';
+    const coDateTime = booking.checkOut ? formatDateTime(booking.checkOut, coTime) : 'N/A';
+
+    const totalRate = booking.roomRate || 0;
+    const advance = booking.advance || 0;
+    const extras = (booking.extras || 0) + (booking.extraBed || 0);
+    const total = getBookingTotal(booking);
+    const balance = getBookingBalance(booking);
+    const guests = `${booking.maleCount || 0}M + ${booking.femaleCount || 0}F + ${booking.childrenCount || 0}C`;
+
+    return `🏨 *New Check-In Alert*
+Sri Padmavati Pleasants
+
+👤 Guest: ${booking.guestName}
+📱 Phone: ${booking.guestPhone || 'N/A'}
+👥 Guests: ${guests}
+🛏️ Room: ${roomDisplay}
+📅 Check-in: ${ciDateTime}
+📅 Check-out: ${coDateTime}
+💳 Payment: ${booking.paymentMethod || 'N/A'}${booking.bookingSource ? ' (' + booking.bookingSource + ')' : ''}
+
+💰 Room Rate: ₹${formatNumber(totalRate)}
+💵 Advance Received: ₹${formatNumber(advance)}
+➕ Extras: ₹${formatNumber(extras)}
+🧾 Total Billing: ₹${formatNumber(total)}
+⚖️ Balance Due: ₹${formatNumber(balance)}
+
+📋 Booking ID: ${booking.id}`;
+}
+
+function applyRoleRestrictions() {
+    // Update profile display
+    const profilePic = document.querySelector('.profile-pic');
+    if (profilePic) profilePic.textContent = currentUserRole === 'owner' ? 'O' : 'R';
+
+    const userProfileDiv = document.querySelector('.user-profile');
+    if (userProfileDiv) {
+        const innerDiv = userProfileDiv.querySelector('div:last-child');
+        if (innerDiv) {
+            const nameEl = innerDiv.querySelector('div');
+            const emailEl = innerDiv.querySelector('small');
+            if (nameEl) nameEl.textContent = currentUserName;
+            if (emailEl && firebaseAuth && firebaseAuth.currentUser) {
+                emailEl.textContent = firebaseAuth.currentUser.email;
+            }
+
+            // Add or update role badge
+            let roleBadge = document.getElementById('roleBadge');
+            if (!roleBadge) {
+                roleBadge = document.createElement('div');
+                roleBadge.id = 'roleBadge';
+                innerDiv.appendChild(roleBadge);
+            }
+            roleBadge.className = `role-badge ${currentUserRole}`;
+            roleBadge.textContent = currentUserRole === 'owner' ? '👑 Owner' : '🛎️ Receptionist';
+        }
+    }
+
+    // Toggle body class for CSS-based hiding
+    if (currentUserRole === 'owner') {
+        document.body.classList.add('owner-view');
+    } else {
+        document.body.classList.remove('owner-view');
+    }
 }
 
 function startCheckoutReminderService() {
