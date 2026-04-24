@@ -854,16 +854,21 @@ window.deleteBooking = async function(bookingId) {
         data.bookings[i].id = newId;
     }
 
-    // Update Firebase: delete old docs and sync new ones for renamed bookings
+    // Update Firebase: move docs and sync new ones for renamed bookings
     if (firebaseEnabled && firebaseDb && renameMap.length > 0) {
         for (const { oldId, newId } of renameMap) {
             try {
+                // Migrate photos document if it exists
+                const photoDoc = await firebaseDb.collection('booking_photos').doc(String(oldId)).get();
+                if (photoDoc.exists) {
+                    await firebaseDb.collection('booking_photos').doc(String(newId)).set(photoDoc.data());
+                    await firebaseDb.collection('booking_photos').doc(String(oldId)).delete();
+                }
+
                 // Delete old document
                 await firebaseDb.collection('bookings').doc(String(oldId)).delete();
-                // Delete old photos document
-                await firebaseDb.collection('booking_photos').doc(String(oldId)).delete();
             } catch (err) {
-                console.warn(`Failed to delete old Firebase doc ${oldId}:`, err);
+                console.warn(`Failed to migrate Firebase docs from ${oldId} to ${newId}:`, err);
             }
         }
         // Re-sync all bookings with new IDs to Firebase
@@ -881,6 +886,16 @@ window.deleteBooking = async function(bookingId) {
                 historyItem.bookingId = renamed.newId;
             }
         });
+    });
+
+    // Also update guest lastBookingId references
+    data.guests.forEach(guest => {
+        if (guest.lastBookingId) {
+            const renamed = renameMap.find(r => r.oldId === guest.lastBookingId);
+            if (renamed) {
+                guest.lastBookingId = renamed.newId;
+            }
+        }
     });
 
     saveDataToStorage();
@@ -927,14 +942,21 @@ window.renumberAllBookings = async function() {
         data.bookings[i].id = newId;
     }
 
-    // Update Firebase: delete old docs and re-sync with new IDs
+    // Update Firebase: move docs and re-sync with new IDs
     if (firebaseEnabled && firebaseDb && renameMap.length > 0) {
-        for (const { oldId } of renameMap) {
+        for (const { oldId, newId } of renameMap) {
             try {
+                // Migrate photos document if it exists
+                const photoDoc = await firebaseDb.collection('booking_photos').doc(String(oldId)).get();
+                if (photoDoc.exists) {
+                    await firebaseDb.collection('booking_photos').doc(String(newId)).set(photoDoc.data());
+                    await firebaseDb.collection('booking_photos').doc(String(oldId)).delete();
+                }
+                
+                // Delete old booking document (it will be recreated with new ID by syncBookingToFirebase)
                 await firebaseDb.collection('bookings').doc(String(oldId)).delete();
-                await firebaseDb.collection('booking_photos').doc(String(oldId)).delete();
             } catch (err) {
-                console.warn(`Failed to delete old Firebase doc ${oldId}:`, err);
+                console.warn(`Failed to migrate Firebase docs from ${oldId} to ${newId}:`, err);
             }
         }
         // Re-sync all bookings with new IDs
@@ -952,6 +974,16 @@ window.renumberAllBookings = async function() {
                 historyItem.bookingId = renamed.newId;
             }
         });
+    });
+
+    // Update guest lastBookingId references
+    data.guests.forEach(guest => {
+        if (guest.lastBookingId) {
+            const renamed = renameMap.find(r => r.oldId === guest.lastBookingId);
+            if (renamed) {
+                guest.lastBookingId = renamed.newId;
+            }
+        }
     });
 
     saveDataToStorage();

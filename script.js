@@ -676,8 +676,27 @@ function loadPricingPage() {
 function loadGuests() {
     let html = '';
     data.guests.forEach(guest => {
-        const photoBtn = guest.lastBookingId
-            ? `<button class="btn-primary" onclick="viewBookingPhotos('${guest.lastBookingId}')" style="padding: 6px 10px; font-size: 11px; background: #4F46E5;"><i class="fas fa-camera"></i> View</button>`
+        // Verify if lastBookingId actually exists in data.bookings
+        let currentBookingId = guest.lastBookingId;
+        const bookingExists = data.bookings.some(b => b.id === currentBookingId);
+        
+        // If broken reference, try to repair it by searching bookings
+        if (currentBookingId && !bookingExists) {
+            const actualLastBooking = [...data.bookings]
+                .reverse()
+                .find(b => b.guestName === guest.name || b.guestPhone === guest.phone);
+            
+            if (actualLastBooking) {
+                guest.lastBookingId = actualLastBooking.id;
+                currentBookingId = actualLastBooking.id;
+            } else {
+                guest.lastBookingId = null;
+                currentBookingId = null;
+            }
+        }
+
+        const photoBtn = currentBookingId
+            ? `<button class="btn-primary" onclick="viewBookingPhotos('${currentBookingId}')" style="padding: 6px 10px; font-size: 11px; background: #4F46E5;"><i class="fas fa-camera"></i> View</button>`
             : '<span style="color: #94A3B8; font-size: 11px;">No Photo</span>';
 
         html += `<tr><td><strong>${guest.name}</strong></td><td>${guest.email}</td><td>${guest.phone}</td><td>${guest.visits}</td><td>${formatDate(guest.lastVisit)}</td><td>${photoBtn}</td></tr>`;
