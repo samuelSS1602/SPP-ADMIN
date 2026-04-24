@@ -44,9 +44,6 @@ document.addEventListener('DOMContentLoaded', function () {
     enforceRequestedRoomSetup();
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('newBookingForm').addEventListener('submit', handleNewBooking);
-    initBookingCameraSection();
-    initBookingTimeModeSection();
-    initBookingIdProofValidation();
     startLiveClock();
 });
 
@@ -679,13 +676,13 @@ function loadGuests() {
         // Verify if lastBookingId actually exists in data.bookings
         let currentBookingId = guest.lastBookingId;
         const bookingExists = data.bookings.some(b => b.id === currentBookingId);
-        
+
         // If broken reference, try to repair it by searching bookings
         if (currentBookingId && !bookingExists) {
             const actualLastBooking = [...data.bookings]
                 .reverse()
                 .find(b => b.guestName === guest.name || b.guestPhone === guest.phone);
-            
+
             if (actualLastBooking) {
                 guest.lastBookingId = actualLastBooking.id;
                 currentBookingId = actualLastBooking.id;
@@ -1126,14 +1123,14 @@ function sendOwnerCheckinNotification(booking) {
     if (shouldSend) {
         const url = `https://wa.me/${OWNER_WHATSAPP_PHONE}?text=${encodeURIComponent(message)}`;
         const win = window.open(url, '_blank');
-        
+
         // If popup was blocked, provide a fallback
         if (!win || win.closed || typeof win.closed === 'undefined') {
             // Try to copy the message and show URL
             try {
                 navigator.clipboard.writeText(message);
                 alert('Popup was blocked! The owner notification message has been copied to your clipboard.\n\nPlease open WhatsApp manually and paste the message to the owner.');
-            } catch(e) {
+            } catch (e) {
                 alert('Popup was blocked! Please allow popups for this site, or manually send the following to the Owner:\n\n' + message);
             }
         }
@@ -1292,222 +1289,235 @@ We hope you enjoyed your stay. Have a safe journey!
 
 ஸ்ரீ பத்மாவதி பிளஸன்ட்ஸ்-ல் தங்கியதற்கு நன்றி ${guestName} 🙏
 உங்கள் பயணம் இனியதாக அமைய வாழ்த்துக்கள்!`;
-}
 
-function sendCheckoutWhatsAppMessage(booking) {
-    const phone = normalizePhoneForWhatsApp(booking.guestPhone || '');
-    if (!phone) return;
+    function normalizePhoneForWhatsApp(phoneNumber) {
+        const digits = String(phoneNumber || '').replace(/\D/g, '');
+        if (!digits) return '';
 
-    const message = buildCheckoutWhatsAppMessage(booking);
-    const shouldSend = confirm(`Send WhatsApp checkout thank you message to ${booking.guestName}?`);
-    if (!shouldSend) return;
-
-    openWhatsAppMessage(phone, message);
-}
-
-function normalizePhoneForWhatsApp(phoneNumber) {
-    const digits = String(phoneNumber || '').replace(/\D/g, '');
-    if (!digits) return '';
-
-    if (digits.length === 10) {
-        return `91${digits}`;
-    }
-
-    if (digits.length >= 11 && digits.length <= 15) {
-        return digits;
-    }
-
-    return '';
-}
-
-function openWhatsAppMessage(phone, message) {
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
-}
-
-function parseBookingDateTime(dateValue, displayTime) {
-    if (!dateValue || !displayTime) return null;
-
-    const timeMatch = /^([0-9]{1,2}):([0-9]{2})\s?(AM|PM)$/i.exec(displayTime.trim());
-    if (!timeMatch) return null;
-
-    let hours = parseInt(timeMatch[1], 10);
-    const minutes = parseInt(timeMatch[2], 10);
-    const period = timeMatch[3].toUpperCase();
-
-    if (period === 'PM' && hours !== 12) hours += 12;
-    if (period === 'AM' && hours === 12) hours = 0;
-
-    const bookingDate = new Date(dateValue);
-    if (Number.isNaN(bookingDate.getTime())) return null;
-
-    bookingDate.setHours(hours, minutes, 0, 0);
-    return bookingDate;
-}
-
-function initFirebaseServices() {
-    if (typeof firebase === 'undefined') {
-        return;
-    }
-
-    if (!window.firebaseConfig || !window.firebaseConfig.apiKey) {
-        console.info('Firebase config not provided. Running in local mode.');
-        return;
-    }
-
-    try {
-        if (!firebase.apps.length) {
-            firebase.initializeApp(window.firebaseConfig);
+        if (digits.length === 10) {
+            return `91${digits}`;
         }
 
-        firebaseAuth = firebase.auth();
-        firebaseDb = firebase.firestore();
-        if (typeof firebase.storage !== 'undefined') {
-            firebaseStorage = firebase.storage();
+        if (digits.length >= 11 && digits.length <= 15) {
+            return digits;
         }
-        firebaseEnabled = true;
-    } catch (error) {
-        console.warn('Firebase initialization failed:', error);
-        firebaseEnabled = false;
-    }
-}
 
-function syncAllBookingsToFirebase() {
-    if (!firebaseEnabled || !firebaseDb) return;
-
-    data.bookings.forEach(booking => {
-        syncBookingToFirebase(booking);
-    });
-}
-
-async function syncBookingToFirebase(booking) {
-    if (!firebaseEnabled || !firebaseDb || !booking || !booking.id) return;
-
-    // To avoid CORS issues with Firebase Storage on localhost, 
-    // we save massive base64 image strings into a separate Firestore collection.
-    if ((booking.customerPhoto && booking.customerPhoto.startsWith('data:image')) ||
-        (booking.idProofPhoto && booking.idProofPhoto.startsWith('data:image'))) {
-
-        firebaseDb.collection('booking_photos').doc(String(booking.id)).set({
-            customerPhoto: booking.customerPhoto || null,
-            idProofPhoto: booking.idProofPhoto || null,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true }).catch(err => console.warn('Photo sync failed:', err));
+        return '';
     }
 
-    const cloudBooking = {};
-    for (const key in booking) {
-        if (key === 'customerPhoto' || key === 'idProofPhoto') continue;
-        if (booking[key] !== undefined) {
-            cloudBooking[key] = booking[key];
+    function openWhatsAppMessage(phone, message) {
+        const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+    }
+
+    function parseBookingDateTime(dateValue, displayTime) {
+        if (!dateValue || !displayTime) return null;
+
+        const timeMatch = /^([0-9]{1,2}):([0-9]{2})\s?(AM|PM)$/i.exec(displayTime.trim());
+        if (!timeMatch) return null;
+
+        let hours = parseInt(timeMatch[1], 10);
+        const minutes = parseInt(timeMatch[2], 10);
+        const period = timeMatch[3].toUpperCase();
+
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+
+        const bookingDate = new Date(dateValue);
+        if (Number.isNaN(bookingDate.getTime())) return null;
+
+        bookingDate.setHours(hours, minutes, 0, 0);
+        return bookingDate;
+    }
+
+    function initFirebaseServices() {
+        if (typeof firebase === 'undefined') {
+            return;
+        }
+
+        if (!window.firebaseConfig || !window.firebaseConfig.apiKey) {
+            console.info('Firebase config not provided. Running in local mode.');
+            return;
+        }
+
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(window.firebaseConfig);
+            }
+
+            firebaseAuth = firebase.auth();
+            firebaseDb = firebase.firestore();
+            if (typeof firebase.storage !== 'undefined') {
+                firebaseStorage = firebase.storage();
+            }
+            firebaseEnabled = true;
+        } catch (error) {
+            console.warn('Firebase initialization failed:', error);
+            firebaseEnabled = false;
         }
     }
 
-    if (booking.customerPhoto || booking.customerPhotoUrl) {
-        cloudBooking.hasCustomerPhoto = true;
-    }
-    if (booking.idProofPhoto || booking.idProofPhotoUrl) {
-        cloudBooking.hasIdProofPhoto = true;
-    }
+    function syncAllBookingsToFirebase() {
+        if (!firebaseEnabled || !firebaseDb) return;
 
-    cloudBooking.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-
-    firebaseDb
-        .collection('bookings')
-        .doc(String(booking.id))
-        .set(cloudBooking, { merge: true })
-        .catch(error => {
-            console.warn(`Failed to sync booking ${booking.id} to Firebase:`, error);
+        data.bookings.forEach(booking => {
+            syncBookingToFirebase(booking);
         });
-}
+    }
+
+    async function syncBookingToFirebase(booking) {
+        if (!firebaseEnabled || !firebaseDb || !booking || !booking.id) return;
+
+        // To avoid CORS issues with Firebase Storage on localhost, 
+        // we save massive base64 image strings into a separate Firestore collection.
+        if ((booking.customerPhoto && booking.customerPhoto.startsWith('data:image')) ||
+            (booking.idProofPhoto && booking.idProofPhoto.startsWith('data:image'))) {
+
+            firebaseDb.collection('booking_photos').doc(String(booking.id)).set({
+                customerPhoto: booking.customerPhoto || null,
+                idProofPhoto: booking.idProofPhoto || null,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).catch(err => console.warn('Photo sync failed:', err));
+        }
+
+        const cloudBooking = {};
+        for (const key in booking) {
+            if (key === 'customerPhoto' || key === 'idProofPhoto') continue;
+            if (booking[key] !== undefined) {
+                cloudBooking[key] = booking[key];
+            }
+        }
+
+        if (booking.customerPhoto || booking.customerPhotoUrl) {
+            cloudBooking.hasCustomerPhoto = true;
+        }
+        if (booking.idProofPhoto || booking.idProofPhotoUrl) {
+            cloudBooking.hasIdProofPhoto = true;
+        }
+
+        cloudBooking.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+        firebaseDb
+            .collection('bookings')
+            .doc(String(booking.id))
+            .set(cloudBooking, { merge: true })
+            .catch(error => {
+                console.warn(`Failed to sync booking ${booking.id} to Firebase:`, error);
+            });
+    }
 
 
-function downloadDailyRevenue() {
-    const today = getLocalISODate();
-    const todayLabel = formatDate(today);
-    const todaysBookings = data.bookings.filter(booking => booking.checkIn === today);
+    function downloadDailyRevenue() {
+        const today = getLocalISODate();
+        const todayLabel = formatDate(today);
+        const todaysBookings = data.bookings.filter(booking => booking.checkIn === today);
 
-    const data_export = [
-        ['Sri Padmavati Pleasants - Daily Revenue Report'],
-        ['Date: ' + todayLabel],
-        [],
-        ['Check-in Time', 'Room', 'Guest', 'Room Rate', 'Advance', 'Extras', 'Total']
-    ];
+        const data_export = [
+            ['Sri Padmavati Pleasants - Daily Revenue Report'],
+            ['Date: ' + todayLabel],
+            [],
+            ['Check-in Time', 'Room', 'Guest', 'Room Rate', 'Advance', 'Extras', 'Total']
+        ];
 
-    if (!todaysBookings.length) {
-        data_export.push(['No records', '-', '-', 0, 0, 0, 0]);
-    } else {
-        todaysBookings.forEach(booking => {
+        if (!todaysBookings.length) {
+            data_export.push(['No records', '-', '-', 0, 0, 0, 0]);
+        } else {
+            todaysBookings.forEach(booking => {
+                const days = calculateBookingDays(booking);
+                const totalRoom = (Number(booking.roomRate) || 0) * days;
+                const discount = Number(booking.discount) || 0;
+                const totalGrossRoom = Math.max(0, totalRoom - discount);
+
+                data_export.push([
+                    booking.checkInTime || 'N/A',
+                    booking.roomName || '-',
+                    booking.guestName || '-',
+                    totalGrossRoom,
+                    Number(booking.advance) || 0,
+                    (Number(booking.extras) || 0) + (Number(booking.extraBed) || 0),
+                    getBookingTotal(booking)
+                ]);
+            });
+        }
+
+        const dailyTotal = todaysBookings.reduce((sum, booking) => sum + getBookingTotal(booking), 0);
+        data_export.push([]);
+        data_export.push(['DAILY TOTAL', '', '', '', '', '', dailyTotal]);
+
+        const ws = XLSX.utils.aoa_to_sheet(data_export);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Daily Revenue');
+        XLSX.writeFile(wb, `Daily_Revenue_${today}.xlsx`);
+        alert('Daily Revenue report downloaded!');
+    }
+
+    function downloadMonthlyRevenue() {
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const currentYear = new Date().getFullYear();
+
+        const monthlySummary = monthNames.map((month, monthIndex) => {
+            const monthBookings = data.bookings.filter(booking => {
+                const date = new Date(booking.checkIn);
+                return date.getFullYear() === currentYear && date.getMonth() === monthIndex;
+            });
+
+            const advance = monthBookings.reduce((sum, booking) => sum + (Number(booking.advance) || 0), 0);
+            const balance = monthBookings.reduce((sum, booking) => sum + getBookingBalance(booking), 0);
+            const extras = monthBookings.reduce((sum, booking) => sum + (Number(booking.extras) || 0) + (Number(booking.extraBed) || 0), 0);
+            const total = monthBookings.reduce((sum, booking) => sum + getBookingTotal(booking), 0);
+
+            return [`${month} ${currentYear}`, monthBookings.length, advance, balance, extras, total];
+        });
+
+        const data_export = [
+            ['Sri Padmavati Pleasants - Monthly Revenue Report'],
+            [],
+            ['Month', 'Room Bookings', 'Advance Received', 'Balance Received', 'Extras', 'Total Revenue'],
+            ...monthlySummary
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet(data_export);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Monthly Revenue');
+        XLSX.writeFile(wb, 'Monthly_Revenue_Report.xlsx');
+        alert('Monthly Revenue report downloaded!');
+    }
+
+    function downloadYearlyRevenue() {
+        const yearlyMap = new Map();
+
+        data.bookings.forEach(booking => {
+            const date = new Date(booking.checkIn);
+            if (Number.isNaN(date.getTime())) return;
+
+            const year = date.getFullYear();
+            if (!yearlyMap.has(year)) {
+                yearlyMap.set(year, {
+                    bookings: 0,
+                    roomRateRevenue: 0,
+                    advanceCollected: 0,
+                    balanceCollected: 0,
+                    extrasRevenue: 0,
+                    totalRevenue: 0
+                });
+            }
+
+            const yearSummary = yearlyMap.get(year);
+            yearSummary.bookings += 1;
             const days = calculateBookingDays(booking);
             const totalRoom = (Number(booking.roomRate) || 0) * days;
             const discount = Number(booking.discount) || 0;
             const totalGrossRoom = Math.max(0, totalRoom - discount);
 
-            data_export.push([
-                booking.checkInTime || 'N/A',
-                booking.roomName || '-',
-                booking.guestName || '-',
-                totalGrossRoom,
-                Number(booking.advance) || 0,
-                (Number(booking.extras) || 0) + (Number(booking.extraBed) || 0),
-                getBookingTotal(booking)
-            ]);
-        });
-    }
-
-    const dailyTotal = todaysBookings.reduce((sum, booking) => sum + getBookingTotal(booking), 0);
-    data_export.push([]);
-    data_export.push(['DAILY TOTAL', '', '', '', '', '', dailyTotal]);
-
-    const ws = XLSX.utils.aoa_to_sheet(data_export);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Daily Revenue');
-    XLSX.writeFile(wb, `Daily_Revenue_${today}.xlsx`);
-    alert('Daily Revenue report downloaded!');
-}
-
-function downloadMonthlyRevenue() {
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const currentYear = new Date().getFullYear();
-
-    const monthlySummary = monthNames.map((month, monthIndex) => {
-        const monthBookings = data.bookings.filter(booking => {
-            const date = new Date(booking.checkIn);
-            return date.getFullYear() === currentYear && date.getMonth() === monthIndex;
+            yearSummary.roomRateRevenue += totalGrossRoom;
+            yearSummary.advanceCollected += Number(booking.advance) || 0;
+            yearSummary.balanceCollected += getBookingBalance(booking);
+            yearSummary.extrasRevenue += (Number(booking.extras) || 0) + (Number(booking.extraBed) || 0);
+            yearSummary.totalRevenue += getBookingTotal(booking);
         });
 
-        const advance = monthBookings.reduce((sum, booking) => sum + (Number(booking.advance) || 0), 0);
-        const balance = monthBookings.reduce((sum, booking) => sum + getBookingBalance(booking), 0);
-        const extras = monthBookings.reduce((sum, booking) => sum + (Number(booking.extras) || 0) + (Number(booking.extraBed) || 0), 0);
-        const total = monthBookings.reduce((sum, booking) => sum + getBookingTotal(booking), 0);
-
-        return [`${month} ${currentYear}`, monthBookings.length, advance, balance, extras, total];
-    });
-
-    const data_export = [
-        ['Sri Padmavati Pleasants - Monthly Revenue Report'],
-        [],
-        ['Month', 'Room Bookings', 'Advance Received', 'Balance Received', 'Extras', 'Total Revenue'],
-        ...monthlySummary
-    ];
-
-    const ws = XLSX.utils.aoa_to_sheet(data_export);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Monthly Revenue');
-    XLSX.writeFile(wb, 'Monthly_Revenue_Report.xlsx');
-    alert('Monthly Revenue report downloaded!');
-}
-
-function downloadYearlyRevenue() {
-    const yearlyMap = new Map();
-
-    data.bookings.forEach(booking => {
-        const date = new Date(booking.checkIn);
-        if (Number.isNaN(date.getTime())) return;
-
-        const year = date.getFullYear();
-        if (!yearlyMap.has(year)) {
-            yearlyMap.set(year, {
+        if (!yearlyMap.size) {
+            yearlyMap.set(new Date().getFullYear(), {
                 bookings: 0,
                 roomRateRevenue: 0,
                 advanceCollected: 0,
@@ -1517,373 +1527,334 @@ function downloadYearlyRevenue() {
             });
         }
 
-        const yearSummary = yearlyMap.get(year);
-        yearSummary.bookings += 1;
-        const days = calculateBookingDays(booking);
-        const totalRoom = (Number(booking.roomRate) || 0) * days;
-        const discount = Number(booking.discount) || 0;
-        const totalGrossRoom = Math.max(0, totalRoom - discount);
+        const rows = Array.from(yearlyMap.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([year, summary]) => [
+                String(year),
+                summary.bookings,
+                summary.roomRateRevenue,
+                summary.advanceCollected,
+                summary.balanceCollected,
+                summary.extrasRevenue,
+                summary.totalRevenue
+            ]);
 
-        yearSummary.roomRateRevenue += totalGrossRoom;
-        yearSummary.advanceCollected += Number(booking.advance) || 0;
-        yearSummary.balanceCollected += getBookingBalance(booking);
-        yearSummary.extrasRevenue += (Number(booking.extras) || 0) + (Number(booking.extraBed) || 0);
-        yearSummary.totalRevenue += getBookingTotal(booking);
-    });
+        const data_export = [
+            ['Sri Padmavati Pleasants - Yearly Revenue Report'],
+            [],
+            ['Year', 'Total Bookings', 'Room Rate Revenue', 'Advance Collected', 'Balance Collected', 'Extras Revenue', 'Total Revenue'],
+            ...rows
+        ];
 
-    if (!yearlyMap.size) {
-        yearlyMap.set(new Date().getFullYear(), {
-            bookings: 0,
-            roomRateRevenue: 0,
-            advanceCollected: 0,
-            balanceCollected: 0,
-            extrasRevenue: 0,
-            totalRevenue: 0
+        const ws = XLSX.utils.aoa_to_sheet(data_export);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Yearly Revenue');
+        XLSX.writeFile(wb, 'Yearly_Revenue_Report.xlsx');
+        alert('Yearly Revenue report downloaded!');
+    }
+
+
+    function createCharts() {
+        createRevenueChart();
+        createOccupancyChart();
+    }
+
+    function createRevenueChart() {
+        if (charts.revenue) charts.revenue.destroy();
+        const ctx = document.getElementById('revenueChart');
+        if (!ctx) return;
+        const weeklyRevenue = getLast7DaysRevenueData();
+
+        charts.revenue = new Chart(ctx, {
+            type: 'line',
+            data: { labels: weeklyRevenue.labels, datasets: [{ label: 'Daily Revenue', data: weeklyRevenue.values, borderColor: '#D4AF37', backgroundColor: 'rgba(212, 175, 55, 0.05)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#D4AF37' }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
         });
     }
 
-    const rows = Array.from(yearlyMap.entries())
-        .sort((a, b) => a[0] - b[0])
-        .map(([year, summary]) => [
-            String(year),
-            summary.bookings,
-            summary.roomRateRevenue,
-            summary.advanceCollected,
-            summary.balanceCollected,
-            summary.extrasRevenue,
-            summary.totalRevenue
-        ]);
-
-    const data_export = [
-        ['Sri Padmavati Pleasants - Yearly Revenue Report'],
-        [],
-        ['Year', 'Total Bookings', 'Room Rate Revenue', 'Advance Collected', 'Balance Collected', 'Extras Revenue', 'Total Revenue'],
-        ...rows
-    ];
-
-    const ws = XLSX.utils.aoa_to_sheet(data_export);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Yearly Revenue');
-    XLSX.writeFile(wb, 'Yearly_Revenue_Report.xlsx');
-    alert('Yearly Revenue report downloaded!');
-}
-
-
-function createCharts() {
-    createRevenueChart();
-    createOccupancyChart();
-}
-
-function createRevenueChart() {
-    if (charts.revenue) charts.revenue.destroy();
-    const ctx = document.getElementById('revenueChart');
-    if (!ctx) return;
-    const weeklyRevenue = getLast7DaysRevenueData();
-
-    charts.revenue = new Chart(ctx, {
-        type: 'line',
-        data: { labels: weeklyRevenue.labels, datasets: [{ label: 'Daily Revenue', data: weeklyRevenue.values, borderColor: '#D4AF37', backgroundColor: 'rgba(212, 175, 55, 0.05)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#D4AF37' }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-    });
-}
-
-function createOccupancyChart() {
-    if (charts.occupancy) charts.occupancy.destroy();
-    const ctx = document.getElementById('occupancyChart');
-    if (!ctx) return;
-    const occupied = data.rooms.filter(r => r.status === 'occupied').length;
-    const available = data.rooms.filter(r => r.status === 'available').length;
-    const cleaning = data.rooms.filter(r => r.status === 'cleaning').length;
-    charts.occupancy = new Chart(ctx, {
-        type: 'doughnut',
-        data: { labels: ['Occupied', 'Available', 'Cleaning'], datasets: [{ data: [occupied, available, cleaning], backgroundColor: ['#E74C3C', '#27AE60', '#F39C12'], borderColor: '#fff', borderWidth: 2 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-    });
-}
-
-function createAnalyticsChart() {
-    if (charts.monthly) charts.monthly.destroy();
-    const ctx = document.getElementById('monthlyChart');
-    if (!ctx) return;
-    const monthlyRevenue = getLast6MonthsRevenueData();
-
-    charts.monthly = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: monthlyRevenue.labels, datasets: [{ label: 'Monthly Revenue', data: monthlyRevenue.values, backgroundColor: ['#1B4D3E', '#2D7A6F', '#4DB8A8', '#D4AF37', '#4DB8A8', '#2D7A6F'], borderRadius: 8, borderSkipped: false }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-    });
-}
-
-function getLast7DaysRevenueData() {
-    const labels = [];
-    const values = [];
-    const today = new Date();
-
-    for (let dayOffset = 6; dayOffset >= 0; dayOffset -= 1) {
-        const date = new Date(today);
-        date.setDate(today.getDate() - dayOffset);
-
-        const isoDate = toISODateFromDate(date);
-        const label = date.toLocaleDateString('en-IN', { weekday: 'short' });
-        const total = data.bookings
-            .filter(booking => booking.checkIn === isoDate)
-            .reduce((sum, booking) => sum + getBookingTotal(booking), 0);
-
-        labels.push(label);
-        values.push(total);
-    }
-
-    return { labels, values };
-}
-
-function getLast6MonthsRevenueData() {
-    const labels = [];
-    const values = [];
-    const today = new Date();
-
-    for (let monthOffset = 5; monthOffset >= 0; monthOffset -= 1) {
-        const monthDate = new Date(today.getFullYear(), today.getMonth() - monthOffset, 1);
-        const label = monthDate.toLocaleDateString('en-IN', { month: 'short' });
-        const year = monthDate.getFullYear();
-        const month = monthDate.getMonth();
-
-        const total = data.bookings
-            .filter(booking => {
-                const bookingDate = new Date(booking.checkIn);
-                return !Number.isNaN(bookingDate.getTime()) && bookingDate.getFullYear() === year && bookingDate.getMonth() === month;
-            })
-            .reduce((sum, booking) => sum + getBookingTotal(booking), 0);
-
-        labels.push(label);
-        values.push(total);
-    }
-
-    return { labels, values };
-}
-
-function toISODateFromDate(date) {
-    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return local.toISOString().split('T')[0];
-}
-
-function destroyCharts() {
-    if (charts.revenue) charts.revenue.destroy();
-    if (charts.occupancy) charts.occupancy.destroy();
-    if (charts.monthly) charts.monthly.destroy();
-    charts = {};
-}
-
-function formatNumber(num) {
-    return new Intl.NumberFormat('en-IN').format(num);
-}
-
-function formatDate(dateString) {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-IN', options);
-}
-
-function formatDateTime(dateString, timeString) {
-    const datePart = formatDate(dateString);
-    const timePart = timeString || 'N/A';
-    return `${datePart}, ${timePart}`;
-}
-
-function toDisplayTime(timeValue) {
-    if (!timeValue) return 'N/A';
-
-    const [hoursText, minutes] = timeValue.split(':');
-    let hours = parseInt(hoursText, 10);
-    const suffix = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
-    return `${hours}:${minutes} ${suffix}`;
-}
-
-
-function capitalizeFirst(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-window.onclick = function (event) {
-    const receiptModal = document.getElementById('receiptModal');
-    const priceModal = document.getElementById('priceModal');
-    const extraAmountModal = document.getElementById('extraAmountModal');
-    const roomDetailsModal = document.getElementById('roomDetailsModal');
-
-    if (event.target == receiptModal) closeReceiptModal();
-    if (event.target == priceModal) closePriceModal();
-    if (event.target == extraAmountModal) closeExtraAmountModal();
-    if (event.target == roomDetailsModal) closeRoomDetailsModal();
-}
-
-window.addEventListener('beforeunload', function () {
-    stopBookingCameraStream();
-    stopCheckoutReminderService();
-    if (liveClockTimer) {
-        clearInterval(liveClockTimer);
-        liveClockTimer = null;
-    }
-});
-
-async function uploadBase64ToStorage(base64Data, path) {
-    if (!firebaseEnabled || !firebaseStorage || !base64Data) return null;
-    try {
-        const fetchResponse = await fetch(base64Data);
-        const blob = await fetchResponse.blob();
-        const storageRef = firebaseStorage.ref().child(path);
-        await storageRef.put(blob);
-        return await storageRef.getDownloadURL();
-    } catch (err) {
-        console.error("Storage upload failed for", path, err);
-        return null;
-    }
-}
-
-async function fetchAllDataFromFirebase() {
-    if (!firebaseEnabled || !firebaseDb) return;
-
-    try {
-        console.log("Fetching cloud data...");
-        // 1. Fetch Customers
-        const custSnap = await firebaseDb.collection('customers').get();
-        const firebaseCustomers = [];
-        custSnap.forEach(doc => {
-            const cData = doc.data();
-            if (cData.id) firebaseCustomers.push(cData);
+    function createOccupancyChart() {
+        if (charts.occupancy) charts.occupancy.destroy();
+        const ctx = document.getElementById('occupancyChart');
+        if (!ctx) return;
+        const occupied = data.rooms.filter(r => r.status === 'occupied').length;
+        const available = data.rooms.filter(r => r.status === 'available').length;
+        const cleaning = data.rooms.filter(r => r.status === 'cleaning').length;
+        charts.occupancy = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: ['Occupied', 'Available', 'Cleaning'], datasets: [{ data: [occupied, available, cleaning], backgroundColor: ['#E74C3C', '#27AE60', '#F39C12'], borderColor: '#fff', borderWidth: 2 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
+    }
 
-        // Merge Customers
-        const localCustIds = new Set(data.customers.map(c => c.id));
-        firebaseCustomers.forEach(fc => {
-            if (!localCustIds.has(fc.id)) {
-                data.customers.push(fc);
-            } else {
-                const idx = data.customers.findIndex(c => c.id === fc.id);
-                data.customers[idx] = { ...data.customers[idx], ...fc }; // Cloud overrides local
+    function createAnalyticsChart() {
+        if (charts.monthly) charts.monthly.destroy();
+        const ctx = document.getElementById('monthlyChart');
+        if (!ctx) return;
+        const monthlyRevenue = getLast6MonthsRevenueData();
+
+        charts.monthly = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: monthlyRevenue.labels, datasets: [{ label: 'Monthly Revenue', data: monthlyRevenue.values, backgroundColor: ['#1B4D3E', '#2D7A6F', '#4DB8A8', '#D4AF37', '#4DB8A8', '#2D7A6F'], borderRadius: 8, borderSkipped: false }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    function getLast7DaysRevenueData() {
+        const labels = [];
+        const values = [];
+        const today = new Date();
+
+        for (let dayOffset = 6; dayOffset >= 0; dayOffset -= 1) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - dayOffset);
+
+            const isoDate = toISODateFromDate(date);
+            const label = date.toLocaleDateString('en-IN', { weekday: 'short' });
+            const total = data.bookings
+                .filter(booking => booking.checkIn === isoDate)
+                .reduce((sum, booking) => sum + getBookingTotal(booking), 0);
+
+            labels.push(label);
+            values.push(total);
+        }
+
+        return { labels, values };
+    }
+
+    function getLast6MonthsRevenueData() {
+        const labels = [];
+        const values = [];
+        const today = new Date();
+
+        for (let monthOffset = 5; monthOffset >= 0; monthOffset -= 1) {
+            const monthDate = new Date(today.getFullYear(), today.getMonth() - monthOffset, 1);
+            const label = monthDate.toLocaleDateString('en-IN', { month: 'short' });
+            const year = monthDate.getFullYear();
+            const month = monthDate.getMonth();
+
+            const total = data.bookings
+                .filter(booking => {
+                    const bookingDate = new Date(booking.checkIn);
+                    return !Number.isNaN(bookingDate.getTime()) && bookingDate.getFullYear() === year && bookingDate.getMonth() === month;
+                })
+                .reduce((sum, booking) => sum + getBookingTotal(booking), 0);
+
+            labels.push(label);
+            values.push(total);
+        }
+
+        return { labels, values };
+    }
+
+    function toISODateFromDate(date) {
+        const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return local.toISOString().split('T')[0];
+    }
+
+    function destroyCharts() {
+        if (charts.revenue) charts.revenue.destroy();
+        if (charts.occupancy) charts.occupancy.destroy();
+        if (charts.monthly) charts.monthly.destroy();
+        charts = {};
+    }
+
+    function formatNumber(num) {
+        return new Intl.NumberFormat('en-IN').format(num);
+    }
+
+    function formatDate(dateString) {
+        const options = { year: 'numeric', month: 'short', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString('en-IN', options);
+    }
+
+    function formatDateTime(dateString, timeString) {
+        const datePart = formatDate(dateString);
+        const timePart = timeString || 'N/A';
+        return `${datePart}, ${timePart}`;
+    }
+
+    function toDisplayTime(timeValue) {
+        if (!timeValue) return 'N/A';
+
+        const [hoursText, minutes] = timeValue.split(':');
+        let hours = parseInt(hoursText, 10);
+        const suffix = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        return `${hours}:${minutes} ${suffix}`;
+    }
+
+
+    function capitalizeFirst(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    window.onclick = function (event) {
+        const receiptModal = document.getElementById('receiptModal');
+        const priceModal = document.getElementById('priceModal');
+        const extraAmountModal = document.getElementById('extraAmountModal');
+        const roomDetailsModal = document.getElementById('roomDetailsModal');
+
+        if (event.target == receiptModal) closeReceiptModal();
+        if (event.target == priceModal) closePriceModal();
+        if (event.target == extraAmountModal) closeExtraAmountModal();
+        if (event.target == roomDetailsModal) closeRoomDetailsModal();
+    }
+
+    window.addEventListener('beforeunload', function () {
+        stopBookingCameraStream();
+        stopCheckoutReminderService();
+        if (liveClockTimer) {
+            clearInterval(liveClockTimer);
+            liveClockTimer = null;
+        }
+    });
+
+    async function fetchAllDataFromFirebase() {
+        if (!firebaseEnabled || !firebaseDb) return;
+
+        try {
+            console.log("Fetching cloud data...");
+            // 1. Fetch Customers
+            const custSnap = await firebaseDb.collection('customers').get();
+            const firebaseCustomers = [];
+            custSnap.forEach(doc => {
+                const cData = doc.data();
+                if (cData.id) firebaseCustomers.push(cData);
+            });
+
+            // Merge Customers
+            const localCustIds = new Set(data.customers.map(c => c.id));
+            firebaseCustomers.forEach(fc => {
+                if (!localCustIds.has(fc.id)) {
+                    data.customers.push(fc);
+                } else {
+                    const idx = data.customers.findIndex(c => c.id === fc.id);
+                    data.customers[idx] = { ...data.customers[idx], ...fc }; // Cloud overrides local
+                }
+            });
+
+            // 2. Fetch Bookings
+            const bookSnap = await firebaseDb.collection('bookings').get();
+            const firebaseBookings = [];
+            bookSnap.forEach(doc => {
+                const bData = doc.data();
+                if (bData.id) firebaseBookings.push(bData);
+            });
+
+            // Merge Bookings
+            const localBookIds = new Set(data.bookings.map(b => b.id));
+            firebaseBookings.forEach(fb => {
+                if (!localBookIds.has(fb.id)) {
+                    data.bookings.push(fb);
+                } else {
+                    const idx = data.bookings.findIndex(b => b.id === fb.id);
+                    data.bookings[idx] = { ...data.bookings[idx], ...fb }; // Cloud overrides local
+                }
+            });
+
+            updateRoomStatusesFromBookings();
+
+
+            // 3. Fetch Room Diary (Reminders)
+            const diarySnap = await firebaseDb.collection('diaryReminder').get();
+            if (!data.diary) data.diary = {};
+            diarySnap.forEach(doc => {
+                const dData = doc.data();
+                if (dData.date && dData.roomId) {
+                    if (!data.diary[dData.date]) data.diary[dData.date] = {};
+                    data.diary[dData.date][dData.roomId] = dData.guestName;
+                }
+            });
+
+
+            data.guests = [];
+            data.bookings.forEach(booking => {
+                if (booking.guestName && (booking.guestPhone || booking.guestEmail)) {
+                    upsertGuestRecord(
+                        booking.guestName,
+                        booking.guestPhone || 'N/A',
+                        booking.guestEmail || '',
+                        booking.checkOut || booking.checkIn || new Date().toISOString().split('T')[0],
+                        booking.id
+                    );
+                }
+            });
+
+            saveDataToStorage();
+
+            // If UI is already loaded, gently refresh the arrays
+            if (typeof loadBookings === 'function') loadBookings();
+            if (typeof loadRooms === 'function') loadRooms();
+            if (typeof loadGuests === 'function') loadGuests();
+            if (typeof loadPayments === 'function') loadPayments();
+            if (typeof updateRealtimeDashboardMetrics === 'function') updateRealtimeDashboardMetrics();
+
+            // Refresh Diary UI if currently on that page
+            const diaryDateInput = document.getElementById('diaryDate');
+            if (typeof loadDiary === 'function' && diaryDateInput && diaryDateInput.value) {
+                loadDiary(diaryDateInput.value);
             }
+
+            console.log("Cloud sync complete!");
+        } catch (error) {
+            console.error("Could not fetch remote data:", error);
+        }
+    }
+
+    // Room Diary (Quick Reservation)
+    function initDiary() {
+        const today = getLocalISODate();
+        const dateInput = document.getElementById('diaryDate');
+        if (dateInput) {
+            dateInput.value = today;
+            loadDiary(today);
+        }
+    }
+
+    function loadDiary(date) {
+        if (!date) return;
+
+        // Clear all diary inputs first
+        const diaryInputs = document.querySelectorAll('.diary-room-item input');
+        diaryInputs.forEach(input => {
+            input.value = '';
         });
 
-        // 2. Fetch Bookings
-        const bookSnap = await firebaseDb.collection('bookings').get();
-        const firebaseBookings = [];
-        bookSnap.forEach(doc => {
-            const bData = doc.data();
-            if (bData.id) firebaseBookings.push(bData);
-        });
-
-        // Merge Bookings
-        const localBookIds = new Set(data.bookings.map(b => b.id));
-        firebaseBookings.forEach(fb => {
-            if (!localBookIds.has(fb.id)) {
-                data.bookings.push(fb);
-            } else {
-                const idx = data.bookings.findIndex(b => b.id === fb.id);
-                data.bookings[idx] = { ...data.bookings[idx], ...fb }; // Cloud overrides local
+        // Load from data.diary[date]
+        if (data.diary && data.diary[date]) {
+            for (const roomId in data.diary[date]) {
+                const input = document.getElementById(`diary-${roomId}`);
+                if (input) {
+                    input.value = data.diary[date][roomId];
+                }
             }
-        });
+        }
+    }
 
-        updateRoomStatusesFromBookings();
+    window.saveDiaryRoom = function (roomId, guestName) {
+        const dateInput = document.getElementById('diaryDate');
+        if (!dateInput) return;
+        const date = dateInput.value;
+        if (!date) return;
 
-
-        // 3. Fetch Room Diary (Reminders)
-        const diarySnap = await firebaseDb.collection('diaryReminder').get();
         if (!data.diary) data.diary = {};
-        diarySnap.forEach(doc => {
-            const dData = doc.data();
-            if (dData.date && dData.roomId) {
-                if (!data.diary[dData.date]) data.diary[dData.date] = {};
-                data.diary[dData.date][dData.roomId] = dData.guestName;
-            }
-        });
+        if (!data.diary[date]) data.diary[date] = {};
 
-
-        data.guests = [];
-        data.bookings.forEach(booking => {
-            if (booking.guestName && (booking.guestPhone || booking.guestEmail)) {
-                upsertGuestRecord(
-                    booking.guestName,
-                    booking.guestPhone || 'N/A',
-                    booking.guestEmail || '',
-                    booking.checkOut || booking.checkIn || new Date().toISOString().split('T')[0],
-                    booking.id
-                );
-            }
-        });
-
+        data.diary[date][roomId] = guestName;
         saveDataToStorage();
 
-        // If UI is already loaded, gently refresh the arrays
-        if (typeof loadBookings === 'function') loadBookings();
-        if (typeof loadRooms === 'function') loadRooms();
-        if (typeof loadGuests === 'function') loadGuests();
-        if (typeof loadPayments === 'function') loadPayments();
-        if (typeof updateRealtimeDashboardMetrics === 'function') updateRealtimeDashboardMetrics();
-
-        // Refresh Diary UI if currently on that page
-        const diaryDateInput = document.getElementById('diaryDate');
-        if (typeof loadDiary === 'function' && diaryDateInput && diaryDateInput.value) {
-            loadDiary(diaryDateInput.value);
-        }
-
-        console.log("Cloud sync complete!");
-    } catch (error) {
-        console.error("Could not fetch remote data:", error);
-    }
-}
-
-// Room Diary (Quick Reservation)
-function initDiary() {
-    const today = getLocalISODate();
-    const dateInput = document.getElementById('diaryDate');
-    if (dateInput) {
-        dateInput.value = today;
-        loadDiary(today);
-    }
-}
-
-function loadDiary(date) {
-    if (!date) return;
-    
-    // Clear all diary inputs first
-    const diaryInputs = document.querySelectorAll('.diary-room-item input');
-    diaryInputs.forEach(input => {
-        input.value = '';
-    });
-
-    // Load from data.diary[date]
-    if (data.diary && data.diary[date]) {
-        for (const roomId in data.diary[date]) {
-            const input = document.getElementById(`diary-${roomId}`);
-            if (input) {
-                input.value = data.diary[date][roomId];
+        // Optional: Sync to Firebase if enabled
+        if (firebaseEnabled && firebaseDb) {
+            try {
+                firebaseDb.collection('diaryReminder').doc(`${date}_${roomId}`).set({
+                    date: date,
+                    roomId: roomId,
+                    guestName: guestName,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+            } catch (e) {
+                console.warn('Could not sync diary reminder to Firebase:', e);
             }
         }
-    }
+    };
 }
-
-window.saveDiaryRoom = function(roomId, guestName) {
-    const dateInput = document.getElementById('diaryDate');
-    if (!dateInput) return;
-    const date = dateInput.value;
-    if (!date) return;
-
-    if (!data.diary) data.diary = {};
-    if (!data.diary[date]) data.diary[date] = {};
-    
-    data.diary[date][roomId] = guestName;
-    saveDataToStorage();
-
-    // Optional: Sync to Firebase if enabled
-    if (firebaseEnabled && firebaseDb) {
-        try {
-            firebaseDb.collection('diaryReminder').doc(`${date}_${roomId}`).set({
-                date: date,
-                roomId: roomId,
-                guestName: guestName,
-                updatedAt: new Date().toISOString()
-            }, { merge: true });
-        } catch (e) {
-            console.warn('Could not sync diary reminder to Firebase:', e);
-        }
-    }
-};
-
