@@ -94,7 +94,7 @@
                     <i class="fas fa-calendar-alt"></i>
                     <span>Bookings</span>
                 </button>
-                <button class="nav-item" onclick="navigateTo('new-booking', this)">
+                <button class="nav-item receptionist-only" onclick="navigateTo('new-booking', this)">
                     <i class="fas fa-plus-circle"></i>
                     <span>New Booking</span>
                 </button>
@@ -264,7 +264,7 @@
                             <h3>Quick Actions</h3>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; padding: 10px;">
-                            <button class="btn-primary" onclick="openNewBookingPage()" style="height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; background: linear-gradient(135deg, #4f46e5, #6366f1);">
+                            <button class="btn-primary receptionist-only" onclick="openNewBookingPage()" style="height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; background: linear-gradient(135deg, #4f46e5, #6366f1);">
                                 <i class="fas fa-plus-circle" style="font-size: 24px;"></i>
                                 <span>New Booking</span>
                             </button>
@@ -323,7 +323,7 @@
                             <button class="btn-primary owner-only" onclick="renumberAllBookings()" style="background: #6366f1; margin-right: 10px;">
                                 <i class="fas fa-list-ol"></i> Renumber Database
                             </button>
-                            <button class="btn-primary" onclick="openNewBookingPage()">
+                            <button class="btn-primary receptionist-only" onclick="openNewBookingPage()">
                                 <i class="fas fa-plus"></i> New Booking
                             </button>
                         </div>
@@ -664,6 +664,7 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
                       
                             <button type="submit" class="btn-primary" style="width: 100%; margin-top: 30px; padding: 15px; font-size: 16px; font-weight: 600;">
                                 <i class="fas fa-check-circle"></i> Create Booking & Check-in
