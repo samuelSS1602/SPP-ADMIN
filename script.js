@@ -1289,169 +1289,169 @@ We hope you enjoyed your stay. Have a safe journey!
 
 ஸ்ரீ பத்மாவதி பிளஸன்ட்ஸ்-ல் தங்கியதற்கு நன்றி ${guestName} 🙏
 உங்கள் பயணம் இனியதாக அமைய வாழ்த்துக்கள்!`;
+}
 
-    function normalizePhoneForWhatsApp(phoneNumber) {
-        const digits = String(phoneNumber || '').replace(/\D/g, '');
-        if (!digits) return '';
+function normalizePhoneForWhatsApp(phoneNumber) {
+    const digits = String(phoneNumber || '').replace(/\D/g, '');
+    if (!digits) return '';
 
-        if (digits.length === 10) {
-            return `91${digits}`;
-        }
-
-        if (digits.length >= 11 && digits.length <= 15) {
-            return digits;
-        }
-
-        return '';
+    if (digits.length === 10) {
+        return `91${digits}`;
     }
 
-    function openWhatsAppMessage(phone, message) {
-        const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-        window.open(url, '_blank');
+    if (digits.length >= 11 && digits.length <= 15) {
+        return digits;
     }
 
-    function parseBookingDateTime(dateValue, displayTime) {
-        if (!dateValue || !displayTime) return null;
+    return '';
+}
 
-        const timeMatch = /^([0-9]{1,2}):([0-9]{2})\s?(AM|PM)$/i.exec(displayTime.trim());
-        if (!timeMatch) return null;
+function openWhatsAppMessage(phone, message) {
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+}
 
-        let hours = parseInt(timeMatch[1], 10);
-        const minutes = parseInt(timeMatch[2], 10);
-        const period = timeMatch[3].toUpperCase();
+function parseBookingDateTime(dateValue, displayTime) {
+    if (!dateValue || !displayTime) return null;
 
-        if (period === 'PM' && hours !== 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
+    const timeMatch = /^([0-9]{1,2}):([0-9]{2})\s?(AM|PM)$/i.exec(displayTime.trim());
+    if (!timeMatch) return null;
 
-        const bookingDate = new Date(dateValue);
-        if (Number.isNaN(bookingDate.getTime())) return null;
+    let hours = parseInt(timeMatch[1], 10);
+    const minutes = parseInt(timeMatch[2], 10);
+    const period = timeMatch[3].toUpperCase();
 
-        bookingDate.setHours(hours, minutes, 0, 0);
-        return bookingDate;
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+
+    const bookingDate = new Date(dateValue);
+    if (Number.isNaN(bookingDate.getTime())) return null;
+
+    bookingDate.setHours(hours, minutes, 0, 0);
+    return bookingDate;
+}
+
+function initFirebaseServices() {
+    if (typeof firebase === 'undefined') {
+        return;
     }
 
-    function initFirebaseServices() {
-        if (typeof firebase === 'undefined') {
-            return;
+    if (!window.firebaseConfig || !window.firebaseConfig.apiKey) {
+        console.info('Firebase config not provided. Running in local mode.');
+        return;
+    }
+
+    try {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(window.firebaseConfig);
         }
 
-        if (!window.firebaseConfig || !window.firebaseConfig.apiKey) {
-            console.info('Firebase config not provided. Running in local mode.');
-            return;
+        firebaseAuth = firebase.auth();
+        firebaseDb = firebase.firestore();
+        if (typeof firebase.storage !== 'undefined') {
+            firebaseStorage = firebase.storage();
         }
+        firebaseEnabled = true;
+    } catch (error) {
+        console.warn('Firebase initialization failed:', error);
+        firebaseEnabled = false;
+    }
+}
 
-        try {
-            if (!firebase.apps.length) {
-                firebase.initializeApp(window.firebaseConfig);
-            }
+function syncAllBookingsToFirebase() {
+    if (!firebaseEnabled || !firebaseDb) return;
 
-            firebaseAuth = firebase.auth();
-            firebaseDb = firebase.firestore();
-            if (typeof firebase.storage !== 'undefined') {
-                firebaseStorage = firebase.storage();
-            }
-            firebaseEnabled = true;
-        } catch (error) {
-            console.warn('Firebase initialization failed:', error);
-            firebaseEnabled = false;
+    data.bookings.forEach(booking => {
+        syncBookingToFirebase(booking);
+    });
+}
+
+async function syncBookingToFirebase(booking) {
+    if (!firebaseEnabled || !firebaseDb || !booking || !booking.id) return;
+
+    // To avoid CORS issues with Firebase Storage on localhost, 
+    // we save massive base64 image strings into a separate Firestore collection.
+    if ((booking.customerPhoto && booking.customerPhoto.startsWith('data:image')) ||
+        (booking.idProofPhoto && booking.idProofPhoto.startsWith('data:image'))) {
+
+        firebaseDb.collection('booking_photos').doc(String(booking.id)).set({
+            customerPhoto: booking.customerPhoto || null,
+            idProofPhoto: booking.idProofPhoto || null,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).catch(err => console.warn('Photo sync failed:', err));
+    }
+
+    const cloudBooking = {};
+    for (const key in booking) {
+        if (key === 'customerPhoto' || key === 'idProofPhoto') continue;
+        if (booking[key] !== undefined) {
+            cloudBooking[key] = booking[key];
         }
     }
 
-    function syncAllBookingsToFirebase() {
-        if (!firebaseEnabled || !firebaseDb) return;
+    if (booking.customerPhoto || booking.customerPhotoUrl) {
+        cloudBooking.hasCustomerPhoto = true;
+    }
+    if (booking.idProofPhoto || booking.idProofPhotoUrl) {
+        cloudBooking.hasIdProofPhoto = true;
+    }
 
-        data.bookings.forEach(booking => {
-            syncBookingToFirebase(booking);
+    cloudBooking.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+    firebaseDb
+        .collection('bookings')
+        .doc(String(booking.id))
+        .set(cloudBooking, { merge: true })
+        .catch(error => {
+            console.warn(`Failed to sync booking ${booking.id} to Firebase:`, error);
+        });
+}
+
+function downloadDailyRevenue() {
+    const today = getLocalISODate();
+    const todayLabel = formatDate(today);
+    const todaysBookings = data.bookings.filter(booking => booking.checkIn === today);
+
+    const data_export = [
+        ['Sri Padmavati Pleasants - Daily Revenue Report'],
+        ['Date: ' + todayLabel],
+        [],
+        ['Check-in Time', 'Room', 'Guest', 'Room Rate', 'Advance', 'Extras', 'Total']
+    ];
+
+    if (!todaysBookings.length) {
+        data_export.push(['No records', '-', '-', 0, 0, 0, 0]);
+    } else {
+        todaysBookings.forEach(booking => {
+            const days = calculateBookingDays(booking);
+            const totalRoom = (Number(booking.roomRate) || 0) * days;
+            const discount = Number(booking.discount) || 0;
+            const totalGrossRoom = Math.max(0, totalRoom - discount);
+
+            data_export.push([
+                booking.checkInTime || 'N/A',
+                booking.roomName || '-',
+                booking.guestName || '-',
+                totalGrossRoom,
+                Number(booking.advance) || 0,
+                (Number(booking.extras) || 0) + (Number(booking.extraBed) || 0),
+                getBookingTotal(booking)
+            ]);
         });
     }
 
-    async function syncBookingToFirebase(booking) {
-        if (!firebaseEnabled || !firebaseDb || !booking || !booking.id) return;
+    const dailyTotal = todaysBookings.reduce((sum, booking) => sum + getBookingTotal(booking), 0);
+    data_export.push([]);
+    data_export.push(['DAILY TOTAL', '', '', '', '', '', dailyTotal]);
 
-        // To avoid CORS issues with Firebase Storage on localhost, 
-        // we save massive base64 image strings into a separate Firestore collection.
-        if ((booking.customerPhoto && booking.customerPhoto.startsWith('data:image')) ||
-            (booking.idProofPhoto && booking.idProofPhoto.startsWith('data:image'))) {
+    const ws = XLSX.utils.aoa_to_sheet(data_export);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Daily Revenue');
+    XLSX.writeFile(wb, `Daily_Revenue_${today}.xlsx`);
+    alert('Daily Revenue report downloaded!');
+}
 
-            firebaseDb.collection('booking_photos').doc(String(booking.id)).set({
-                customerPhoto: booking.customerPhoto || null,
-                idProofPhoto: booking.idProofPhoto || null,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true }).catch(err => console.warn('Photo sync failed:', err));
-        }
-
-        const cloudBooking = {};
-        for (const key in booking) {
-            if (key === 'customerPhoto' || key === 'idProofPhoto') continue;
-            if (booking[key] !== undefined) {
-                cloudBooking[key] = booking[key];
-            }
-        }
-
-        if (booking.customerPhoto || booking.customerPhotoUrl) {
-            cloudBooking.hasCustomerPhoto = true;
-        }
-        if (booking.idProofPhoto || booking.idProofPhotoUrl) {
-            cloudBooking.hasIdProofPhoto = true;
-        }
-
-        cloudBooking.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-
-        firebaseDb
-            .collection('bookings')
-            .doc(String(booking.id))
-            .set(cloudBooking, { merge: true })
-            .catch(error => {
-                console.warn(`Failed to sync booking ${booking.id} to Firebase:`, error);
-            });
-    }
-
-
-    function downloadDailyRevenue() {
-        const today = getLocalISODate();
-        const todayLabel = formatDate(today);
-        const todaysBookings = data.bookings.filter(booking => booking.checkIn === today);
-
-        const data_export = [
-            ['Sri Padmavati Pleasants - Daily Revenue Report'],
-            ['Date: ' + todayLabel],
-            [],
-            ['Check-in Time', 'Room', 'Guest', 'Room Rate', 'Advance', 'Extras', 'Total']
-        ];
-
-        if (!todaysBookings.length) {
-            data_export.push(['No records', '-', '-', 0, 0, 0, 0]);
-        } else {
-            todaysBookings.forEach(booking => {
-                const days = calculateBookingDays(booking);
-                const totalRoom = (Number(booking.roomRate) || 0) * days;
-                const discount = Number(booking.discount) || 0;
-                const totalGrossRoom = Math.max(0, totalRoom - discount);
-
-                data_export.push([
-                    booking.checkInTime || 'N/A',
-                    booking.roomName || '-',
-                    booking.guestName || '-',
-                    totalGrossRoom,
-                    Number(booking.advance) || 0,
-                    (Number(booking.extras) || 0) + (Number(booking.extraBed) || 0),
-                    getBookingTotal(booking)
-                ]);
-            });
-        }
-
-        const dailyTotal = todaysBookings.reduce((sum, booking) => sum + getBookingTotal(booking), 0);
-        data_export.push([]);
-        data_export.push(['DAILY TOTAL', '', '', '', '', '', dailyTotal]);
-
-        const ws = XLSX.utils.aoa_to_sheet(data_export);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Daily Revenue');
-        XLSX.writeFile(wb, `Daily_Revenue_${today}.xlsx`);
-        alert('Daily Revenue report downloaded!');
-    }
-
-    function downloadMonthlyRevenue() {
+function downloadMonthlyRevenue() {
         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
         const currentYear = new Date().getFullYear();
 
@@ -1857,4 +1857,3 @@ We hope you enjoyed your stay. Have a safe journey!
             }
         }
     };
-}
