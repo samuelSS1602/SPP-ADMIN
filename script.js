@@ -1684,176 +1684,176 @@ function downloadMonthlyRevenue() {
     }
 
 
-    function capitalizeFirst(str) {
-        return str.charAt(0).toUpperCase() + str.slice(1);
+function capitalizeFirst(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+window.onclick = function (event) {
+    const receiptModal = document.getElementById('receiptModal');
+    const priceModal = document.getElementById('priceModal');
+    const extraAmountModal = document.getElementById('extraAmountModal');
+    const roomDetailsModal = document.getElementById('roomDetailsModal');
+
+    if (event.target == receiptModal) closeReceiptModal();
+    if (event.target == priceModal) closePriceModal();
+    if (event.target == extraAmountModal) closeExtraAmountModal();
+    if (event.target == roomDetailsModal) closeRoomDetailsModal();
+}
+
+window.addEventListener('beforeunload', function () {
+    stopBookingCameraStream();
+    stopCheckoutReminderService();
+    if (liveClockTimer) {
+        clearInterval(liveClockTimer);
+        liveClockTimer = null;
     }
+});
 
-    window.onclick = function (event) {
-        const receiptModal = document.getElementById('receiptModal');
-        const priceModal = document.getElementById('priceModal');
-        const extraAmountModal = document.getElementById('extraAmountModal');
-        const roomDetailsModal = document.getElementById('roomDetailsModal');
+async function fetchAllDataFromFirebase() {
+    if (!firebaseEnabled || !firebaseDb) return;
 
-        if (event.target == receiptModal) closeReceiptModal();
-        if (event.target == priceModal) closePriceModal();
-        if (event.target == extraAmountModal) closeExtraAmountModal();
-        if (event.target == roomDetailsModal) closeRoomDetailsModal();
-    }
-
-    window.addEventListener('beforeunload', function () {
-        stopBookingCameraStream();
-        stopCheckoutReminderService();
-        if (liveClockTimer) {
-            clearInterval(liveClockTimer);
-            liveClockTimer = null;
-        }
-    });
-
-    async function fetchAllDataFromFirebase() {
-        if (!firebaseEnabled || !firebaseDb) return;
-
-        try {
-            console.log("Fetching cloud data...");
-            // 1. Fetch Customers
-            const custSnap = await firebaseDb.collection('customers').get();
-            const firebaseCustomers = [];
-            custSnap.forEach(doc => {
-                const cData = doc.data();
-                if (cData.id) firebaseCustomers.push(cData);
-            });
-
-            // Merge Customers
-            const localCustIds = new Set(data.customers.map(c => c.id));
-            firebaseCustomers.forEach(fc => {
-                if (!localCustIds.has(fc.id)) {
-                    data.customers.push(fc);
-                } else {
-                    const idx = data.customers.findIndex(c => c.id === fc.id);
-                    data.customers[idx] = { ...data.customers[idx], ...fc }; // Cloud overrides local
-                }
-            });
-
-            // 2. Fetch Bookings
-            const bookSnap = await firebaseDb.collection('bookings').get();
-            const firebaseBookings = [];
-            bookSnap.forEach(doc => {
-                const bData = doc.data();
-                if (bData.id) firebaseBookings.push(bData);
-            });
-
-            // Merge Bookings
-            const localBookIds = new Set(data.bookings.map(b => b.id));
-            firebaseBookings.forEach(fb => {
-                if (!localBookIds.has(fb.id)) {
-                    data.bookings.push(fb);
-                } else {
-                    const idx = data.bookings.findIndex(b => b.id === fb.id);
-                    data.bookings[idx] = { ...data.bookings[idx], ...fb }; // Cloud overrides local
-                }
-            });
-
-            updateRoomStatusesFromBookings();
-
-
-            // 3. Fetch Room Diary (Reminders)
-            const diarySnap = await firebaseDb.collection('diaryReminder').get();
-            if (!data.diary) data.diary = {};
-            diarySnap.forEach(doc => {
-                const dData = doc.data();
-                if (dData.date && dData.roomId) {
-                    if (!data.diary[dData.date]) data.diary[dData.date] = {};
-                    data.diary[dData.date][dData.roomId] = dData.guestName;
-                }
-            });
-
-
-            data.guests = [];
-            data.bookings.forEach(booking => {
-                if (booking.guestName && (booking.guestPhone || booking.guestEmail)) {
-                    upsertGuestRecord(
-                        booking.guestName,
-                        booking.guestPhone || 'N/A',
-                        booking.guestEmail || '',
-                        booking.checkOut || booking.checkIn || new Date().toISOString().split('T')[0],
-                        booking.id
-                    );
-                }
-            });
-
-            saveDataToStorage();
-
-            // If UI is already loaded, gently refresh the arrays
-            if (typeof loadBookings === 'function') loadBookings();
-            if (typeof loadRooms === 'function') loadRooms();
-            if (typeof loadGuests === 'function') loadGuests();
-            if (typeof loadPayments === 'function') loadPayments();
-            if (typeof updateRealtimeDashboardMetrics === 'function') updateRealtimeDashboardMetrics();
-
-            // Refresh Diary UI if currently on that page
-            const diaryDateInput = document.getElementById('diaryDate');
-            if (typeof loadDiary === 'function' && diaryDateInput && diaryDateInput.value) {
-                loadDiary(diaryDateInput.value);
-            }
-
-            console.log("Cloud sync complete!");
-        } catch (error) {
-            console.error("Could not fetch remote data:", error);
-        }
-    }
-
-    // Room Diary (Quick Reservation)
-    function initDiary() {
-        const today = getLocalISODate();
-        const dateInput = document.getElementById('diaryDate');
-        if (dateInput) {
-            dateInput.value = today;
-            loadDiary(today);
-        }
-    }
-
-    function loadDiary(date) {
-        if (!date) return;
-
-        // Clear all diary inputs first
-        const diaryInputs = document.querySelectorAll('.diary-room-item input');
-        diaryInputs.forEach(input => {
-            input.value = '';
+    try {
+        console.log("Fetching cloud data...");
+        // 1. Fetch Customers
+        const custSnap = await firebaseDb.collection('customers').get();
+        const firebaseCustomers = [];
+        custSnap.forEach(doc => {
+            const cData = doc.data();
+            if (cData.id) firebaseCustomers.push(cData);
         });
 
-        // Load from data.diary[date]
-        if (data.diary && data.diary[date]) {
-            for (const roomId in data.diary[date]) {
-                const input = document.getElementById(`diary-${roomId}`);
-                if (input) {
-                    input.value = data.diary[date][roomId];
-                }
+        // Merge Customers
+        const localCustIds = new Set(data.customers.map(c => c.id));
+        firebaseCustomers.forEach(fc => {
+            if (!localCustIds.has(fc.id)) {
+                data.customers.push(fc);
+            } else {
+                const idx = data.customers.findIndex(c => c.id === fc.id);
+                data.customers[idx] = { ...data.customers[idx], ...fc }; // Cloud overrides local
+            }
+        });
+
+        // 2. Fetch Bookings
+        const bookSnap = await firebaseDb.collection('bookings').get();
+        const firebaseBookings = [];
+        bookSnap.forEach(doc => {
+            const bData = doc.data();
+            if (bData.id) firebaseBookings.push(bData);
+        });
+
+        // Merge Bookings
+        const localBookIds = new Set(data.bookings.map(b => b.id));
+        firebaseBookings.forEach(fb => {
+            if (!localBookIds.has(fb.id)) {
+                data.bookings.push(fb);
+            } else {
+                const idx = data.bookings.findIndex(b => b.id === fb.id);
+                data.bookings[idx] = { ...data.bookings[idx], ...fb }; // Cloud overrides local
+            }
+        });
+
+        updateRoomStatusesFromBookings();
+
+
+        // 3. Fetch Room Diary (Reminders)
+        const diarySnap = await firebaseDb.collection('diaryReminder').get();
+        if (!data.diary) data.diary = {};
+        diarySnap.forEach(doc => {
+            const dData = doc.data();
+            if (dData.date && dData.roomId) {
+                if (!data.diary[dData.date]) data.diary[dData.date] = {};
+                data.diary[dData.date][dData.roomId] = dData.guestName;
+            }
+        });
+
+
+        data.guests = [];
+        data.bookings.forEach(booking => {
+            if (booking.guestName && (booking.guestPhone || booking.guestEmail)) {
+                upsertGuestRecord(
+                    booking.guestName,
+                    booking.guestPhone || 'N/A',
+                    booking.guestEmail || '',
+                    booking.checkOut || booking.checkIn || new Date().toISOString().split('T')[0],
+                    booking.id
+                );
+            }
+        });
+
+        saveDataToStorage();
+
+        // If UI is already loaded, gently refresh the arrays
+        if (typeof loadBookings === 'function') loadBookings();
+        if (typeof loadRooms === 'function') loadRooms();
+        if (typeof loadGuests === 'function') loadGuests();
+        if (typeof loadPayments === 'function') loadPayments();
+        if (typeof updateRealtimeDashboardMetrics === 'function') updateRealtimeDashboardMetrics();
+
+        // Refresh Diary UI if currently on that page
+        const diaryDateInput = document.getElementById('diaryDate');
+        if (typeof loadDiary === 'function' && diaryDateInput && diaryDateInput.value) {
+            loadDiary(diaryDateInput.value);
+        }
+
+        console.log("Cloud sync complete!");
+    } catch (error) {
+        console.error("Could not fetch remote data:", error);
+    }
+}
+
+// Room Diary (Quick Reservation)
+function initDiary() {
+    const today = getLocalISODate();
+    const dateInput = document.getElementById('diaryDate');
+    if (dateInput) {
+        dateInput.value = today;
+        loadDiary(today);
+    }
+}
+
+function loadDiary(date) {
+    if (!date) return;
+
+    // Clear all diary inputs first
+    const diaryInputs = document.querySelectorAll('.diary-room-item input');
+    diaryInputs.forEach(input => {
+        input.value = '';
+    });
+
+    // Load from data.diary[date]
+    if (data.diary && data.diary[date]) {
+        for (const roomId in data.diary[date]) {
+            const input = document.getElementById(`diary-${roomId}`);
+            if (input) {
+                input.value = data.diary[date][roomId];
             }
         }
     }
+}
 
-    window.saveDiaryRoom = function (roomId, guestName) {
-        const dateInput = document.getElementById('diaryDate');
-        if (!dateInput) return;
-        const date = dateInput.value;
-        if (!date) return;
+window.saveDiaryRoom = function (roomId, guestName) {
+    const dateInput = document.getElementById('diaryDate');
+    if (!dateInput) return;
+    const date = dateInput.value;
+    if (!date) return;
 
-        if (!data.diary) data.diary = {};
-        if (!data.diary[date]) data.diary[date] = {};
+    if (!data.diary) data.diary = {};
+    if (!data.diary[date]) data.diary[date] = {};
 
-        data.diary[date][roomId] = guestName;
-        saveDataToStorage();
+    data.diary[date][roomId] = guestName;
+    saveDataToStorage();
 
-        // Optional: Sync to Firebase if enabled
-        if (firebaseEnabled && firebaseDb) {
-            try {
-                firebaseDb.collection('diaryReminder').doc(`${date}_${roomId}`).set({
-                    date: date,
-                    roomId: roomId,
-                    guestName: guestName,
-                    updatedAt: new Date().toISOString()
-                }, { merge: true });
-            } catch (e) {
-                console.warn('Could not sync diary reminder to Firebase:', e);
-            }
+    // Optional: Sync to Firebase if enabled
+    if (firebaseEnabled && firebaseDb) {
+        try {
+            firebaseDb.collection('diaryReminder').doc(`${date}_${roomId}`).set({
+                date: date,
+                roomId: roomId,
+                guestName: guestName,
+                updatedAt: new Date().toISOString()
+            }, { merge: true });
+        } catch (e) {
+            console.warn('Could not sync diary reminder to Firebase:', e);
         }
-    };
+    }
+};
