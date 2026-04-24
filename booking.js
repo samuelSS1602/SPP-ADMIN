@@ -99,8 +99,11 @@ function loadBookings() {
             let actionsHtml = `<div style="display:flex; gap:5px;">`;
             if (booking.status === 'cancelled') {
                 actionsHtml += '<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #EF4444; cursor: default;" disabled><i class="fas fa-ban"></i> Cancelled</button>';
+                actionsHtml += `<button class="btn-primary owner-only" style="padding: 6px 10px; font-size: 11px; background: #7F1D1D;" onclick="deleteBooking('${booking.id}')" title="Delete"><i class="fas fa-trash"></i></button>`;
             } else if (isCheckedOut) {
                 actionsHtml += '<button class="btn-primary" style="padding: 6px 10px; font-size: 11px; background: #27AE60; cursor: default;" disabled><i class="fas fa-check"></i> Checked Out</button>';
+                actionsHtml += `<button class="btn-primary owner-only" style="padding: 6px 10px; font-size: 11px; background: #F59E0B;" onclick="openEditBookingModal('${booking.id}')" title="Edit"><i class="fas fa-edit"></i></button>`;
+                actionsHtml += `<button class="btn-primary owner-only" style="padding: 6px 10px; font-size: 11px; background: #7F1D1D;" onclick="deleteBooking('${booking.id}')" title="Delete"><i class="fas fa-trash"></i></button>`;
             } else {
                 actionsHtml += `<button class="btn-primary receptionist-only" style="padding: 6px 10px; font-size: 11px; background: #27AE60;" onclick="checkoutBooking('${booking.id}')" title="Checkout"><i class="fas fa-sign-out-alt"></i></button>`;
                 actionsHtml += `<button class="btn-primary owner-only" style="padding: 6px 10px; font-size: 11px; background: #F59E0B;" onclick="openEditBookingModal('${booking.id}')" title="Edit"><i class="fas fa-edit"></i></button>`;
@@ -809,6 +812,154 @@ window.cancelBooking = function(bookingId) {
     updateRealtimeDashboardMetrics();
 
     alert(`Booking ${bookingId} has been cancelled.`);
+};
+
+window.deleteBooking = async function(bookingId) {
+    const booking = data.bookings.find(item => item.id === bookingId);
+    if (!booking) return;
+
+    const shouldDelete = confirm(`⚠️ PERMANENTLY DELETE booking ${booking.id} for ${booking.guestName}?\n\nThis will remove the booking and renumber all remaining bookings sequentially.\n\nThis action CANNOT be undone!`);
+    if (!shouldDelete) return;
+
+    // Double confirmation for safety
+    const doubleConfirm = confirm(`Are you ABSOLUTELY sure? This will delete ${booking.id} and renumber all bookings.`);
+    if (!doubleConfirm) return;
+
+    // Store old IDs for Firebase cleanup
+    const oldIds = data.bookings.map(b => b.id);
+
+    // Remove the booking from the array
+    const index = data.bookings.findIndex(item => item.id === bookingId);
+    if (index === -1) return;
+    data.bookings.splice(index, 1);
+
+    // Delete the old booking document from Firebase
+    if (firebaseEnabled && firebaseDb) {
+        try {
+            await firebaseDb.collection('bookings').doc(String(bookingId)).delete();
+            await firebaseDb.collection('booking_photos').doc(String(bookingId)).delete();
+        } catch (err) {
+            console.warn('Failed to delete old Firebase doc:', err);
+        }
+    }
+
+    // Renumber all remaining bookings sequentially: BK001, BK002, BK003...
+    const renameMap = []; // { oldId, newId }
+    for (let i = 0; i < data.bookings.length; i++) {
+        const newId = `BK${String(i + 1).padStart(3, '0')}`;
+        const oldId = data.bookings[i].id;
+        if (oldId !== newId) {
+            renameMap.push({ oldId, newId });
+        }
+        data.bookings[i].id = newId;
+    }
+
+    // Update Firebase: delete old docs and sync new ones for renamed bookings
+    if (firebaseEnabled && firebaseDb && renameMap.length > 0) {
+        for (const { oldId, newId } of renameMap) {
+            try {
+                // Delete old document
+                await firebaseDb.collection('bookings').doc(String(oldId)).delete();
+                // Delete old photos document
+                await firebaseDb.collection('booking_photos').doc(String(oldId)).delete();
+            } catch (err) {
+                console.warn(`Failed to delete old Firebase doc ${oldId}:`, err);
+            }
+        }
+        // Re-sync all bookings with new IDs to Firebase
+        for (const booking of data.bookings) {
+            syncBookingToFirebase(booking);
+        }
+    }
+
+    // Also update customer booking history references
+    data.customers.forEach(customer => {
+        if (!Array.isArray(customer.bookingHistory)) return;
+        customer.bookingHistory.forEach(historyItem => {
+            const renamed = renameMap.find(r => r.oldId === historyItem.bookingId);
+            if (renamed) {
+                historyItem.bookingId = renamed.newId;
+            }
+        });
+    });
+
+    saveDataToStorage();
+    loadBookings();
+    loadRooms();
+    loadPayments();
+    updateRealtimeDashboardMetrics();
+
+    alert(`Booking ${bookingId} has been deleted. All bookings have been renumbered sequentially.`);
+};
+
+window.renumberAllBookings = async function() {
+    if (data.bookings.length === 0) {
+        alert('No bookings to renumber.');
+        return;
+    }
+
+    // Check if renumbering is even needed
+    let needsRenumber = false;
+    for (let i = 0; i < data.bookings.length; i++) {
+        const expectedId = `BK${String(i + 1).padStart(3, '0')}`;
+        if (data.bookings[i].id !== expectedId) {
+            needsRenumber = true;
+            break;
+        }
+    }
+
+    if (!needsRenumber) {
+        alert('All booking IDs are already sequential. No renumbering needed.');
+        return;
+    }
+
+    const shouldRenumber = confirm(`⚠️ RENUMBER ALL BOOKINGS?\n\nThis will reassign all booking IDs to be sequential (BK001, BK002, BK003...) with no gaps.\n\nAll Firebase records will be updated.\n\nContinue?`);
+    if (!shouldRenumber) return;
+
+    // Store old IDs for Firebase cleanup
+    const renameMap = [];
+    for (let i = 0; i < data.bookings.length; i++) {
+        const newId = `BK${String(i + 1).padStart(3, '0')}`;
+        const oldId = data.bookings[i].id;
+        if (oldId !== newId) {
+            renameMap.push({ oldId, newId });
+        }
+        data.bookings[i].id = newId;
+    }
+
+    // Update Firebase: delete old docs and re-sync with new IDs
+    if (firebaseEnabled && firebaseDb && renameMap.length > 0) {
+        for (const { oldId } of renameMap) {
+            try {
+                await firebaseDb.collection('bookings').doc(String(oldId)).delete();
+                await firebaseDb.collection('booking_photos').doc(String(oldId)).delete();
+            } catch (err) {
+                console.warn(`Failed to delete old Firebase doc ${oldId}:`, err);
+            }
+        }
+        // Re-sync all bookings with new IDs
+        for (const booking of data.bookings) {
+            syncBookingToFirebase(booking);
+        }
+    }
+
+    // Update customer booking history references
+    data.customers.forEach(customer => {
+        if (!Array.isArray(customer.bookingHistory)) return;
+        customer.bookingHistory.forEach(historyItem => {
+            const renamed = renameMap.find(r => r.oldId === historyItem.bookingId);
+            if (renamed) {
+                historyItem.bookingId = renamed.newId;
+            }
+        });
+    });
+
+    saveDataToStorage();
+    loadBookings();
+    loadPayments();
+    updateRealtimeDashboardMetrics();
+
+    alert(`Done! ${renameMap.length} booking(s) have been renumbered sequentially.`);
 };
 async function startBookingCamera() {
     const video = document.getElementById('bookingCameraPreview');
