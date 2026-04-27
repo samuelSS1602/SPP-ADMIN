@@ -588,9 +588,9 @@ function applyBookingIdProofInputRules() {
             hint.textContent = 'Aadhar format: exactly 12 digits';
             break;
         case 'Driving License':
-            idNumberInput.placeholder = 'TN0120231234567';
-            idNumberInput.maxLength = 17;
-            hint.textContent = 'Driving License format: 2 letters + 2 digits + 11 to 13 digits';
+            idNumberInput.placeholder = 'e.g. TN0120231234567';
+            idNumberInput.maxLength = 40;
+            hint.textContent = 'Enter Driving License number';
             break;
         case 'Passport':
             idNumberInput.placeholder = 'A1234567';
@@ -642,8 +642,8 @@ function validateBookingIdProof(idProofType, rawIdNumber) {
     }
 
     if (idProofType === 'Driving License') {
-        if (!/^[A-Z]{2}[0-9]{2}[0-9]{11,13}$/.test(normalizedUpper)) {
-            return { valid: false, message: 'Invalid Driving License number. Use format like TN0120231234567.' };
+        if (!normalizedUpper || normalizedUpper.length < 2) {
+            return { valid: false, message: 'Please enter a valid Driving License number.' };
         }
         return { valid: true, normalized: normalizedUpper };
     }
