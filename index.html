@@ -325,13 +325,20 @@
                                     <div class="download-record-count" id="downloadRecordCount">
                                         <i class="fas fa-database"></i> <span>Select a date range to preview</span>
                                     </div>
-                                    <button class="btn-download-all" onclick="downloadAllBookingData()">
-                                        <i class="fas fa-file-pdf"></i> Download PDF Bills
-                                    </button>
+                                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                        <button class="btn-download-all" onclick="downloadAllBookingData()">
+                                            <i class="fas fa-file-pdf"></i> Download PDF Bills
+                                        </button>
+                                        <button class="btn-primary owner-only" onclick="openRecoverPhotosModal()"
+                                            style="background: #ef4444; border: none; padding: 12px 20px; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.3s; flex: 1; justify-content: center; min-width: 200px;">
+                                            <i class="fas fa-life-ring"></i> Recover Missing Photos
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
                     <div class="card">
                         <div class="card-header">
                             <h3>Recent Activity</h3>
@@ -1064,9 +1071,20 @@
                         <input type="number" id="editAdvanceAmount" min="0">
                     </div>
                 </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="margin: 0;">Assigned Room(s)</label>
+                        <button type="button" class="btn-primary" onclick="openEditAddRoomModal()" style="padding: 4px 8px; font-size: 10px;">
+                            <i class="fas fa-plus"></i> Add Room
+                        </button>
+                    </div>
+                    <div id="editRoomsList" style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <!-- Rooms listed here -->
+                    </div>
+                </div>
                 <div class="form-row" style="margin-bottom: 15px;">
                     <div class="form-group">
-                        <label>Room Rate (Tariff) (₹)</label>
+                        <label>Total Room Rate (₹)</label>
                         <input type="number" id="editRoomRate" min="0">
                     </div>
                     <div class="form-group">
@@ -1136,6 +1154,23 @@
         </div>
     </div>
 
+    <!-- Add Room to Edit Booking Modal -->
+    <div id="editAddRoomModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-btn" onclick="closeEditAddRoomModal()">&times;</span>
+            <h3>Add Room to Booking</h3>
+            <div class="form-group">
+                <label>Available Rooms</label>
+                <select id="editAddRoomSelect">
+                    <option value="">-- Select a room --</option>
+                </select>
+            </div>
+            <button class="btn-primary" onclick="confirmEditAddRoom()" style="width: 100%; margin-top: 20px;">
+                Add Selected Room
+            </button>
+        </div>
+    </div>
+
     <!-- Add Extra Amount Modal -->
     <div id="extraAmountModal" class="modal">
         <div class="modal-content">
@@ -1192,6 +1227,27 @@
 
             <button class="btn-primary" onclick="document.getElementById('photoViewerModal').style.display='none'"
                 style="margin-top: 25px; width: 200px; padding: 10px; border-radius: 6px;">Close Window</button>
+        </div>
+    </div>
+
+    <!-- Recover Photos Modal -->
+    <div id="recoverPhotosModal" class="modal">
+        <div class="modal-content customer-modal-large" style="max-width: 900px;">
+            <span class="close-btn" onclick="closeRecoverPhotosModal()">&times;</span>
+            <h3 style="color: var(--primary-brand); margin-bottom: 15px;"><i class="fas fa-life-ring"></i> Recover
+                Missing Photos</h3>
+            <p style="font-size: 13px; color: var(--text-light); margin-bottom: 20px;">
+                Searching the cloud database for photos that belong to deleted or renumbered bookings. You can assign
+                these photos to current bookings below.
+            </p>
+            <div id="recoverPhotosStatus"
+                style="padding: 15px; background: #f8fafc; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+                <i class="fas fa-spinner fa-spin"></i> Scanning database for orphaned photos...
+            </div>
+            <div id="recoverPhotosGrid"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; max-height: 500px; overflow-y: auto;">
+                <!-- Photos will be populated here -->
+            </div>
         </div>
     </div>
 

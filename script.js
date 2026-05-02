@@ -328,6 +328,10 @@ function updateSelectedRoomsDisplay() {
 }
 
 function navigateTo(page, navElement) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const contentArea = document.querySelector('.content-area');
+    if (contentArea) contentArea.scrollTo({ top: 0, behavior: 'smooth' });
+    
     document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
     document.getElementById(page).classList.add('active');
 

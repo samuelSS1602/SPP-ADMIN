@@ -698,10 +698,115 @@ function populateTimeToInput(timeString, inputId) {
         input.value = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
     }
 }
+let currentEditBookingRooms = [];
+
+function renderEditBookingRooms() {
+    const list = document.getElementById('editRoomsList');
+    if (!list) return;
+    if (currentEditBookingRooms.length === 0) {
+        list.innerHTML = '<small style="color: var(--text-light);">No rooms assigned.</small>';
+        return;
+    }
+    let html = '';
+    currentEditBookingRooms.forEach((r, idx) => {
+        html += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #e2e8f0;">
+                <span><strong>${r.roomName}</strong> <small>(Floor ${r.floor})</small></span>
+                <button type="button" class="btn-primary" style="padding: 2px 6px; font-size: 10px; background: #ef4444;" onclick="removeRoomFromEditBooking(${r.roomId})">
+                    <i class="fas fa-times"></i> Remove
+                </button>
+            </div>
+        `;
+    });
+    list.innerHTML = html;
+}
+
+window.removeRoomFromEditBooking = function(roomId) {
+    if (currentEditBookingRooms.length <= 1) {
+        alert('Cannot remove the last room. A booking must have at least one room.');
+        return;
+    }
+    const roomToRemove = currentEditBookingRooms.find(r => r.roomId === roomId);
+    if (roomToRemove) {
+        const rateInput = document.getElementById('editRoomRate');
+        let currentRate = parseFloat(rateInput.value) || 0;
+        currentRate = Math.max(0, currentRate - roomToRemove.price);
+        rateInput.value = currentRate;
+    }
+    currentEditBookingRooms = currentEditBookingRooms.filter(r => r.roomId !== roomId);
+    renderEditBookingRooms();
+};
+
+window.openEditAddRoomModal = function() {
+    const select = document.getElementById('editAddRoomSelect');
+    select.innerHTML = '<option value="">-- Select a room --</option>';
+    
+    const availableRooms = data.rooms.filter(room => 
+        (room.status === 'available' || room.status === 'cleaning') && 
+        !currentEditBookingRooms.some(r => r.roomId === room.id)
+    );
+    
+    if (availableRooms.length === 0) {
+        alert('No additional rooms available.');
+        return;
+    }
+    
+    availableRooms.forEach(room => {
+        const option = document.createElement('option');
+        option.value = room.id;
+        option.textContent = `${room.name} (${room.type}) - Floor ${room.floor} - ₹${room.price}`;
+        select.appendChild(option);
+    });
+    
+    document.getElementById('editAddRoomModal').classList.add('active');
+};
+
+window.closeEditAddRoomModal = function() {
+    document.getElementById('editAddRoomModal').classList.remove('active');
+};
+
+window.confirmEditAddRoom = function() {
+    const select = document.getElementById('editAddRoomSelect');
+    const roomId = parseInt(select.value);
+    if (!roomId) {
+        alert('Please select a room.');
+        return;
+    }
+    
+    const room = data.rooms.find(r => r.id === roomId);
+    if (room) {
+        currentEditBookingRooms.push({
+            roomId: room.id,
+            roomName: room.name,
+            floor: room.floor,
+            price: room.price
+        });
+        
+        const rateInput = document.getElementById('editRoomRate');
+        const currentRate = parseFloat(rateInput.value) || 0;
+        rateInput.value = currentRate + room.price;
+        
+        renderEditBookingRooms();
+        closeEditAddRoomModal();
+    }
+};
 
 window.openEditBookingModal = function(bookingId) {
     const booking = data.bookings.find(b => b.id === bookingId);
     if (!booking) return;
+
+    currentEditBookingRooms = [];
+    if (booking.rooms && booking.rooms.length > 0) {
+        currentEditBookingRooms = JSON.parse(JSON.stringify(booking.rooms));
+    } else if (booking.roomId) {
+        currentEditBookingRooms.push({
+            roomId: booking.roomId,
+            roomName: booking.roomName,
+            floor: booking.floor,
+            price: booking.roomRate || 0
+        });
+    }
+    renderEditBookingRooms();
 
     document.getElementById('editBookingId').value = booking.id;
     document.getElementById('editGuestName').value = booking.guestName || '';
@@ -738,6 +843,41 @@ window.saveEditedBooking = function() {
     const booking = data.bookings.find(b => b.id === bookingId);
     if (!booking) return;
 
+    if (currentEditBookingRooms.length === 0) {
+        alert('A booking must have at least one assigned room.');
+        return;
+    }
+
+    const oldRoomIds = [];
+    if (booking.rooms && booking.rooms.length > 0) {
+        booking.rooms.forEach(r => oldRoomIds.push(r.roomId));
+    } else if (booking.roomId) {
+        oldRoomIds.push(booking.roomId);
+    }
+
+    const newRoomIds = currentEditBookingRooms.map(r => r.roomId);
+
+    // Free removed rooms
+    oldRoomIds.forEach(id => {
+        if (!newRoomIds.includes(id)) {
+            const r = data.rooms.find(x => x.id == id);
+            if(r) r.status = 'available';
+        }
+    });
+
+    // Occupy added rooms
+    newRoomIds.forEach(id => {
+        if (!oldRoomIds.includes(id)) {
+            const r = data.rooms.find(x => x.id == id);
+            if(r) r.status = 'occupied';
+        }
+    });
+
+    booking.rooms = JSON.parse(JSON.stringify(currentEditBookingRooms));
+    booking.roomId = currentEditBookingRooms[0].roomId;
+    booking.roomName = currentEditBookingRooms[0].roomName;
+    booking.floor = currentEditBookingRooms[0].floor;
+
     booking.guestName = document.getElementById('editGuestName').value.trim();
     booking.guestPhone = document.getElementById('editGuestPhone').value.trim();
     booking.guestEmail = document.getElementById('editGuestEmail').value.trim();
@@ -769,6 +909,7 @@ window.saveEditedBooking = function() {
     
     loadBookings();
     loadPayments();
+    if (typeof loadRooms === 'function') loadRooms();
     updateRealtimeDashboardMetrics();
     alert(`Booking ${bookingId} details updated.`);
 };
@@ -1228,3 +1369,159 @@ function handlePhotoUpload(inputElement, captureType) {
     // Reset file input so the same file can be re-selected
     inputElement.value = '';
 }
+
+// ===== RECOVER MISSING PHOTOS =====
+
+window.openRecoverPhotosModal = function() {
+    const modal = document.getElementById('recoverPhotosModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        fetchOrphanedPhotos();
+    }
+};
+
+window.closeRecoverPhotosModal = function() {
+    const modal = document.getElementById('recoverPhotosModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+};
+
+async function fetchOrphanedPhotos() {
+    const statusEl = document.getElementById('recoverPhotosStatus');
+    const gridEl = document.getElementById('recoverPhotosGrid');
+    
+    if (!firebaseEnabled || !firebaseDb) {
+        statusEl.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i> Database connection not available.';
+        return;
+    }
+    
+    statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning cloud database for orphaned photos...';
+    gridEl.innerHTML = '';
+    
+    try {
+        const snapshot = await firebaseDb.collection('booking_photos').get();
+        const orphaned = [];
+        
+        // Find documents in booking_photos that do NOT have a corresponding active booking
+        snapshot.forEach(doc => {
+            const photoId = doc.id; // e.g. "BK003"
+            const bookingExists = data.bookings.some(b => b.id === photoId);
+            
+            if (!bookingExists) {
+                const docData = doc.data();
+                if (docData.customerPhoto || docData.idProofPhoto) {
+                    orphaned.push({
+                        id: photoId,
+                        data: docData
+                    });
+                }
+            }
+        });
+        
+        if (orphaned.length === 0) {
+            statusEl.innerHTML = '<i class="fas fa-check-circle" style="color:#10b981;"></i> No orphaned photos found in the database. All existing photos are properly linked.';
+            return;
+        }
+        
+        statusEl.innerHTML = `<i class="fas fa-exclamation-circle" style="color:#f59e0b;"></i> Found ${orphaned.length} photo record(s) not linked to any active booking.`;
+        
+        // Render orphaned photos
+        orphaned.forEach(item => {
+            const hasCust = item.data.customerPhoto ? 'Yes' : 'No';
+            const hasId = item.data.idProofPhoto ? 'Yes' : 'No';
+            
+            // Build options for current bookings (last 20 to avoid massive lists)
+            const recentBookings = [...data.bookings].sort((a,b) => b.id.localeCompare(a.id)).slice(0, 30);
+            let optionsHtml = '<option value="">Select booking to assign...</option>';
+            recentBookings.forEach(b => {
+                optionsHtml += `<option value="${b.id}">${b.id} - ${b.guestName} (Room ${b.roomName})</option>`;
+            });
+            
+            const cardHtml = `
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+                    <div style="padding: 10px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 13px;">
+                        Found ID: ${item.id}
+                    </div>
+                    <div style="padding: 15px; flex: 1; display: flex; gap: 10px; justify-content: center; background: #f8fafc;">
+                        ${item.data.customerPhoto ? `<img src="${item.data.customerPhoto}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;" title="Customer Photo">` : ''}
+                        ${item.data.idProofPhoto ? `<img src="${item.data.idProofPhoto}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;" title="ID Proof">` : ''}
+                    </div>
+                    <div style="padding: 15px; border-top: 1px solid #e2e8f0;">
+                        <select id="assign-target-${item.id}" style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 12px;">
+                            ${optionsHtml}
+                        </select>
+                        <button class="btn-primary" onclick="assignPhotoToBooking('${item.id}')" style="width: 100%; font-size: 12px; padding: 8px;">
+                            <i class="fas fa-link"></i> Assign to Booking
+                        </button>
+                    </div>
+                </div>
+            `;
+            gridEl.insertAdjacentHTML('beforeend', cardHtml);
+        });
+        
+    } catch (err) {
+        console.error("Error fetching orphaned photos:", err);
+        statusEl.innerHTML = '<i class="fas fa-times-circle" style="color:#ef4444;"></i> Failed to fetch photos from cloud database. See console for details.';
+    }
+}
+
+window.assignPhotoToBooking = async function(orphanedId) {
+    const selectEl = document.getElementById(`assign-target-${orphanedId}`);
+    if (!selectEl) return;
+    
+    const targetBookingId = selectEl.value;
+    if (!targetBookingId) {
+        alert("Please select a booking to assign the photos to.");
+        return;
+    }
+    
+    const targetBooking = data.bookings.find(b => b.id === targetBookingId);
+    if (!targetBooking) {
+        alert("Selected booking not found.");
+        return;
+    }
+    
+    const confirmAssign = confirm(`Assign photos from ${orphanedId} to booking ${targetBooking.id} (${targetBooking.guestName})?`);
+    if (!confirmAssign) return;
+    
+    try {
+        // Fetch orphaned document data
+        const orphanedDoc = await firebaseDb.collection('booking_photos').doc(String(orphanedId)).get();
+        if (!orphanedDoc.exists) {
+            alert("Orphaned photo no longer exists in database.");
+            return;
+        }
+        
+        const photoData = orphanedDoc.data();
+        
+        // Merge into target booking
+        await firebaseDb.collection('booking_photos').doc(String(targetBookingId)).set(photoData, { merge: true });
+        
+        // Delete orphaned document
+        await firebaseDb.collection('booking_photos').doc(String(orphanedId)).delete();
+        
+        // Update local booking flags
+        if (photoData.customerPhoto) {
+            targetBooking.hasCustomerPhoto = true;
+            targetBooking.customerPhotoUrl = photoData.customerPhoto; // Cache locally
+        }
+        if (photoData.idProofPhoto) {
+            targetBooking.hasIdProofPhoto = true;
+            targetBooking.idProofPhotoUrl = photoData.idProofPhoto; // Cache locally
+        }
+        
+        saveDataToStorage();
+        syncBookingToFirebase(targetBooking); // Resync
+        loadBookings(); // Refresh UI
+        
+        alert(`Successfully assigned photos to ${targetBooking.id}!`);
+        
+        // Refresh the orphaned photos list
+        fetchOrphanedPhotos();
+        
+    } catch (err) {
+        console.error("Failed to assign photos:", err);
+        alert("An error occurred while assigning photos. Please try again.");
+    }
+};
