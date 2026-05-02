@@ -42,7 +42,6 @@
                     <button type="submit" class="btn-login">Sign In</button>
                 </form>
             </div>
-
             <div class="login-side">
                 <div class="side-content">
                     <h2>Welcome Back</h2>
@@ -70,7 +69,6 @@
             </div>
         </div>
     </div>
-
     <!-- Dashboard -->
     <div id="dashboardPage" class="dashboard-container" style="display: none;">
         <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileMenu()"></div>
@@ -84,7 +82,6 @@
                     </div>
                 </div>
             </div>
-
             <nav class="sidebar-nav">
                 <button class="nav-item active" onclick="navigateTo('dashboard', this)">
                     <i class="fas fa-chart-pie"></i>
@@ -135,7 +132,6 @@
                 </div>
             </div>
         </aside>
-
         <main class="main-content">
             <div class="top-header">
                 <div class="header-left" style="display: flex; gap: 15px; align-items: center;">
@@ -263,22 +259,74 @@
                         <div class="card-header">
                             <h3>Quick Actions</h3>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; padding: 10px;">
-                            <button class="btn-primary receptionist-only" onclick="openNewBookingPage()" style="height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; background: linear-gradient(135deg, #4f46e5, #6366f1);">
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; padding: 10px;">
+                            <button class="btn-primary receptionist-only" onclick="openNewBookingPage()"
+                                style="height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; background: linear-gradient(135deg, #4f46e5, #6366f1);">
                                 <i class="fas fa-plus-circle" style="font-size: 24px;"></i>
                                 <span>New Booking</span>
                             </button>
-                            <button class="btn-primary" onclick="navigateTo('diary')" style="height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; background: linear-gradient(135deg, #f59e0b, #fbbf24);">
+                            <button class="btn-primary" onclick="navigateTo('diary')"
+                                style="height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; background: linear-gradient(135deg, #f59e0b, #fbbf24);">
                                 <i class="fas fa-book-open" style="font-size: 24px;"></i>
                                 <span>Room Diary</span>
                             </button>
-                            <button class="btn-primary" onclick="navigateTo('rooms')" style="height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; background: linear-gradient(135deg, #10b981, #34d399);">
+                            <button class="btn-primary" onclick="navigateTo('rooms')"
+                                style="height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; background: linear-gradient(135deg, #10b981, #34d399);">
                                 <i class="fas fa-door-open" style="font-size: 24px;"></i>
                                 <span>Rooms</span>
                             </button>
                         </div>
                     </div>
 
+                    <!-- Download All Data - Owner Only -->
+                    <div class="card owner-only" id="downloadAllDataCard">
+                        <div class="card-header">
+                            <h3><i class="fas fa-cloud-download-alt"
+                                    style="margin-right: 8px; color: var(--primary-gold);"></i> Download All Booking
+                                Data</h3>
+                        </div>
+                        <div class="download-data-section">
+                            <div class="download-data-info">
+                                <p><i class="fas fa-info-circle"></i> Export complete booking records with guest
+                                    details, photos, billing, and ID proofs for the selected date range.</p>
+                            </div>
+                            <div class="download-data-controls">
+                                <div class="date-range-group">
+                                    <div class="date-range-item">
+                                        <label for="downloadFromDate"><i class="fas fa-calendar-alt"></i> From
+                                            Date</label>
+                                        <input type="date" id="downloadFromDate">
+                                    </div>
+                                    <div class="date-range-separator">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </div>
+                                    <div class="date-range-item">
+                                        <label for="downloadToDate"><i class="fas fa-calendar-alt"></i> To Date</label>
+                                        <input type="date" id="downloadToDate">
+                                    </div>
+                                </div>
+                                <div class="download-quick-presets">
+                                    <button class="preset-btn" onclick="setDownloadPreset('today')"><i
+                                            class="fas fa-sun"></i> Today</button>
+                                    <button class="preset-btn" onclick="setDownloadPreset('week')"><i
+                                            class="fas fa-calendar-week"></i> This Week</button>
+                                    <button class="preset-btn" onclick="setDownloadPreset('month')"><i
+                                            class="fas fa-calendar"></i> This Month</button>
+                                    <button class="preset-btn" onclick="setDownloadPreset('all')"><i
+                                            class="fas fa-infinity"></i> All Time</button>
+                                </div>
+                                <div class="download-actions-row">
+                                    <div class="download-record-count" id="downloadRecordCount">
+                                        <i class="fas fa-database"></i> <span>Select a date range to preview</span>
+                                    </div>
+                                    <button class="btn-download-all" onclick="downloadAllBookingData()">
+                                        <i class="fas fa-file-pdf"></i> Download PDF Bills
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="card">
                         <div class="card-header">
                             <h3>Recent Activity</h3>
@@ -346,7 +394,8 @@
                             </div>
                             <button class="filter-reset-btn" onclick="resetBookingFilters()" title="Reset Filters"><i
                                     class="fas fa-undo"></i> Reset</button>
-                            <button class="filter-reset-btn owner-only" onclick="renumberAllBookings()" title="Renumber All Booking IDs" style="background: #7F1D1D; color: #fff;"><i
+                            <button class="filter-reset-btn owner-only" onclick="renumberAllBookings()"
+                                title="Renumber All Booking IDs" style="background: #7F1D1D; color: #fff;"><i
                                     class="fas fa-sort-numeric-down"></i> Renumber</button>
                         </div>
                         <div class="filter-month-pills" id="bookingMonthPills">
@@ -567,7 +616,8 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Room Fare / Rate (₹) *</label>
-                                        <input type="number" id="bookingRoomRate" value="0" min="0" required placeholder="Enter room fare per day">
+                                        <input type="number" id="bookingRoomRate" value="0" min="0" required
+                                            placeholder="Enter room fare per day">
                                     </div>
                                 </div>
                                 <div class="form-row">
@@ -594,30 +644,39 @@
                                     <i class="fas fa-camera"></i>
                                     <h3>Identity Verification</h3>
                                 </div>
-                                <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; margin-bottom: 20px; border-radius: 4px;">
+                                <div
+                                    style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; margin-bottom: 20px; border-radius: 4px;">
                                     <p style="font-size: 13px; color: #1e40af; margin: 0; font-weight: 500;">
-                                        <i class="fas fa-info-circle"></i> Please capture clear photos of both the guest and their ID proof document.
+                                        <i class="fas fa-info-circle"></i> Please capture clear photos of both the guest
+                                        and their ID proof document.
                                     </p>
                                 </div>
 
                                 <input type="hidden" id="bookingCustomerPhotoData">
                                 <input type="hidden" id="bookingIdProofPhotoData">
 
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
                                     <!-- Camera Left -->
                                     <div>
-                                        <div class="camera-live-box" style="margin-top: 0; border: 3px solid #e2e8f0; border-radius: 12px; overflow: hidden; position: relative; background: #000;">
-                                            <video id="bookingCameraPreview" autoplay playsinline muted style="width: 100%; height: 240px; object-fit: cover;"></video>
-                                            <div class="camera-placeholder" id="bookingCameraPlaceholder" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b;">
-                                                <i class="fas fa-camera" style="font-size: 40px; margin-bottom: 10px;"></i>
+                                        <div class="camera-live-box"
+                                            style="margin-top: 0; border: 3px solid #e2e8f0; border-radius: 12px; overflow: hidden; position: relative; background: #000;">
+                                            <video id="bookingCameraPreview" autoplay playsinline muted
+                                                style="width: 100%; height: 240px; object-fit: cover;"></video>
+                                            <div class="camera-placeholder" id="bookingCameraPlaceholder"
+                                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b;">
+                                                <i class="fas fa-camera"
+                                                    style="font-size: 40px; margin-bottom: 10px;"></i>
                                                 <span style="font-size: 13px; font-weight: 600;">Camera Off</span>
                                             </div>
                                         </div>
                                         <div style="display: flex; gap: 10px; margin-top: 15px;">
-                                            <button type="button" class="btn-primary" id="startBookingCameraBtn" style="flex: 1; background: #3b82f6;">
+                                            <button type="button" class="btn-primary" id="startBookingCameraBtn"
+                                                style="flex: 1; background: #3b82f6;">
                                                 <i class="fas fa-play"></i> Start
                                             </button>
-                                            <button type="button" class="btn-primary" id="stopBookingCameraBtn" style="flex: 1; background: #ef4444; display: none;">
+                                            <button type="button" class="btn-primary" id="stopBookingCameraBtn"
+                                                style="flex: 1; background: #ef4444; display: none;">
                                                 <i class="fas fa-stop"></i> Stop
                                             </button>
                                         </div>
@@ -626,44 +685,65 @@
                                     <!-- Previews Right -->
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                                         <div>
-                                            <label style="display: block; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase;">Customer Photo</label>
-                                            <div class="capture-preview" id="customerPhotoPreviewWrap" style="height: 180px; border: 2px dashed #cbd5e1; border-radius: 10px; background: #f8fafc;">
-                                                <img id="customerPhotoPreview" alt="Customer Photo" style="display: none; width: 100%; height: 100%; object-fit: cover;">
-                                                <div id="customerPhotoEmpty" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #94a3b8;">
-                                                    <i class="fas fa-user" style="font-size: 24px; margin-bottom: 5px;"></i>
+                                            <label
+                                                style="display: block; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase;">Customer
+                                                Photo</label>
+                                            <div class="capture-preview" id="customerPhotoPreviewWrap"
+                                                style="height: 180px; border: 2px dashed #cbd5e1; border-radius: 10px; background: #f8fafc;">
+                                                <img id="customerPhotoPreview" alt="Customer Photo"
+                                                    style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                                                <div id="customerPhotoEmpty"
+                                                    style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #94a3b8;">
+                                                    <i class="fas fa-user"
+                                                        style="font-size: 24px; margin-bottom: 5px;"></i>
                                                     <span style="font-size: 11px;">Not Captured</span>
                                                 </div>
                                             </div>
-                                            <button type="button" class="btn-primary" id="captureCustomerPhotoBtn" style="width: 100%; margin-top: 10px; font-size: 11px; padding: 8px;">
+                                            <button type="button" class="btn-primary" id="captureCustomerPhotoBtn"
+                                                style="width: 100%; margin-top: 10px; font-size: 11px; padding: 8px;">
                                                 <i class="fas fa-camera"></i> Capture
                                             </button>
-                                            <input type="file" id="uploadCustomerPhoto" accept="image/*" style="display: none;" onchange="handlePhotoUpload(this, 'customer')">
-                                            <button type="button" class="btn-primary" onclick="document.getElementById('uploadCustomerPhoto').click()" style="width: 100%; margin-top: 5px; font-size: 11px; padding: 8px; background: #64748b;">
+                                            <input type="file" id="uploadCustomerPhoto" accept="image/*"
+                                                style="display: none;" onchange="handlePhotoUpload(this, 'customer')">
+                                            <button type="button" class="btn-primary"
+                                                onclick="document.getElementById('uploadCustomerPhoto').click()"
+                                                style="width: 100%; margin-top: 5px; font-size: 11px; padding: 8px; background: #64748b;">
                                                 <i class="fas fa-upload"></i> Upload
                                             </button>
                                         </div>
                                         <div>
-                                            <label style="display: block; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase;">ID Proof Photo</label>
-                                            <div class="capture-preview" id="idProofPhotoPreviewWrap" style="height: 180px; border: 2px dashed #cbd5e1; border-radius: 10px; background: #f8fafc;">
-                                                <img id="idProofPhotoPreview" alt="ID Proof" style="display: none; width: 100%; height: 100%; object-fit: cover;">
-                                                <div id="idProofPhotoEmpty" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #94a3b8;">
-                                                    <i class="fas fa-address-card" style="font-size: 24px; margin-bottom: 5px;"></i>
+                                            <label
+                                                style="display: block; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase;">ID
+                                                Proof Photo</label>
+                                            <div class="capture-preview" id="idProofPhotoPreviewWrap"
+                                                style="height: 180px; border: 2px dashed #cbd5e1; border-radius: 10px; background: #f8fafc;">
+                                                <img id="idProofPhotoPreview" alt="ID Proof"
+                                                    style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                                                <div id="idProofPhotoEmpty"
+                                                    style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #94a3b8;">
+                                                    <i class="fas fa-address-card"
+                                                        style="font-size: 24px; margin-bottom: 5px;"></i>
                                                     <span style="font-size: 11px;">Not Captured</span>
                                                 </div>
                                             </div>
-                                            <button type="button" class="btn-primary" id="captureIdProofPhotoBtn" style="width: 100%; margin-top: 10px; font-size: 11px; padding: 8px;">
+                                            <button type="button" class="btn-primary" id="captureIdProofPhotoBtn"
+                                                style="width: 100%; margin-top: 10px; font-size: 11px; padding: 8px;">
                                                 <i class="fas fa-camera"></i> Capture
                                             </button>
-                                            <input type="file" id="uploadIdProofPhoto" accept="image/*" style="display: none;" onchange="handlePhotoUpload(this, 'idProof')">
-                                            <button type="button" class="btn-primary" onclick="document.getElementById('uploadIdProofPhoto').click()" style="width: 100%; margin-top: 5px; font-size: 11px; padding: 8px; background: #64748b;">
+                                            <input type="file" id="uploadIdProofPhoto" accept="image/*"
+                                                style="display: none;" onchange="handlePhotoUpload(this, 'idProof')">
+                                            <button type="button" class="btn-primary"
+                                                onclick="document.getElementById('uploadIdProofPhoto').click()"
+                                                style="width: 100%; margin-top: 5px; font-size: 11px; padding: 8px; background: #64748b;">
                                                 <i class="fas fa-upload"></i> Upload
                                             </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                      
-                            <button type="submit" class="btn-primary" style="width: 100%; margin-top: 30px; padding: 15px; font-size: 16px; font-weight: 600;">
+
+                            <button type="submit" class="btn-primary"
+                                style="width: 100%; margin-top: 30px; padding: 15px; font-size: 16px; font-weight: 600;">
                                 <i class="fas fa-check-circle"></i> Create Booking & Check-in
                             </button>
                         </form>
