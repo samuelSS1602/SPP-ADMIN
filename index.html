@@ -329,10 +329,6 @@
                                         <button class="btn-download-all" onclick="downloadAllBookingData()">
                                             <i class="fas fa-file-pdf"></i> Download PDF Bills
                                         </button>
-                                        <button class="btn-primary owner-only" onclick="openRecoverPhotosModal()"
-                                            style="background: #ef4444; border: none; padding: 12px 20px; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.3s; flex: 1; justify-content: center; min-width: 200px;">
-                                            <i class="fas fa-life-ring"></i> Recover Missing Photos
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -382,6 +378,12 @@
                         <div class="header-actions">
                             <button class="btn-primary receptionist-only" onclick="openNewBookingPage()">
                                 <i class="fas fa-plus"></i> New Booking
+                            </button>
+                            <button class="btn-primary owner-only" onclick="viewAllPhotosInDatabase()" style="background: #3b82f6;">
+                                <i class="fas fa-images"></i> View All Photos
+                            </button>
+                            <button class="btn-primary owner-only" onclick="openRecoverPhotosModal()" style="background: #ef4444;">
+                                <i class="fas fa-life-ring"></i> Recover Photos
                             </button>
                         </div>
                     </div>
@@ -921,6 +923,7 @@
                                     <th>Guest Name</th>
                                     <th>Email</th>
                                     <th>Phone</th>
+                                    <th>Booking Number</th>
                                     <th>Visits</th>
                                     <th>Last Visit</th>
                                     <th>Photo</th>
@@ -1215,6 +1218,10 @@
                         style="width: 100%; height: 350px; object-fit: contain; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
                     <p id="viewerCustomerPhotoStatus"
                         style="color: #64748b; font-style: italic; display: none; margin-top:10px;">Not Available</p>
+                    <button class="btn-primary" id="updateCustomerPhotoBtn" onclick="triggerUpdateCustomerPhoto()" style="margin-top: 12px; padding: 8px 16px; font-size: 12px; background: #f59e0b; width: 100%;">
+                        <i class="fas fa-camera"></i> Update Photo
+                    </button>
+                    <input type="file" id="updateCustomerPhotoInput" accept="image/*" style="display: none;" onchange="handleUpdateCustomerPhoto(this)">
                 </div>
                 <div style="flex: 1; min-width: 300px;">
                     <h4 style="margin-bottom: 10px;">ID Proof Document</h4>
@@ -1222,11 +1229,17 @@
                         style="width: 100%; height: 350px; object-fit: contain; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
                     <p id="viewerIdProofPhotoStatus"
                         style="color: #64748b; font-style: italic; display: none; margin-top:10px;">Not Available</p>
+                    <button class="btn-primary" id="updateIdProofPhotoBtn" onclick="triggerUpdateIdProofPhoto()" style="margin-top: 12px; padding: 8px 16px; font-size: 12px; background: #f59e0b; width: 100%;">
+                        <i class="fas fa-camera"></i> Update Photo
+                    </button>
+                    <input type="file" id="updateIdProofPhotoInput" accept="image/*" style="display: none;" onchange="handleUpdateIdProofPhoto(this)">
                 </div>
             </div>
 
-            <button class="btn-primary" onclick="document.getElementById('photoViewerModal').style.display='none'"
-                style="margin-top: 25px; width: 200px; padding: 10px; border-radius: 6px;">Close Window</button>
+            <div style="margin-top: 25px; display: flex; gap: 10px; justify-content: center;">
+                <button class="btn-primary" onclick="document.getElementById('photoViewerModal').style.display='none'"
+                    style="width: 200px; padding: 10px; border-radius: 6px;">Close Window</button>
+            </div>
         </div>
     </div>
 
@@ -1248,6 +1261,24 @@
                 style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; max-height: 500px; overflow-y: auto;">
                 <!-- Photos will be populated here -->
             </div>
+        </div>
+    </div>
+
+    <!-- View All Photos Modal -->
+    <div id="allPhotosModal" class="modal">
+        <div class="modal-content customer-modal-large" style="max-width: 1400px; max-height: 95vh; display: flex; flex-direction: column; padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: var(--primary-brand); margin: 0;"><i class="fas fa-images"></i> All Photos in Database</h3>
+                <span class="close-btn" onclick="closeAllPhotosModal()" style="font-size: 28px; cursor: pointer;">&times;</span>
+            </div>
+            <div id="allPhotosStatus" style="font-size: 13px; color: var(--text-light); margin-bottom: 15px; padding: 10px; background: #f0f9ff; border-radius: 4px; border-left: 4px solid #3b82f6;">
+                <i class="fas fa-spinner fa-spin"></i> Loading all photos from database...
+            </div>
+            <div id="allPhotosGrid"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; flex: 1; overflow-y: auto; padding-right: 10px;">
+                <!-- Photos will be populated here -->
+            </div>
+            <button class="btn-primary" onclick="closeAllPhotosModal()" style="margin-top: 15px; width: 100%; padding: 12px; font-size: 14px;">Close Gallery</button>
         </div>
     </div>
 

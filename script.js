@@ -131,6 +131,35 @@ function getFirebaseLoginErrorMessage(error) {
     return `Firebase login failed: ${(error && error.message) ? error.message : 'Unknown error'}`;
 }
 
+// Quick fix function for booking status changes (for admin use)
+window.fixBookingStatus = function(bookingId, newStatus) {
+    const booking = data.bookings.find(b => b.id === bookingId);
+    if (!booking) {
+        alert(`Booking ${bookingId} not found!`);
+        return false;
+    }
+    
+    const oldStatus = booking.status;
+    booking.status = newStatus;
+    
+    // If changing to completed, set checkout date/time
+    if (newStatus === 'completed' && !booking.actualCheckOutDate) {
+        booking.actualCheckOutDate = getLocalISODate();
+        booking.actualCheckOutTime = toDisplayTime(getCurrentTimeValue());
+    }
+    
+    saveDataToStorage();
+    syncBookingToFirebase(booking);
+    loadBookings();
+    loadRooms();
+    loadPayments();
+    updateRealtimeDashboardMetrics();
+    
+    alert(`✓ Booking ${bookingId} status changed from "${oldStatus}" to "${newStatus}"`);
+    console.log(`Fixed booking ${bookingId}: ${oldStatus} → ${newStatus}`);
+    return true;
+};
+
 function showDashboard() {
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('dashboardPage').style.display = 'grid';
@@ -696,11 +725,13 @@ function loadGuests() {
             }
         }
 
+        const bookingNumber = currentBookingId ? currentBookingId : 'N/A';
+
         const photoBtn = currentBookingId
             ? `<button class="btn-primary" onclick="viewBookingPhotos('${currentBookingId}')" style="padding: 6px 10px; font-size: 11px; background: #4F46E5;"><i class="fas fa-camera"></i> View</button>`
             : '<span style="color: #94A3B8; font-size: 11px;">No Photo</span>';
 
-        html += `<tr><td><strong>${guest.name}</strong></td><td>${guest.email}</td><td>${guest.phone}</td><td>${guest.visits}</td><td>${formatDate(guest.lastVisit)}</td><td>${photoBtn}</td></tr>`;
+        html += `<tr><td><strong>${guest.name}</strong></td><td>${guest.email}</td><td>${guest.phone}</td><td>${bookingNumber}</td><td>${guest.visits}</td><td>${formatDate(guest.lastVisit)}</td><td>${photoBtn}</td></tr>`;
     });
     const tableBody = document.getElementById('guestsTable');
     if (tableBody) tableBody.innerHTML = html;
