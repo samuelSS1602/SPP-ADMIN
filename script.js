@@ -820,15 +820,97 @@ function loadGuests() {
         }
 
         const bookingNumber = currentBookingId ? currentBookingId : 'N/A';
-
-        const photoBtn = currentBookingId
-            ? `<button class="btn-primary" onclick="viewBookingPhotos('${currentBookingId}')" style="padding: 6px 10px; font-size: 11px; background: #4F46E5;"><i class="fas fa-camera"></i> View</button>`
-            : '<span style="color: #94A3B8; font-size: 11px;">No Photo</span>';
+        const guestBookings = data.bookings.filter(b => b.guestName === guest.name || b.guestPhone === guest.phone);
+        const photoBtn = guestBookings.length > 0
+            ? `<button class="btn-primary" onclick='viewGuestBookingPhotos(${JSON.stringify(guest.name)}, ${JSON.stringify(guest.phone)})' style="padding: 6px 10px; font-size: 11px; background: #4F46E5;"><i class="fas fa-camera"></i> View All Stays</button>`
+            : '<span style="color: #94A3B8; font-size: 11px;">No Photos</span>';
 
         html += `<tr><td><strong>${guest.name}</strong></td><td>${guest.email}</td><td>${guest.phone}</td><td>${bookingNumber}</td><td>${guest.visits}</td><td>${formatDate(guest.lastVisit)}</td><td>${photoBtn}</td></tr>`;
     });
     const tableBody = document.getElementById('guestsTable');
     if (tableBody) tableBody.innerHTML = html;
+}
+
+async function viewGuestBookingPhotos(guestName, guestPhone) {
+    const guestBookings = data.bookings
+        .filter(b => b.guestName === guestName || b.guestPhone === guestPhone)
+        .sort((a, b) => new Date(b.checkIn) - new Date(a.checkIn));
+
+    const modal = document.getElementById('guestPhotoHistoryModal');
+    const title = document.getElementById('guestPhotoHistoryTitle');
+    const content = document.getElementById('guestPhotoHistoryContent');
+
+    title.textContent = `${guestName} - Stayed Photo History`;
+    content.innerHTML = '<div style="text-align: center; padding: 30px;"><i class="fas fa-spinner fa-spin"></i> Loading guest stays...</div>';
+    modal.style.display = 'flex';
+
+    if (guestBookings.length === 0) {
+        content.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;">No stayed bookings found for this guest.</div>';
+        return;
+    }
+
+    for (let booking of guestBookings) {
+        if ((!booking.customerPhotoUrl && !booking.customerPhoto) || (!booking.idProofPhotoUrl && !booking.idProofPhoto)) {
+            try {
+                if (typeof firebaseDb !== 'undefined' && firebaseDb) {
+                    const doc = await firebaseDb.collection('booking_photos').doc(String(booking.id)).get();
+                    if (doc.exists) {
+                        const picData = doc.data();
+                        if (picData.customerPhoto && !booking.customerPhotoUrl && !booking.customerPhoto) {
+                            booking.customerPhotoUrl = picData.customerPhoto;
+                        }
+                        if (picData.idProofPhoto && !booking.idProofPhotoUrl && !booking.idProofPhoto) {
+                            booking.idProofPhotoUrl = picData.idProofPhoto;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn(`Could not fetch photos for booking ${booking.id}:`, e);
+            }
+        }
+    }
+
+    let html = '<div style="display: grid; gap: 22px;">';
+
+    guestBookings.forEach(booking => {
+        const customerPhoto = booking.customerPhotoUrl || booking.customerPhoto;
+        const idProofPhoto = booking.idProofPhotoUrl || booking.idProofPhoto;
+
+        html += `
+            <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; background: #ffffff; box-shadow: 0 1px 6px rgba(15, 23, 42, 0.08);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                    <div>
+                        <p style="margin: 0 0 5px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b;">Booking Number</p>
+                        <h4 style="margin: 0; font-size: 18px; color: #dc2626;">${booking.id}</h4>
+                    </div>
+                    <div style="text-align: right;">
+                        <p style="margin: 0 0 5px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b;">Stay Dates</p>
+                        <p style="margin: 0; color: #1e3a8a; font-weight: 600;">${formatDate(booking.checkIn)} - ${formatDate(booking.checkOut)}</p>
+                    </div>
+                    <span class="status-badge ${booking.status}" style="padding: 6px 12px; font-size: 11px; font-weight: 700;">${capitalizeFirst(booking.status)}</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px;">
+                    <div style="background: #f8fafc; border-radius: 10px; padding: 14px;">
+                        <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 700; color: #0f172a;">Guest Photo</p>
+                        ${customerPhoto ? `<img src="${customerPhoto}" alt="Customer Photo" style="width: 100%; height: 320px; object-fit: contain; border-radius: 10px; border: 1px solid #cbd5e1; cursor: pointer;" onclick="expandPhoto(this)">` : '<div style="display:flex; align-items:center; justify-content:center; height:320px; color:#94a3b8; border:1px dashed #cbd5e1; border-radius:10px;">No Customer Photo</div>'}
+                    </div>
+                    <div style="background: #f8fafc; border-radius: 10px; padding: 14px;">
+                        <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 700; color: #0f172a;">ID Proof</p>
+                        ${idProofPhoto ? `<img src="${idProofPhoto}" alt="ID Proof" style="width: 100%; height: 320px; object-fit: contain; border-radius: 10px; border: 1px solid #cbd5e1; cursor: pointer;" onclick="expandPhoto(this)">` : '<div style="display:flex; align-items:center; justify-content:center; height:320px; color:#94a3b8; border:1px dashed #cbd5e1; border-radius:10px;">No ID Proof</div>'}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    content.innerHTML = html;
+}
+
+function closeGuestPhotoHistoryModal() {
+    const modal = document.getElementById('guestPhotoHistoryModal');
+    if (modal) modal.style.display = 'none';
 }
 
 function loadPayments() {
@@ -2314,12 +2396,14 @@ window.onclick = function (event) {
     const extraAmountModal = document.getElementById('extraAmountModal');
     const roomDetailsModal = document.getElementById('roomDetailsModal');
     const changePasswordModal = document.getElementById('changePasswordModal');
+    const guestPhotoHistoryModal = document.getElementById('guestPhotoHistoryModal');
 
     if (event.target == receiptModal) closeReceiptModal();
     if (event.target == priceModal) closePriceModal();
     if (event.target == extraAmountModal) closeExtraAmountModal();
     if (event.target == roomDetailsModal) closeRoomDetailsModal();
     if (event.target == changePasswordModal) closeChangePasswordModal();
+    if (event.target == guestPhotoHistoryModal) closeGuestPhotoHistoryModal();
 }
 
 window.addEventListener('beforeunload', function () {
