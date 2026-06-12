@@ -14,7 +14,18 @@ const data = {
     bookings: [],
     customers: [],
     guests: [],
-    diary: {}
+    diary: {},
+    staff: [],
+    housekeepingTasks: [],
+    notifications: [],
+    settings: {
+        lodgeName: 'Sri Padmavati Pleasants',
+        gstNumber: '33ANCPP8116B1ZF',
+        taxes: { cgst: 2.5, sgst: 2.5 },
+        roomCategories: ['Single', 'Double', 'Family', 'Suite'],
+        backupSchedule: 'Weekly'
+    },
+    auditLogs: []
 };
 
 let charts = {};
@@ -36,6 +47,7 @@ const OWNER_WHATSAPP_PHONE = '919842816621';
 
 // Multi-room booking support
 let multiRoomBookingSelection = [];  // Array to store {roomId, roomName, floor, price} objects
+let activePage = 'dashboard';
 
 document.addEventListener('DOMContentLoaded', function () {
     initFirebaseServices();
@@ -45,6 +57,9 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('newBookingForm').addEventListener('submit', handleNewBooking);
     startLiveClock();
+    
+    // Initialize Redesign features
+    initAppRedesign();
 });
 
 async function handleLogin(e) {
@@ -226,6 +241,13 @@ function setupMultiRoomBookingListeners() {
 
         updateSelectedRoomsDisplay();
     });
+
+    const checkInInput = document.getElementById('bookingCheckIn');
+    if (checkInInput) {
+        checkInInput.addEventListener('change', function () {
+            updateSelectedRoomsDisplay();
+        });
+    }
 }
 
 function addExtraRoomToBooking() {
@@ -331,24 +353,78 @@ function updateSelectedRoomsDisplay() {
     multiRoomBookingSelection.forEach((room, idx) => {
         totalRate += room.price;
         html += `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f9f9f9; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid var(--primary-gold);">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f9f9f9; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid var(--secondary);">
                 <div>
                     <strong>${room.roomName}</strong> 
                     <span style="color: var(--text-light); font-size: 11px;">(Floor ${room.floor})</span>
                 </div>
                 <div style="text-align: right;">
-                    <div style="font-weight: 600; color: var(--primary-gold);">₹${formatNumber(room.price)}</div>
+                    <div style="font-weight: 600; color: var(--secondary);">₹${formatNumber(room.price)}</div>
                     ${idx > 0 ? `<button type="button" class="btn-primary" style="padding: 2px 6px; font-size: 10px; background: #E74C3C; margin-top: 2px;" onclick="removeRoomFromSelection(${room.roomId})"><i class="fas fa-trash"></i> Remove</button>` : '<small style="color: var(--text-light);">Primary</small>'}
                 </div>
             </div>
         `;
     });
 
+    // Auto-calculate dynamic surcharges
+    let finalRate = totalRate;
+    let surchargeInfo = [];
+    const checkInDateVal = document.getElementById('bookingCheckIn') ? document.getElementById('bookingCheckIn').value : '';
+    const settings = data.settings || {};
+
+    if (checkInDateVal && settings.weekendSurcharge > 0) {
+        // Use local day of week (Sunday is 0, Friday is 5, Saturday is 6)
+        const dayOfWeek = new Date(checkInDateVal).getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6) {
+            const amt = totalRate * (settings.weekendSurcharge / 100);
+            finalRate += amt;
+            surchargeInfo.push(`Weekend Surge (+${settings.weekendSurcharge}%)`);
+        }
+    }
+
+    if (settings.holidaySurgeActive && settings.holidaySurgeRate > 0) {
+        const amt = totalRate * (settings.holidaySurgeRate / 100);
+        finalRate += amt;
+        surchargeInfo.push(`Holiday Surge (+${settings.holidaySurgeRate}%)`);
+    }
+
+    const roundedRate = Math.round(finalRate);
+
+    // Auto fill Room Rate in the booking form
+    const rateInput = document.getElementById('bookingRoomRate');
+    if (rateInput) {
+        rateInput.value = roundedRate;
+        
+        let surgeNotice = document.getElementById('bookingSurgeNotice');
+        if (!surgeNotice) {
+            surgeNotice = document.createElement('small');
+            surgeNotice.id = 'bookingSurgeNotice';
+            surgeNotice.style.cssText = 'display: block; color: var(--warning); font-weight: bold; margin-top: 4px;';
+            rateInput.parentNode.appendChild(surgeNotice);
+        }
+        
+        if (surchargeInfo.length > 0) {
+            surgeNotice.textContent = `⚡ Surcharges applied: ${surchargeInfo.join(' & ')}`;
+        } else {
+            surgeNotice.textContent = '';
+        }
+    }
+
     html += `
-        <div style="padding: 8px; background: #e8f4f8; border-radius: 4px; border-top: 2px solid var(--primary-gold); margin-top: 8px;">
-                <div style="display: flex; justify-content: space-between;">
-                <span><strong>Total Rate (per night):</strong></span>
-                <span style="color: var(--primary-gold); font-weight: 700;">₹${formatNumber(totalRate)}</span>
+        <div style="padding: 8px; background: #e8f4f8; border-radius: 4px; border-top: 2px solid var(--secondary); margin-top: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                <span><strong>Base Rate:</strong></span>
+                <span style="font-weight: 600;">₹${formatNumber(totalRate)}</span>
+            </div>
+            ${surchargeInfo.length > 0 ? `
+            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--warning); margin-top: 2px;">
+                <span>Surcharges:</span>
+                <span>+ ₹${formatNumber(roundedRate - totalRate)}</span>
+            </div>
+            ` : ''}
+            <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-light); margin-top: 4px; padding-top: 4px; font-size: 14px;">
+                <span><strong>Final Rate:</strong></span>
+                <span style="color: var(--secondary); font-weight: 700;">₹${formatNumber(roundedRate)}</span>
             </div>
         </div>
     `;
@@ -362,34 +438,52 @@ function navigateTo(page, navElement) {
     if (contentArea) contentArea.scrollTo({ top: 0, behavior: 'smooth' });
     
     document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
-    document.getElementById(page).classList.add('active');
+    const targetPage = document.getElementById(page);
+    if (targetPage) targetPage.classList.add('active');
+    activePage = page;
 
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     if (navElement) {
         navElement.classList.add('active');
+    } else {
+        // Fallback to find navigation item by onclick contents
+        const matchingBtn = document.querySelector(`.nav-item[onclick*="${page}"]`);
+        if (matchingBtn) matchingBtn.classList.add('active');
     }
 
     const titles = {
-        dashboard: 'Dashboard', bookings: 'Booking Management', rooms: 'Room Management',
-        pricing: 'Room Pricing', guests: 'Guest Management',
-        payments: 'Payment & Billing', analytics: 'Analytics & Reports', 'new-booking': 'Create New Booking',
-        diary: 'Room Diary'
+        dashboard: 'Dashboard Overview', bookings: 'Booking Management Logs', rooms: 'Room Control Console',
+        pricing: 'Room Pricing & Surcharges', guests: 'Guests CRM Database',
+        payments: 'Payments & GST Ledger', analytics: 'Reports & Analytics Center', 'new-booking': 'Create New Booking',
+        diary: 'Room Reservation Diary', 'audit-logs-tab': 'Audit Trails & Security Logs',
+        'settings-tab': 'Console System Settings'
     };
-    document.getElementById('pageTitle').textContent = titles[page];
+    const titleEl = document.getElementById('pageTitle');
+    if (titleEl) titleEl.textContent = titles[page] || 'Admin Console';
 
     switch (page) {
         case 'dashboard': loadDashboard(); break;
         case 'bookings': loadBookings(); break;
         case 'new-booking': loadNewBookingPage(); break;
         case 'rooms': loadRooms(); break;
-        case 'pricing': loadPricingPage(); break;
+        case 'pricing': 
+            loadPricingPage(); 
+            loadSurchargeSettings();
+            break;
         case 'guests': loadGuests(); break;
         case 'payments': loadPayments(); break;
-        case 'analytics': setTimeout(createAnalyticsChart, 100); break;
+        case 'analytics': 
+            setTimeout(() => {
+                if (typeof createAnalyticsChart === 'function') createAnalyticsChart();
+                initSalesCalendar();
+            }, 100); 
+            break;
         case 'diary': initDiary(); break;
+        case 'audit-logs-tab': initAuditLogsExplorer(); break;
+        case 'settings-tab': initSettings(); break;
     }
 
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 900) {
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
         if (sidebar && sidebar.classList.contains('active')) {
@@ -883,19 +977,93 @@ function updateRealtimeDashboardMetrics() {
         })
         .reduce((sum, booking) => sum + getBookingTotal(booking), 0);
 
-    setTextById('metricTotalBookings', String(totalBookings));
-    setTextById('metricTotalBookingsInfo', 'Updated from current bookings');
-    setTextById('metricOccupancyRate', `${occupancyRate}%`);
-    setTextById('metricOccupancyInfo', `${occupiedRooms} occupied of ${totalRooms} rooms`);
-    setTextById('metricRevenueToday', `₹${formatNumber(revenueToday)}`);
-    setTextById('metricRevenueTodayInfo', `Check-ins on ${formatDate(today)}`);
-    setTextById('metricAvailableRooms', String(availableRooms));
-    setTextById('metricAvailableRoomsInfo', `Out of ${totalRooms} rooms`);
+    // Sum balances of active (non-completed/non-cancelled) bookings
+    const activeStatuses = ['confirmed', 'pending', 'paid'];
+    const pendingPayments = data.bookings
+        .filter(booking => activeStatuses.includes(booking.status))
+        .reduce((sum, booking) => sum + getBookingBalance(booking), 0);
 
+    setTextById('metricTotalRooms', String(totalRooms));
+    
+    setTextById('metricOccupiedRooms', String(occupiedRooms));
+    setTextById('metricOccupiedRoomsInfo', `${occupiedRooms} of ${totalRooms} rooms occupied`);
+    
+    setTextById('metricAvailableRooms', String(availableRooms));
+    setTextById('metricAvailableRoomsInfo', `${availableRooms} of ${totalRooms} available`);
+    
+    setTextById('metricTotalBookings', String(totalBookings));
+    setTextById('metricTotalBookingsInfo', 'Total bookings on record');
+    
     setTextById('statCheckinsToday', String(checkInsToday));
     setTextById('statCheckoutsToday', String(checkOutsToday));
     setTextById('statMaintenance', String(maintenanceRooms));
+    
     setTextById('statMonthlyRevenue', `₹${formatNumber(monthlyRevenue)}`);
+    
+    setTextById('metricPendingPayments', `₹${formatNumber(pendingPayments)}`);
+    setTextById('metricPendingPaymentsInfo', `Outstanding frontdesk balance`);
+
+    setTextById('metricRevenueToday', `₹${formatNumber(revenueToday)}`);
+    
+    // Enhanced owner financials and reports calculations
+    const activeBookingsToday = data.bookings.filter(b => b.checkIn <= today && b.checkOut >= today && b.status !== 'cancelled');
+    let roomsBookedToday = 0;
+    activeBookingsToday.forEach(b => {
+        if (b.rooms && Array.isArray(b.rooms)) {
+            roomsBookedToday += b.rooms.length;
+        } else if (b.roomId) {
+            roomsBookedToday += 1;
+        }
+    });
+    const avgOccRate = Math.min(100, Math.round((roomsBookedToday / 9) * 100));
+    
+    let totalDays = 0;
+    let validBookingsCount = 0;
+    let totalDiscounts = 0;
+    let totalNetRoomRevenue = 0;
+    let totalRoomNights = 0;
+    
+    data.bookings.forEach(b => {
+        if (b.status !== 'cancelled') {
+            const days = calculateBookingDays(b);
+            totalDays += days;
+            validBookingsCount++;
+            
+            const discount = Number(b.discount) || 0;
+            totalDiscounts += discount;
+            
+            const totalRoom = (Number(b.roomRate) || 0) * days;
+            totalNetRoomRevenue += Math.max(0, totalRoom - discount);
+            
+            if (b.rooms && Array.isArray(b.rooms)) {
+                totalRoomNights += b.rooms.length * days;
+            } else {
+                totalRoomNights += days;
+            }
+        }
+    });
+    
+    const avgDuration = validBookingsCount > 0 ? (totalDays / validBookingsCount).toFixed(1) : '1.2';
+    const adr = totalRoomNights > 0 ? (totalNetRoomRevenue / totalRoomNights) : 0;
+    const revpar = adr * (avgOccRate / 100);
+    
+    const cgst = totalNetRoomRevenue * 0.025;
+    const sgst = totalNetRoomRevenue * 0.025;
+    const gstTotal = cgst + sgst;
+    
+    setTextById('repOccupancyRate', `${avgOccRate}%`);
+    setTextById('repAvgDuration', `${avgDuration} Nights`);
+    setTextById('repAdr', `₹${formatNumber(Math.round(adr))}`);
+    setTextById('repRevPar', `₹${formatNumber(Math.round(revpar))}`);
+    setTextById('repTotalDiscounts', `₹${formatNumber(totalDiscounts)}`);
+    setTextById('repCgstCollected', `₹${formatNumber(Math.round(cgst))}`);
+    setTextById('repSgstCollected', `₹${formatNumber(Math.round(sgst))}`);
+    setTextById('repGstCollected', `₹${formatNumber(Math.round(gstTotal))}`);
+    
+    // Trigger sparkline draws
+    if (typeof drawSparklines === 'function') {
+        drawSparklines();
+    }
 }
 
 function startLiveClock() {
@@ -981,6 +1149,19 @@ function hydrateDataFromStorage() {
         if (Array.isArray(sData.customers)) data.customers = sData.customers;
         data.guests = sData.guests || [];
         data.diary = sData.diary || {};
+        
+        // Extended Redesign arrays
+        data.staff = sData.staff || [];
+        data.housekeepingTasks = sData.housekeepingTasks || [];
+        data.notifications = sData.notifications || [];
+        data.settings = sData.settings || {
+            lodgeName: 'Sri Padmavati Pleasants',
+            gstNumber: '33ANCPP8116B1ZF',
+            taxes: { cgst: 2.5, sgst: 2.5 },
+            roomCategories: ['Single', 'Double', 'Family', 'Suite'],
+            backupSchedule: 'Weekly'
+        };
+        data.auditLogs = sData.auditLogs || [];
     } catch (e) {
         console.error('Failed to parse stored data:', e);
         localStorage.removeItem('lodgeAdminData');
@@ -1116,7 +1297,12 @@ function saveDataToStorage() {
             bookings: data.bookings,
             customers: data.customers,
             guests: data.guests,
-            diary: data.diary
+            diary: data.diary,
+            staff: data.staff,
+            housekeepingTasks: data.housekeepingTasks,
+            notifications: data.notifications,
+            settings: data.settings,
+            auditLogs: data.auditLogs
         };
         localStorage.setItem('lodgeAdminData', JSON.stringify(storageData));
     } catch (error) {
@@ -2351,3 +2537,761 @@ async function handlePasswordChange(event) {
         submitBtn.disabled = false;
     }
 }
+
+// ==========================================
+// REDESIGN ENTERPRISE LOGIC & INITIALIZERS
+// ==========================================
+
+function initAppRedesign() {
+    // 1. Seed defaults if empty
+    if (!data.staff || data.staff.length === 0) {
+        data.staff = [
+            { id: 'ST001', name: 'John Doe', role: 'Manager', phone: '9842816621', email: 'john@sripadmavati.com', status: 'Active', shift: 'Morning' },
+            { id: 'ST002', name: 'Jane Smith', role: 'Receptionist', phone: '6369216621', email: 'jane@sripadmavati.com', status: 'Active', shift: 'Evening' },
+            { id: 'ST003', name: 'Kumar Swami', role: 'Housekeeping', phone: '9488886101', email: 'kumar@sripadmavati.com', status: 'Active', shift: 'Morning' }
+        ];
+    }
+    if (!data.housekeepingTasks || data.housekeepingTasks.length === 0) {
+        data.housekeepingTasks = [
+            { id: 'HK001', roomId: 101, roomName: 'F1-102', staffName: 'Kumar Swami', priority: 'Normal', status: 'todo', notes: 'Change linen and vacuum floor' },
+            { id: 'HK002', roomId: 105, roomName: 'F1-101', staffName: 'Kumar Swami', priority: 'High', status: 'progress', notes: 'Technical cleaning before check-in' }
+        ];
+    }
+    if (!data.notifications || data.notifications.length === 0) {
+        data.notifications = [
+            { id: 'NT001', type: 'new-booking', title: 'System Online', message: 'Lodge admin console loaded successfully.', time: new Date().toISOString(), read: false }
+        ];
+    }
+    if (!data.auditLogs || data.auditLogs.length === 0) {
+        data.auditLogs = [
+            { id: 'LOG001', time: new Date().toISOString(), action: 'System Init', description: 'Redesigned administration panel initialized.' }
+        ];
+    }
+    if (!data.settings) {
+        data.settings = {
+            lodgeName: 'Sri Padmavati Pleasants',
+            gstNumber: '33ANCPP8116B1ZF',
+            taxes: { cgst: 2.5, sgst: 2.5 },
+            roomCategories: ['Single', 'Double', 'Family', 'Suite'],
+            backupSchedule: 'Weekly',
+            weekendSurcharge: 10,
+            holidaySurgeActive: false,
+            holidaySurgeRate: 20
+        };
+    } else {
+        if (data.settings.weekendSurcharge === undefined) data.settings.weekendSurcharge = 10;
+        if (data.settings.holidaySurgeActive === undefined) data.settings.holidaySurgeActive = false;
+        if (data.settings.holidaySurgeRate === undefined) data.settings.holidaySurgeRate = 20;
+    }
+
+    // 2. Apply saved Dark Mode preference
+    const isDark = localStorage.getItem('darkModePreference') === 'true';
+    if (isDark) {
+        document.body.classList.add('dark-theme');
+        const toggleIcon = document.querySelector('#darkModeToggle i');
+        if (toggleIcon) {
+            toggleIcon.classList.remove('fa-moon');
+            toggleIcon.classList.add('fa-sun');
+        }
+    }
+
+    // 3. Setup global listeners
+    document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            const searchInput = document.getElementById('globalSearchInput');
+            if (searchInput) searchInput.focus();
+        }
+    });
+
+    // 4. Render Notifications count & feed
+    renderNotifications();
+    
+    // 5. Render Audit Logs
+    renderAuditLogs();
+
+    // 6. Draw Dashboard metrics sparklines
+    setTimeout(drawSparklines, 500);
+}
+
+// --- DARK MODE TOGGLE ---
+function toggleDarkMode() {
+    const isDark = document.body.classList.toggle('dark-theme');
+    localStorage.setItem('darkModePreference', isDark);
+    const toggleIcon = document.querySelector('#darkModeToggle i');
+    if (toggleIcon) {
+        if (isDark) {
+            toggleIcon.classList.remove('fa-moon');
+            toggleIcon.classList.add('fa-sun');
+            addAuditLog('System Style', 'Switched console layout style to Dark Mode.');
+        } else {
+            toggleIcon.classList.remove('fa-sun');
+            toggleIcon.classList.add('fa-moon');
+            addAuditLog('System Style', 'Switched console layout style to Light Mode.');
+        }
+    }
+}
+
+// --- DROPDOWNS MANAGEMENT ---
+function toggleDropdown(dropdownId) {
+    const target = document.getElementById(dropdownId);
+    const isActive = target && target.classList.contains('active');
+    hideAllDropdowns();
+    if (target && !isActive) {
+        target.classList.add('active');
+    }
+}
+
+function hideAllDropdowns() {
+    document.querySelectorAll('.user-dropdown, .notif-dropdown').forEach(d => d.classList.remove('active'));
+}
+
+// --- GLOBAL SEARCH ENGINE ---
+function handleGlobalSearch(query) {
+    const q = query.trim().toLowerCase();
+    
+    // 1. If searching on bookings page
+    if (activePage === 'bookings') {
+        const sections = document.querySelectorAll('.month-booking-section');
+        sections.forEach(sec => {
+            const rows = sec.querySelectorAll('tbody tr');
+            let visibleRowsInSec = 0;
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                if (text.includes(q)) {
+                    row.style.display = '';
+                    visibleRowsInSec++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            if (visibleRowsInSec > 0 || q === '') {
+                sec.style.display = '';
+            } else {
+                sec.style.display = 'none';
+            }
+        });
+    }
+    
+    // 2. If searching on guests CRM page
+    else if (activePage === 'guests') {
+        const rows = document.querySelectorAll('#guestsTable tr');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(q) ? '' : 'none';
+        });
+    }
+
+    // 3. If searching on payments billing page
+    else if (activePage === 'payments') {
+        const rows = document.querySelectorAll('#paymentsTable tr');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(q) ? '' : 'none';
+        });
+    }
+
+    // 4. If searching on room control page
+    else if (activePage === 'rooms') {
+        const cards = document.querySelectorAll('.room-card');
+        cards.forEach(card => {
+            const text = card.innerText.toLowerCase();
+            card.style.display = text.includes(q) ? '' : 'none';
+        });
+    }
+
+    // 5. If searching on pricing list page
+    else if (activePage === 'pricing') {
+        const rows = document.querySelectorAll('#pricingTable tr');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(q) ? '' : 'none';
+        });
+    }
+}
+
+// --- REAL-TIME AUDIT LOGGING ---
+function addAuditLog(action, description) {
+    const logId = `LOG${String(data.auditLogs.length + 1).padStart(3, '0')}`;
+    const newLog = {
+        id: logId,
+        time: new Date().toISOString(),
+        action,
+        description
+    };
+    data.auditLogs.unshift(newLog);
+    if (data.auditLogs.length > 50) data.auditLogs.pop(); // Cap at 50 logs
+    
+    saveDataToStorage();
+    renderAuditLogs();
+    
+    // Sync to Firestore if enabled
+    if (firebaseEnabled && firebaseDb) {
+        try {
+            firebaseDb.collection('audit_logs').doc(logId).set({
+                ...newLog,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        } catch (e) {
+            console.warn('Could not sync audit log to Firebase:', e);
+        }
+    }
+}
+
+function renderAuditLogs() {
+    const container = document.getElementById('activityLogsContainer');
+    if (!container) return;
+    
+    if (data.auditLogs.length === 0) {
+        container.innerHTML = `<div style="padding: 10px; font-size: 12px; color: var(--text-light); text-align: center;">No activity logged.</div>`;
+        return;
+    }
+    
+    let html = '';
+    data.auditLogs.slice(0, 10).forEach(log => {
+        let iconClass = 'fa-history';
+        let badgeType = 'booking';
+        
+        if (log.action.includes('Booking')) { iconClass = 'fa-calendar-check'; badgeType = 'booking'; }
+        else if (log.action.includes('Payment') || log.action.includes('Tariff')) { iconClass = 'fa-credit-card'; badgeType = 'payment'; }
+        else if (log.action.includes('Room') || log.action.includes('Clean')) { iconClass = 'fa-door-open'; badgeType = 'warning'; }
+        
+        const logTime = new Date(log.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        
+        html += `
+            <div class="activity-item">
+                <div class="activity-icon ${badgeType}"><i class="fas ${iconClass}"></i></div>
+                <div style="flex-grow: 1;">
+                    <div class="activity-title">${log.action}</div>
+                    <div class="activity-description">${log.description}</div>
+                    <small style="color: var(--text-light); font-size: 10px;">${logTime}</small>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+// --- OWNER AUDIT LOGS EXPLORER ---
+function initAuditLogsExplorer() {
+    filterAuditLogs();
+}
+
+function filterAuditLogs() {
+    const tableBody = document.getElementById('auditLogsExplorerTable');
+    if (!tableBody) return;
+    
+    const searchVal = document.getElementById('auditSearchInput').value.toLowerCase();
+    const catVal = document.getElementById('auditCategoryFilter').value;
+    
+    let filtered = data.auditLogs || [];
+    
+    // 1. Search Query Filter
+    if (searchVal) {
+        filtered = filtered.filter(log => 
+            log.action.toLowerCase().includes(searchVal) || 
+            log.description.toLowerCase().includes(searchVal)
+        );
+    }
+    
+    // 2. Category Filter
+    if (catVal !== 'all') {
+        filtered = filtered.filter(log => {
+            const action = log.action.toLowerCase();
+            const desc = log.description.toLowerCase();
+            if (catVal === 'booking') return action.includes('booking') || desc.includes('booking') || action.includes('check');
+            if (catVal === 'payment') return action.includes('payment') || desc.includes('payment') || action.includes('tariff') || action.includes('invoice') || desc.includes('billing');
+            if (catVal === 'room') return action.includes('room') || desc.includes('room') || action.includes('clean') || desc.includes('clean');
+            if (catVal === 'system') return action.includes('system') || desc.includes('system') || action.includes('settings') || desc.includes('setting');
+            return true;
+        });
+    }
+    
+    let html = '';
+    if (filtered.length === 0) {
+        html = `<tr><td colspan="3" style="text-align: center; color: var(--text-light); padding: 20px;">No audit records match the filters.</td></tr>`;
+    } else {
+        filtered.forEach(log => {
+            let catBadgeColor = 'var(--text-light)';
+            const action = log.action.toLowerCase();
+            const desc = log.description.toLowerCase();
+            let categoryName = 'General';
+            
+            if (action.includes('booking') || desc.includes('booking') || action.includes('check')) {
+                catBadgeColor = 'var(--secondary)';
+                categoryName = 'Booking';
+            } else if (action.includes('payment') || desc.includes('payment') || action.includes('tariff') || action.includes('invoice') || desc.includes('billing')) {
+                catBadgeColor = 'var(--success)';
+                categoryName = 'Payment';
+            } else if (action.includes('room') || desc.includes('room') || action.includes('clean') || desc.includes('clean')) {
+                catBadgeColor = 'var(--warning)';
+                categoryName = 'Room Setup';
+            } else if (action.includes('system') || desc.includes('system') || action.includes('settings') || desc.includes('setting')) {
+                catBadgeColor = 'var(--danger)';
+                categoryName = 'System Settings';
+            }
+            
+            const badge = `<span class="status-badge" style="background: ${catBadgeColor}15; color: ${catBadgeColor};">${categoryName}</span>`;
+            const formattedTime = new Date(log.time).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'medium' });
+            
+            html += `
+                <tr>
+                    <td style="white-space: nowrap; font-size: 12px; color: var(--text-light);">${formattedTime}</td>
+                    <td>${badge} <strong>${log.action}</strong></td>
+                    <td style="font-size: 13px;">${log.description}</td>
+                </tr>
+            `;
+        });
+    }
+    tableBody.innerHTML = html;
+}
+
+function exportAuditLogsToCSV() {
+    if (data.auditLogs.length === 0) {
+        alert("No audit logs to export.");
+        return;
+    }
+    
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Timestamp,Action,Description\n";
+    
+    data.auditLogs.forEach(log => {
+        const row = [
+            `"${new Date(log.time).toISOString()}"`,
+            `"${log.action.replace(/"/g, '""')}"`,
+            `"${log.description.replace(/"/g, '""')}"`
+        ];
+        csvContent += row.join(",") + "\n";
+    });
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Lodge_Audit_Logs_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    addAuditLog('System Settings', 'Exported audit logs database to CSV.');
+}
+
+function clearAuditLogs() {
+    if (currentUserRole !== 'owner') {
+        alert("Only the Owner is authorized to purge security records.");
+        return;
+    }
+    
+    if (confirm("⚠️ WARNING: This will permanently delete all security activity logs in the database. Are you sure you want to clear audit records?")) {
+        data.auditLogs = [
+            { id: 'LOG001', time: new Date().toISOString(), action: 'Logs Purged', description: `Audit logs cleared by Owner.` }
+        ];
+        saveDataToStorage();
+        
+        // Sync clear to Firebase if available
+        if (firebaseEnabled && firebaseDb) {
+            try {
+                firebaseDb.collection('audit_logs').get().then(snapshot => {
+                    const batch = firebaseDb.batch();
+                    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                    batch.commit();
+                });
+            } catch (e) {
+                console.warn("Could not clear logs on cloud:", e);
+            }
+        }
+        
+        filterAuditLogs();
+        alert("System logs cleared.");
+    }
+}
+
+// --- DYNAMIC SURCHARGE CONFIGURATIONS ---
+function loadSurchargeSettings() {
+    const settings = data.settings || {};
+    document.getElementById('setWeekendSurcharge').value = settings.weekendSurcharge || 0;
+    const active = !!settings.holidaySurgeActive;
+    document.getElementById('setHolidaySurgeActive').checked = active;
+    document.getElementById('holidaySurgeLabel').textContent = active ? 'Active' : 'Inactive';
+    document.getElementById('holidaySurgeLabel').style.color = active ? 'var(--success)' : 'var(--text-light)';
+    document.getElementById('setHolidaySurgeRate').value = settings.holidaySurgeRate || 0;
+}
+
+function toggleHolidaySurgeLabel(checkbox) {
+    const active = checkbox.checked;
+    const label = document.getElementById('holidaySurgeLabel');
+    if (label) {
+        label.textContent = active ? 'Active' : 'Inactive';
+        label.style.color = active ? 'var(--success)' : 'var(--text-light)';
+    }
+}
+
+function saveSurchargeSettings(e) {
+    e.preventDefault();
+    if (!data.settings) data.settings = {};
+    
+    data.settings.weekendSurcharge = parseFloat(document.getElementById('setWeekendSurcharge').value || '0');
+    data.settings.holidaySurgeActive = document.getElementById('setHolidaySurgeActive').checked;
+    data.settings.holidaySurgeRate = parseFloat(document.getElementById('setHolidaySurgeRate').value || '0');
+    
+    saveDataToStorage();
+    alert('Dynamic surge rules saved successfully!');
+    addAuditLog('System Settings', `Dynamic tariff surcharges modified (Weekend: ${data.settings.weekendSurcharge}%, Holiday: ${data.settings.holidaySurgeActive ? 'ON (' + data.settings.holidaySurgeRate + '%)' : 'OFF'})`);
+}
+
+// --- TRADING-STYLE REVENUE CALENDAR HEATMAP ---
+let salesCalendarYear = new Date().getFullYear();
+let salesCalendarMonth = new Date().getMonth();
+
+function initSalesCalendar() {
+    salesCalendarYear = new Date().getFullYear();
+    salesCalendarMonth = new Date().getMonth();
+    renderSalesCalendar();
+}
+
+function changeSalesCalendarMonth(offset) {
+    salesCalendarMonth += offset;
+    if (salesCalendarMonth < 0) {
+        salesCalendarMonth = 11;
+        salesCalendarYear--;
+    } else if (salesCalendarMonth > 11) {
+        salesCalendarMonth = 0;
+        salesCalendarYear++;
+    }
+    renderSalesCalendar();
+}
+
+function renderSalesCalendar() {
+    const grid = document.getElementById('salesCalendarGrid');
+    const label = document.getElementById('salesCalendarMonthLabel');
+    if (!grid || !label) return;
+    
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+    
+    label.textContent = `${monthNames[salesCalendarMonth]} ${salesCalendarYear}`;
+    
+    // Clear grid
+    grid.innerHTML = '';
+    
+    const firstDayIndex = new Date(salesCalendarYear, salesCalendarMonth, 1).getDay();
+    const daysInMonth = new Date(salesCalendarYear, salesCalendarMonth + 1, 0).getDate();
+    
+    // Calculate daily sales for heatmap normalization
+    const dailyRevenues = {};
+    let maxSales = 1000; // minimum normalization floor to prevent divide-by-zero
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateString = `${salesCalendarYear}-${String(salesCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayBookings = data.bookings.filter(b => b.checkIn === dateString);
+        const daySales = dayBookings.reduce((sum, b) => sum + getBookingTotal(b), 0);
+        dailyRevenues[day] = { sales: daySales, bookings: dayBookings };
+        if (daySales > maxSales) {
+            maxSales = daySales;
+        }
+    }
+    
+    // 1. Render empty padding days
+    for (let i = 0; i < firstDayIndex; i++) {
+        grid.innerHTML += `<div class="revenue-calendar-day empty-day"></div>`;
+    }
+    
+    // 2. Render actual calendar days
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayData = dailyRevenues[day];
+        const hasSales = dayData.sales > 0;
+        const salesText = hasSales ? `₹${formatNumber(dayData.sales)}` : '';
+        
+        // Heatmap cell styling
+        let cellStyle = '';
+        let cellClass = 'revenue-calendar-day';
+        if (hasSales) {
+            cellClass += ' has-sales';
+            // Compute intensity from 0.15 to 0.85 opacity based on sales volume
+            const intensity = 0.15 + (dayData.sales / maxSales) * 0.75;
+            cellStyle = `background: rgba(37, 99, 235, ${intensity}); color: ${intensity > 0.6 ? '#ffffff' : 'var(--text-dark)'};`;
+            if (intensity > 0.6) {
+                cellStyle += ` --text-light: rgba(255,255,255,0.7);`;
+            }
+        }
+        
+        // Create tooltip listing guest bookings for this day
+        const dateString = `${salesCalendarYear}-${String(salesCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        let tooltipHtml = `<strong>${day} ${monthNames[salesCalendarMonth]} ${salesCalendarYear}</strong><br>`;
+        tooltipHtml += `Daily Sales: <strong>₹${formatNumber(dayData.sales)}</strong>`;
+        
+        if (dayData.bookings.length > 0) {
+            tooltipHtml += `<hr style="margin: 6px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.25);">`;
+            tooltipHtml += dayData.bookings.map(b => {
+                const roomNames = b.rooms ? b.rooms.map(r => r.name).join(', ') : (b.roomName || 'Room');
+                return `• ${b.guestName} (${roomNames}): ₹${formatNumber(getBookingTotal(b))}`;
+            }).join('<br>');
+        } else {
+            tooltipHtml += `<br><span style="opacity: 0.6; font-size: 10px;">No check-ins on this day</span>`;
+        }
+        
+        const dayHtml = `
+            <div class="${cellClass}" style="${cellStyle}">
+                <div class="revenue-calendar-day-num">${day}</div>
+                <div class="revenue-calendar-day-sales" style="${hasSales && parseFloat(dayData.sales/maxSales) > 0.6 ? 'color: #ffffff' : ''}">${salesText}</div>
+                <div class="revenue-calendar-tooltip">${tooltipHtml}</div>
+            </div>
+        `;
+        grid.innerHTML += dayHtml;
+    }
+}
+
+// --- SETTINGS FORM MODULE ---
+function initSettings() {
+    // Populate form values
+    const settings = data.settings || { lodgeName: 'Sri Padmavati Pleasants', gstNumber: '33ANCPP8116B1ZF', taxes: { cgst: 2.5, sgst: 2.5 } };
+    document.getElementById('setLodgeName').value = settings.lodgeName || 'Sri Padmavati Pleasants';
+    document.getElementById('setLodgeAddress').value = settings.address || 'Palani, Tamil Nadu - 624601';
+    document.getElementById('setLodgePhone').value = settings.phone || '6369216621';
+    document.getElementById('setLodgeGst').value = settings.gstNumber || '33ANCPP8116B1ZF';
+    
+    document.getElementById('setCGSTRate').value = settings.taxes ? settings.taxes.cgst : 2.5;
+    document.getElementById('setSGSTRate').value = settings.taxes ? settings.taxes.sgst : 2.5;
+    document.getElementById('setDefaultAdvance').value = settings.defaultAdvance || 1000;
+}
+
+function showSettingsPanel(panelId, btn) {
+    document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(panelId).classList.add('active');
+    
+    document.querySelectorAll('.settings-nav-item').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+}
+
+function saveLodgeSettings(e) {
+    e.preventDefault();
+    if (!data.settings) data.settings = {};
+    data.settings.lodgeName = document.getElementById('setLodgeName').value.trim();
+    data.settings.address = document.getElementById('setLodgeAddress').value.trim();
+    data.settings.phone = document.getElementById('setLodgePhone').value.trim();
+    data.settings.gstNumber = document.getElementById('setLodgeGst').value.trim();
+    
+    saveDataToStorage();
+    alert('Lodge Profile Settings saved successfully!');
+    addAuditLog('System Settings', 'Lodge Profile parameters modified.');
+}
+
+function savePricingSettings(e) {
+    e.preventDefault();
+    if (!data.settings) data.settings = {};
+    data.settings.taxes = {
+        cgst: parseFloat(document.getElementById('setCGSTRate').value || '2.5'),
+        sgst: parseFloat(document.getElementById('setSGSTRate').value || '2.5')
+    };
+    data.settings.defaultAdvance = parseFloat(document.getElementById('setDefaultAdvance').value || '1000');
+    
+    saveDataToStorage();
+    alert('Pricing and Tax Rates saved successfully!');
+    addAuditLog('System Settings', 'Pricing & Tax configurations modified.');
+}
+
+// --- SYSTEM BACKUP & RESTORE ---
+function exportFullSystemBackup() {
+    const backupStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([backupStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SriPadmavatiPleasants_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    addAuditLog('System Settings', 'Full system database backup downloaded.');
+}
+
+function triggerImportBackup() {
+    document.getElementById('backupFileInput').click();
+}
+
+function importSystemBackup(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if (!imported || typeof imported !== 'object') throw new Error('Invalid JSON format');
+            
+            // Validate basic structure
+            if (!Array.isArray(imported.rooms) || !Array.isArray(imported.bookings)) {
+                throw new Error('Incompatible backup format. Missing rooms or bookings tables.');
+            }
+            
+            if (confirm('Are you sure you want to restore? This will replace your local database cache with the backup data!')) {
+                data.rooms = imported.rooms;
+                data.bookings = imported.bookings;
+                data.customers = imported.customers || [];
+                data.guests = imported.guests || [];
+                data.diary = imported.diary || {};
+                data.staff = imported.staff || [];
+                data.housekeepingTasks = imported.housekeepingTasks || [];
+                data.settings = imported.settings || data.settings;
+                data.notifications = imported.notifications || [];
+                data.auditLogs = imported.auditLogs || [];
+                
+                saveDataToStorage();
+                alert('Database restore completed successfully! Reloading...');
+                location.reload();
+            }
+        } catch(err) {
+            alert('Restore failed: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
+// --- NOTIFICATION CENTER FEEDS ---
+function addNotification(type, title, message) {
+    const notifId = `NT${String(data.notifications.length + 1).padStart(3, '0')}`;
+    const newNotif = {
+        id: notifId,
+        type,
+        title,
+        message,
+        time: new Date().toISOString(),
+        read: false
+    };
+    data.notifications.unshift(newNotif);
+    if (data.notifications.length > 30) data.notifications.pop(); // Max 30 alerts
+    
+    saveDataToStorage();
+    renderNotifications();
+}
+
+function renderNotifications() {
+    const dropdown = document.getElementById('notifDropdownBody');
+    const badge = document.getElementById('notifBadgeCount');
+    if (!dropdown) return;
+    
+    const unreadCount = data.notifications.filter(n => !n.read).length;
+    if (badge) {
+        badge.textContent = unreadCount;
+        badge.style.display = unreadCount > 0 ? 'flex' : 'none';
+    }
+    
+    if (data.notifications.length === 0) {
+        dropdown.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-light); font-size: 12px;">No alerts.</div>`;
+        return;
+    }
+    
+    let html = '';
+    data.notifications.forEach(n => {
+        let iconClass = 'fa-bell';
+        if (n.type === 'new-booking') iconClass = 'fa-calendar-check';
+        else if (n.type === 'checkout') iconClass = 'fa-sign-out-alt';
+        else if (n.type === 'payment') iconClass = 'fa-credit-card';
+        else if (n.type === 'staff') iconClass = 'fa-users';
+        
+        const unreadClass = n.read ? '' : 'unread';
+        const formattedTime = new Date(n.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        
+        html += `
+            <div class="notif-dropdown-item ${unreadClass} ${n.type}" onclick="markNotificationRead('${n.id}')">
+                <div class="activity-icon ${n.type}" style="width: 28px; height: 28px;"><i class="fas ${iconClass}"></i></div>
+                <div style="flex-grow: 1;">
+                    <div style="font-weight: 700; font-size: 12px; color: var(--text-dark);">${n.title}</div>
+                    <div style="color: var(--text-light); font-size: 11px; margin-top: 2px;">${n.message}</div>
+                    <small style="color: var(--text-light); font-size: 9px; display: block; margin-top: 4px;">${formattedTime}</small>
+                </div>
+            </div>
+        `;
+    });
+    dropdown.innerHTML = html;
+}
+
+function markNotificationRead(notifId) {
+    const notif = data.notifications.find(n => n.id === notifId);
+    if (notif) {
+        notif.read = true;
+        saveDataToStorage();
+        renderNotifications();
+    }
+}
+
+function clearAllNotifications() {
+    data.notifications = [];
+    saveDataToStorage();
+    renderNotifications();
+}
+
+// --- CANVAS-BASED SPARKLINE GRAPHS ---
+function drawSparklines() {
+    const occupiedCount = data.rooms.filter(r => r.status === 'occupied').length;
+    const availableCount = data.rooms.filter(r => r.status === 'available').length;
+    
+    // Draw Sparklines with mock historical stats + live points
+    drawSparkline('sparkRooms', [9, 9, 9, 9, 9, 9, 9], 'var(--secondary)');
+    drawSparkline('sparkOccupied', [2, 1, 3, 2, 4, 3, occupiedCount], 'var(--danger)');
+    drawSparkline('sparkAvailable', [7, 8, 6, 7, 5, 6, availableCount], 'var(--success)');
+    
+    // Revenue sparkline (mock trend leading to live revenue value)
+    const today = getLocalISODate();
+    const revenueToday = data.bookings
+        .filter(booking => booking.checkIn === today)
+        .reduce((sum, booking) => sum + getBookingTotal(booking), 0);
+    drawSparkline('sparkRevenue', [12000, 15000, 8000, 24000, 19000, 22000, revenueToday], 'var(--success)');
+    
+    // Bookings sparkline
+    drawSparkline('sparkBookings', [5, 9, 8, 12, 11, 15, data.bookings.length], 'var(--secondary)');
+}
+
+function drawSparkline(canvasId, values, color) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width = canvas.offsetWidth;
+    const height = canvas.height = canvas.offsetHeight;
+    
+    ctx.clearRect(0, 0, width, height);
+    if (values.length < 2) return;
+    
+    ctx.beginPath();
+    ctx.strokeStyle = color || '#2563eb';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    const max = Math.max(...values, 1);
+    const min = Math.min(...values, 0);
+    const range = max - min;
+    
+    const getX = (index) => (index / (values.length - 1)) * width;
+    const getY = (value) => height - 6 - ((value - min) / range) * (height - 12);
+    
+    ctx.moveTo(getX(0), getY(values[0]));
+    for (let i = 1; i < values.length; i++) {
+        ctx.lineTo(getX(i), getY(values[i]));
+    }
+    ctx.stroke();
+    
+    // Draw gradient fill below sparkline
+    ctx.lineTo(width, height);
+    ctx.lineTo(0, height);
+    ctx.closePath();
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, color ? color.replace(')', ', 0.12)') : 'rgba(37, 99, 235, 0.12)');
+    gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = gradient;
+    ctx.fill();
+}
+
+// --- ANALYTICS / REPORTS INTERVAL TOGGLES ---
+function setChartInterval(interval, btn) {
+    document.querySelectorAll('.chart-controls .btn-control').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    
+    // Redraw with different data ranges if needed
+    createRevenueChart();
+    addAuditLog('System Reports', `Revenue trend chart updated range to ${interval}.`);
+}
+

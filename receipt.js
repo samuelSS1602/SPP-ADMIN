@@ -224,7 +224,13 @@ function showReceipt(bookingId) {
                 </div>
             </div>
 
-            <div style="text-align: center; margin: 30px 0;">
+            <!-- QR Booking Verification Code -->
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; margin: 20px auto; max-width: 140px; text-align: center;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent('ID:' + booking.id + '|GUEST:' + booking.guestName + '|ROOM:' + roomsDisplay + '|AMT:INR' + totalAmount.toFixed(2))}" alt="Booking Verification QR" style="width: 100px; height: 100px;">
+                <span style="font-size: 8px; font-weight: 700; color: #64748b; margin-top: 5px; display: block; text-transform: uppercase;">Scan stay verification</span>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0;">
                 <div style="font-size: 24px; color: #d4af37; margin-bottom: 5px;">🔑</div>
                 <p style="margin: 0; font-size: 14px; color: #333;">We Request You To Return The Room Key Card</p>
             </div>
@@ -299,8 +305,14 @@ window.applyDiscountToReceipt = function () {
         booking.discount = disc;
         booking.extraBed = bed;
         booking.extras = ext;
+        
         if (typeof saveDataToStorage === 'function') saveDataToStorage();
         if (typeof syncBookingToFirebase === 'function') syncBookingToFirebase(booking);
+        
+        // REDESIGN AUDITING
+        if (typeof addAuditLog === 'function') {
+            addAuditLog('Tariff Updated', `Modified billing components for Invoice INV-${booking.id} (Discounts: ₹${disc}, Extras: ₹${ext})`);
+        }
 
         if (typeof loadPayments === 'function') loadPayments();
         if (typeof updateRealtimeDashboardMetrics === 'function') updateRealtimeDashboardMetrics();
@@ -323,6 +335,14 @@ window.markReceiptAsPaid = function () {
 
         if (typeof saveDataToStorage === 'function') saveDataToStorage();
         if (typeof syncBookingToFirebase === 'function') syncBookingToFirebase(booking);
+        
+        // REDESIGN AUDITING
+        if (typeof addAuditLog === 'function') {
+            addAuditLog('Payment Settled', `Invoice INV-${booking.id} marked as PAID.`);
+        }
+        if (typeof addNotification === 'function') {
+            addNotification('payment', 'Invoice Paid', `Invoice INV-${booking.id} has been fully settled.`);
+        }
 
         if (typeof loadPayments === 'function') loadPayments();
         if (typeof updateRealtimeDashboardMetrics === 'function') updateRealtimeDashboardMetrics();

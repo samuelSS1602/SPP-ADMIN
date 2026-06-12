@@ -204,6 +204,15 @@ function checkoutBooking(bookingId) {
 
     saveDataToStorage();
     syncBookingToFirebase(booking);
+    
+    // REDESIGN AUDITING
+    if (typeof addAuditLog === 'function') {
+        addAuditLog('Booking Checkout', `Guest ${booking.guestName} checked out from room(s) ${roomsDisplay}.`);
+    }
+    if (typeof addNotification === 'function') {
+        addNotification('checkout', 'Guest Checked Out', `${booking.guestName} departed Room ${roomsDisplay}.`);
+    }
+
     loadBookings();
     loadRooms();
     loadPayments();
@@ -440,6 +449,14 @@ function handleNewBooking(e) {
     upsertGuestRecord(createdBooking.guestName, guestPhone, createdBooking.guestEmail, checkOut, createdBooking.id);
     saveDataToStorage();
     syncBookingToFirebase(createdBooking);
+
+    // REDESIGN AUDITING
+    if (typeof addAuditLog === 'function') {
+        addAuditLog('New Booking', `Booking ${bookingId} created for guest ${createdBooking.guestName} in room(s) ${bookedRoomNames.join(', ')}.`);
+    }
+    if (typeof addNotification === 'function') {
+        addNotification('new-booking', 'New Booking Created', `Guest ${createdBooking.guestName} reserved Room ${bookedRoomNames.join(', ')}.`);
+    }
 
     document.getElementById('newBookingForm').reset();
     resetBookingCaptureSection();
@@ -953,6 +970,14 @@ window.cancelBooking = function(bookingId) {
     saveDataToStorage();
     syncBookingToFirebase(booking);
     
+    // REDESIGN AUDITING
+    if (typeof addAuditLog === 'function') {
+        addAuditLog('Booking Cancelled', `Booking ${booking.id} for guest ${booking.guestName} was CANCELLED.`);
+    }
+    if (typeof addNotification === 'function') {
+        addNotification('alert', 'Booking Cancelled', `Stay ${booking.id} (${booking.guestName}) has been cancelled.`);
+    }
+
     loadBookings();
     loadRooms();
     loadPayments();
@@ -1046,6 +1071,15 @@ window.deleteBooking = async function(bookingId) {
     });
 
     saveDataToStorage();
+    
+    // REDESIGN AUDITING
+    if (typeof addAuditLog === 'function') {
+        addAuditLog('Booking Deleted', `Booking ${bookingId} was PERMANENTLY DELETED. System reindexed other bookings.`);
+    }
+    if (typeof addNotification === 'function') {
+        addNotification('alert', 'Booking Permanently Deleted', `Booking ID ${bookingId} has been deleted by Owner.`);
+    }
+
     loadBookings();
     loadRooms();
     loadPayments();
