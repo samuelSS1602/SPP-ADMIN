@@ -1956,3 +1956,189 @@ input:checked + .slider:before {
     background: transparent !important;
     overflow-x: auto;
 }
+
+/* ==========================================================================
+   MOBILE ACCESSIBILITY & PREMIUM RESPONSIVE REDESIGN
+   ========================================================================== */
+
+/* Camera Live Preview & Photo Verification Cards Layout */
+.camera-verification-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 24px;
+    align-items: start;
+    margin-top: 15px;
+}
+
+.camera-cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.capture-card {
+    background: var(--surface-muted);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-normal);
+}
+
+.capture-card:hover {
+    border-color: var(--secondary);
+    box-shadow: var(--shadow-md);
+}
+
+.capture-card h5 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.capture-preview {
+    height: 120px;
+    background: #0f172a;
+    border: 2px dashed var(--border-light);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    color: #94a3b8;
+    font-size: 11px;
+    transition: var(--transition-fast);
+}
+
+.capture-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.capture-preview span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.capture-preview span i {
+    font-size: 20px;
+    color: var(--text-light);
+}
+
+.capture-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Surcharge Rules Form Layout */
+.surcharge-form-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+/* Analytics Custom Reports Grid */
+.analytics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+/* Receipt Statement Modal Scrolling */
+.receipt-body {
+    overflow-x: auto;
+    width: 100%;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    background: #fff;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Responsive Media Query Adjustments */
+@media (max-width: 900px) {
+    /* Login Responsiveness */
+    .login-wrapper {
+        grid-template-columns: 1fr;
+        max-width: 450px;
+        margin: 0 auto;
+    }
+    
+    .login-side {
+        display: none !important;
+    }
+
+    .login-content {
+        padding: 40px 30px;
+    }
+
+    /* Analytics Grid Stack */
+    .analytics-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Camera Verification Section Stack */
+    .camera-verification-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .surcharge-form-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}
+
+@media (max-width: 600px) {
+    /* Camera Cards Stack */
+    .camera-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    /* Top Sticky Header Tuning */
+    .top-header {
+        padding: 10px 16px;
+    }
+
+    .header-left h2 {
+        font-size: 16px;
+    }
+
+    /* Quick Add Button Icon-Only on Mobile */
+    .quick-add-btn span {
+        display: none !important;
+    }
+    
+    .quick-add-btn i:last-child {
+        display: none !important;
+    }
+
+    .quick-add-btn {
+        padding: 8px 10px;
+        min-width: 36px;
+        justify-content: center;
+        border-radius: var(--radius-full);
+    }
+}

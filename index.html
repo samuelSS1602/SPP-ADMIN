@@ -693,7 +693,7 @@
                                 <input type="hidden" id="bookingCustomerPhotoData">
                                 <input type="hidden" id="bookingIdProofPhotoData">
 
-                                <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; align-items: start; margin-top: 15px;">
+                                <div class="camera-verification-grid">
                                     <!-- Camera feed -->
                                     <div>
                                         <div class="camera-live-box" style="border: 2px solid var(--border-light); border-radius: var(--radius-md); overflow: hidden; background: #000; position: relative;">
@@ -873,7 +873,7 @@
                             <p style="font-size: 13px; color: var(--text-light); margin-bottom: 15px;">
                                 Configure automatic pricing multipliers for high-occupancy or seasonal booking days. Surcharges are automatically calculated and applied when processing check-ins.
                             </p>
-                            <div class="form-row" style="margin-bottom: 15px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                            <div class="form-row surcharge-form-row" style="margin-bottom: 15px;">
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label>Weekend Surcharge Percentage (%)</label>
                                     <input type="number" step="0.1" min="0" max="100" id="setWeekendSurcharge" value="0" placeholder="e.g. 10 for +10% on Fri-Sun">
@@ -1099,7 +1099,7 @@
                     </div>
 
                     <!-- Custom reports cards -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                    <div class="analytics-grid">
                         <div class="card">
                             <div class="card-header">
                                 <h3>Occupancy Report Trend</h3>
@@ -1572,5 +1572,3 @@
 </body>
 
 </html>
-
-DONE
