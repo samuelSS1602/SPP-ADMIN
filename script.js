@@ -49,6 +49,110 @@ const OWNER_WHATSAPP_PHONE = '919842816621';
 let multiRoomBookingSelection = [];  // Array to store {roomId, roomName, floor, price} objects
 let activePage = 'dashboard';
 
+// ===== INDEXEDDB PHOTO STORAGE =====
+// Provides persistent local storage for booking photos (avoids localStorage 5MB limit)
+const PHOTO_DB_NAME = 'LodgeAdminPhotos';
+const PHOTO_DB_VERSION = 1;
+const PHOTO_STORE_NAME = 'booking_photos';
+
+function openPhotoDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(PHOTO_DB_NAME, PHOTO_DB_VERSION);
+        request.onupgradeneeded = function(event) {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(PHOTO_STORE_NAME)) {
+                db.createObjectStore(PHOTO_STORE_NAME, { keyPath: 'bookingId' });
+            }
+        };
+        request.onsuccess = function(event) {
+            resolve(event.target.result);
+        };
+        request.onerror = function(event) {
+            console.warn('IndexedDB open failed:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+async function savePhotoToLocal(bookingId, customerPhoto, idProofPhoto) {
+    try {
+        const db = await openPhotoDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+            const store = tx.objectStore(PHOTO_STORE_NAME);
+            const record = {
+                bookingId: String(bookingId),
+                customerPhoto: customerPhoto || null,
+                idProofPhoto: idProofPhoto || null,
+                updatedAt: new Date().toISOString()
+            };
+            const request = store.put(record);
+            request.onsuccess = () => resolve(true);
+            request.onerror = (e) => {
+                console.warn('IndexedDB save failed:', e.target.error);
+                reject(e.target.error);
+            };
+            tx.oncomplete = () => db.close();
+        });
+    } catch (err) {
+        console.warn('savePhotoToLocal error:', err);
+        return false;
+    }
+}
+
+async function getPhotoFromLocal(bookingId) {
+    try {
+        const db = await openPhotoDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(PHOTO_STORE_NAME, 'readonly');
+            const store = tx.objectStore(PHOTO_STORE_NAME);
+            const request = store.get(String(bookingId));
+            request.onsuccess = () => resolve(request.result || null);
+            request.onerror = (e) => {
+                console.warn('IndexedDB get failed:', e.target.error);
+                resolve(null);
+            };
+            tx.oncomplete = () => db.close();
+        });
+    } catch (err) {
+        console.warn('getPhotoFromLocal error:', err);
+        return null;
+    }
+}
+
+async function deletePhotoFromLocal(bookingId) {
+    try {
+        const db = await openPhotoDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+            const store = tx.objectStore(PHOTO_STORE_NAME);
+            const request = store.delete(String(bookingId));
+            request.onsuccess = () => resolve(true);
+            request.onerror = (e) => {
+                console.warn('IndexedDB delete failed:', e.target.error);
+                resolve(false);
+            };
+            tx.oncomplete = () => db.close();
+        });
+    } catch (err) {
+        console.warn('deletePhotoFromLocal error:', err);
+        return false;
+    }
+}
+
+async function migratePhotoInLocal(oldBookingId, newBookingId) {
+    try {
+        const existing = await getPhotoFromLocal(oldBookingId);
+        if (existing) {
+            await savePhotoToLocal(newBookingId, existing.customerPhoto, existing.idProofPhoto);
+            await deletePhotoFromLocal(oldBookingId);
+        }
+    } catch (err) {
+        console.warn(`migratePhotoInLocal(${oldBookingId} → ${newBookingId}) error:`, err);
+    }
+}
+// ===== END INDEXEDDB PHOTO STORAGE =====
+
 document.addEventListener('DOMContentLoaded', function () {
     initFirebaseServices();
     hydrateDataFromStorage();
@@ -914,12 +1018,22 @@ function closeGuestPhotoHistoryModal() {
 }
 
 function loadPayments() {
-    let html = '';
     let totalRevenue = 0;
     let totalPending = 0;
     let totalReceived = 0;
+    let totalTariff = 0;
+    let totalGST = 0;
 
-    data.bookings.forEach(booking => {
+    // Build enriched payment data for sorting/filtering
+    window._paymentRows = data.bookings.map(booking => {
+        const days = typeof calculateBookingDays === 'function' ? calculateBookingDays(booking) : 1;
+        const roomRate = Number(booking.roomRate) || 0;
+        const roomTariff = roomRate * days;
+        const discount = Number(booking.discount) || 0;
+        const netTariff = Math.max(0, roomTariff - discount);
+        const gstAmount = Math.round(netTariff * 0.05);  // 5% GST (2.5% CGST + 2.5% SGST)
+        const extras = Number(booking.extras) || 0;
+        const extraBed = Number(booking.extraBed) || 0;
         const total = getBookingTotal(booking);
         const balance = getBookingBalance(booking);
         const isFullyPaid = balance <= 0 || booking.status === 'paid' || booking.status === 'completed';
@@ -930,25 +1044,94 @@ function loadPayments() {
         totalRevenue += total;
         totalPending += pendingAmount;
         totalReceived += receivedAmount;
+        totalTariff += netTariff;
+        totalGST += gstAmount;
 
-        // Use rooms array for multi-room display, fallback to roomName
         const roomDisplayName = (booking.rooms && booking.rooms.length > 0)
             ? booking.rooms.map(r => r.roomName).join(', ')
             : (booking.roomName || 'N/A');
 
-        html += `<tr><td><strong>INV-${booking.id}</strong></td><td>${booking.guestName}</td><td>${roomDisplayName}</td><td>${formatDate(booking.checkIn)}</td><td>₹${formatNumber(booking.advance)}</td><td>₹${formatNumber(pendingAmount)}</td><td>₹${formatNumber(booking.extras)}</td><td><span class="status-badge ${statusBadge}">${capitalizeFirst(statusBadge)}</span></td><td><button class="btn-primary receptionist-only" onclick="openExtraAmountModal('${booking.id}')" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-plus"></i> Extra</button></td><td><button class="btn-primary" onclick="showReceipt('${booking.id}')" style="padding: 6px 12px; font-size: 11px;"><i class="fas fa-download"></i></button></td></tr>`;
+        return {
+            booking,
+            roomDisplayName,
+            netTariff,
+            gstAmount,
+            extras,
+            total,
+            advance: Number(booking.advance) || 0,
+            pendingAmount,
+            statusBadge,
+            paymentMethod: booking.paymentMethod || 'Cash'
+        };
     });
+
+    // Update summary cards
+    const el = id => document.getElementById(id);
+    if (el('paymentTotalRevenue')) el('paymentTotalRevenue').textContent = `₹${formatNumber(totalRevenue)}`;
+    if (el('paymentPendingBalance')) el('paymentPendingBalance').textContent = `₹${formatNumber(totalPending)}`;
+    if (el('paymentReceivedAmount')) el('paymentReceivedAmount').textContent = `₹${formatNumber(totalReceived)}`;
+    if (el('paymentTotalTariff')) el('paymentTotalTariff').textContent = `₹${formatNumber(totalTariff)}`;
+    if (el('paymentTotalGST')) el('paymentTotalGST').textContent = `₹${formatNumber(totalGST)}`;
+
+    filterPaymentsTable();
+}
+
+function filterPaymentsTable() {
+    const rows = window._paymentRows || [];
+    const searchVal = (document.getElementById('paymentSearchInput')?.value || '').toLowerCase();
+    const statusFilter = document.getElementById('paymentStatusFilter')?.value || 'all';
+    const methodFilter = document.getElementById('paymentMethodFilter')?.value || 'all';
+    const sortBy = document.getElementById('paymentSortBy')?.value || 'newest';
+
+    // Filter
+    let filtered = rows.filter(r => {
+        const matchSearch = !searchVal || 
+            r.booking.guestName.toLowerCase().includes(searchVal) || 
+            r.booking.id.toLowerCase().includes(searchVal);
+        const matchStatus = statusFilter === 'all' || r.statusBadge === statusFilter;
+        const matchMethod = methodFilter === 'all' || r.paymentMethod === methodFilter;
+        return matchSearch && matchStatus && matchMethod;
+    });
+
+    // Sort
+    filtered.sort((a, b) => {
+        switch (sortBy) {
+            case 'newest': return (b.booking.checkIn || '').localeCompare(a.booking.checkIn || '');
+            case 'oldest': return (a.booking.checkIn || '').localeCompare(b.booking.checkIn || '');
+            case 'amount-high': return b.total - a.total;
+            case 'amount-low': return a.total - b.total;
+            case 'guest-az': return a.booking.guestName.localeCompare(b.booking.guestName);
+            default: return 0;
+        }
+    });
+
+    // Render
+    let html = '';
+    filtered.forEach(r => {
+        html += `<tr>
+            <td><strong>INV-${r.booking.id}</strong></td>
+            <td>${r.booking.guestName}</td>
+            <td>${r.roomDisplayName}</td>
+            <td>${formatDate(r.booking.checkIn)}</td>
+            <td>${r.paymentMethod}</td>
+            <td>₹${formatNumber(r.netTariff)}</td>
+            <td>₹${formatNumber(r.gstAmount)}</td>
+            <td>₹${formatNumber(r.extras)}</td>
+            <td><strong>₹${formatNumber(r.total)}</strong></td>
+            <td>₹${formatNumber(r.advance)}</td>
+            <td style="color: ${r.pendingAmount > 0 ? 'var(--warning)' : 'var(--success)'}">₹${formatNumber(r.pendingAmount)}</td>
+            <td><span class="status-badge ${r.statusBadge}">${capitalizeFirst(r.statusBadge)}</span></td>
+            <td><button class="btn-primary receptionist-only" onclick="openExtraAmountModal('${r.booking.id}')" style="padding: 6px 10px; font-size: 11px;"><i class="fas fa-plus"></i> Extra</button></td>
+            <td><button class="btn-primary" onclick="showReceipt('${r.booking.id}')" style="padding: 6px 12px; font-size: 11px;"><i class="fas fa-download"></i></button></td>
+        </tr>`;
+    });
+
+    if (filtered.length === 0) {
+        html = '<tr><td colspan="14" style="text-align: center; padding: 24px; color: var(--text-light);">No matching invoices found</td></tr>';
+    }
 
     const tableBody = document.getElementById('paymentsTable');
     if (tableBody) tableBody.innerHTML = html;
-
-    const paymentTotalRevenue = document.getElementById('paymentTotalRevenue');
-    const paymentPendingBalance = document.getElementById('paymentPendingBalance');
-    const paymentReceivedAmount = document.getElementById('paymentReceivedAmount');
-
-    if (paymentTotalRevenue) paymentTotalRevenue.textContent = `₹${formatNumber(totalRevenue)}`;
-    if (paymentPendingBalance) paymentPendingBalance.textContent = `₹${formatNumber(totalPending)}`;
-    if (paymentReceivedAmount) paymentReceivedAmount.textContent = `₹${formatNumber(totalReceived)}`;
 }
 
 function openExtraAmountModal(bookingId, roomId) {
@@ -1374,9 +1557,18 @@ function enforceRequestedRoomSetup() {
 
 function saveDataToStorage() {
     try {
+        // Strip base64 photo data from bookings to prevent localStorage quota issues.
+        // Photos are persisted separately in IndexedDB (local) and Firebase (cloud).
+        const strippedBookings = data.bookings.map(booking => {
+            const copy = Object.assign({}, booking);
+            delete copy.customerPhoto;
+            delete copy.idProofPhoto;
+            return copy;
+        });
+
         const storageData = {
             rooms: data.rooms,
-            bookings: data.bookings,
+            bookings: strippedBookings,
             customers: data.customers,
             guests: data.guests,
             diary: data.diary,

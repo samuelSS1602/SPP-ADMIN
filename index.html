@@ -234,7 +234,6 @@
                             </div>
                             <div class="metric-value" id="metricTotalRooms">9</div>
                             <div class="metric-change" style="color: var(--secondary)">9 configured rooms</div>
-                            <canvas class="metric-sparkline" id="sparkRooms"></canvas>
                         </div>
 
                         <div class="metric-card">
@@ -244,7 +243,6 @@
                             </div>
                             <div class="metric-value" id="metricOccupiedRooms">0</div>
                             <div class="metric-change" id="metricOccupiedRoomsInfo" style="color: var(--danger)">0 of 9 occupied</div>
-                            <canvas class="metric-sparkline" id="sparkOccupied"></canvas>
                         </div>
 
                         <div class="metric-card">
@@ -254,7 +252,6 @@
                             </div>
                             <div class="metric-value" id="metricAvailableRooms">0</div>
                             <div class="metric-change" id="metricAvailableRoomsInfo" style="color: var(--success)">0 of 9 available</div>
-                            <canvas class="metric-sparkline" id="sparkAvailable"></canvas>
                         </div>
 
                         <div class="metric-card">
@@ -264,7 +261,6 @@
                             </div>
                             <div class="metric-value" id="metricTotalBookings">0</div>
                             <div class="metric-change" id="metricTotalBookingsInfo">All time bookings count</div>
-                            <canvas class="metric-sparkline" id="sparkBookings"></canvas>
                         </div>
 
                         <div class="metric-card">
@@ -669,8 +665,12 @@
                                 </div>
                                 <div class="form-row" style="margin-top: 15px;">
                                     <div class="form-group">
-                                        <label>Advance Payment Collected (₹) *</label>
-                                        <input type="number" id="bookingAdvance" value="0" min="0" required>
+                                        <label>Advance Payment Collected (₹)</label>
+                                        <input type="number" id="bookingAdvance" value="0" min="0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Recommended By</label>
+                                        <input type="text" id="bookingRecommendedBy" placeholder="e.g. Friend, Agent name, Website">
                                     </div>
                                 </div>
                                 <div class="form-row" style="margin-top: 15px;">
@@ -721,9 +721,15 @@
                                                 <img id="customerPhotoPreview" alt="Customer Profile Portrait" style="display: none;">
                                                 <span id="customerPhotoEmpty"><i class="fas fa-user-tag"></i> Profile empty</span>
                                             </div>
-                                            <button type="button" class="btn-primary capture-btn" id="captureCustomerPhotoBtn">
-                                                <i class="fas fa-camera"></i> Capture Profile
-                                            </button>
+                                            <div style="display: flex; gap: 6px; margin-top: 6px;">
+                                                <button type="button" class="btn-primary capture-btn" id="captureCustomerPhotoBtn" style="flex: 1;">
+                                                    <i class="fas fa-camera"></i> Capture
+                                                </button>
+                                                <button type="button" class="btn-primary capture-btn" id="uploadCustomerPhotoBtn" style="flex: 1; background: var(--info, #3B82F6);" onclick="document.getElementById('uploadCustomerPhotoInput').click();">
+                                                    <i class="fas fa-upload"></i> Upload
+                                                </button>
+                                                <input type="file" id="uploadCustomerPhotoInput" accept="image/*" style="display: none;" onchange="handlePhotoUpload(this, 'customer')">
+                                            </div>
                                         </div>
 
                                         <div class="capture-card">
@@ -732,9 +738,15 @@
                                                 <img id="idProofPhotoPreview" alt="ID Document Proof Photo" style="display: none;">
                                                 <span id="idProofPhotoEmpty"><i class="fas fa-id-card-clip"></i> ID proof empty</span>
                                             </div>
-                                            <button type="button" class="btn-primary capture-btn" id="captureIdProofPhotoBtn">
-                                                <i class="fas fa-id-card"></i> Capture ID Scan
-                                            </button>
+                                            <div style="display: flex; gap: 6px; margin-top: 6px;">
+                                                <button type="button" class="btn-primary capture-btn" id="captureIdProofPhotoBtn" style="flex: 1;">
+                                                    <i class="fas fa-id-card"></i> Capture
+                                                </button>
+                                                <button type="button" class="btn-primary capture-btn" id="uploadIdProofPhotoBtn" style="flex: 1; background: var(--info, #3B82F6);" onclick="document.getElementById('uploadIdProofPhotoInput').click();">
+                                                    <i class="fas fa-upload"></i> Upload
+                                                </button>
+                                                <input type="file" id="uploadIdProofPhotoInput" accept="image/*" style="display: none;" onchange="handlePhotoUpload(this, 'idProof')">
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1006,7 +1018,7 @@
                     
                     <div class="payment-summary">
                         <div class="payment-card" style="border-left-color: var(--secondary)">
-                            <h4>Total Revenue Gross</h4>
+                            <h4>Total Revenue (Gross)</h4>
                             <p class="payment-amount" id="paymentTotalRevenue">₹0</p>
                         </div>
                         <div class="payment-card" style="border-left-color: var(--warning)">
@@ -1017,24 +1029,70 @@
                             <h4>Total Cash / Received</h4>
                             <p class="payment-amount" style="color: var(--success);" id="paymentReceivedAmount">₹0</p>
                         </div>
+                        <div class="payment-card" style="border-left-color: #8B5CF6">
+                            <h4>Total Room Tariff</h4>
+                            <p class="payment-amount" style="color: #8B5CF6;" id="paymentTotalTariff">₹0</p>
+                        </div>
+                        <div class="payment-card" style="border-left-color: #F59E0B">
+                            <h4>Total GST Collected (5%)</h4>
+                            <p class="payment-amount" style="color: #F59E0B;" id="paymentTotalGST">₹0</p>
+                        </div>
                     </div>
 
                     <div class="card">
                         <div class="card-header">
                             <h3>Lodge Guest Invoices & Billing Records</h3>
                         </div>
+
+                        <!-- Filter & Sort Toolbar -->
+                        <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
+                            <div class="form-group" style="flex: 1; min-width: 180px; margin-bottom: 0;">
+                                <input type="text" id="paymentSearchInput" placeholder="Search by guest name or invoice..." oninput="filterPaymentsTable()" style="height: 40px; padding: 0 12px;">
+                            </div>
+                            <div class="form-group" style="width: 160px; margin-bottom: 0;">
+                                <select id="paymentStatusFilter" onchange="filterPaymentsTable()" style="height: 40px; padding: 0 12px;">
+                                    <option value="all">All Status</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="pending">Pending</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="width: 180px; margin-bottom: 0;">
+                                <select id="paymentMethodFilter" onchange="filterPaymentsTable()" style="height: 40px; padding: 0 12px;">
+                                    <option value="all">All Methods</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="UPI">UPI</option>
+                                    <option value="Card">Card</option>
+                                    <option value="Net Banking">Net Banking</option>
+                                    <option value="Online">Online (OTA)</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="width: 180px; margin-bottom: 0;">
+                                <select id="paymentSortBy" onchange="filterPaymentsTable()" style="height: 40px; padding: 0 12px;">
+                                    <option value="newest">Sort: Newest First</option>
+                                    <option value="oldest">Sort: Oldest First</option>
+                                    <option value="amount-high">Sort: Amount High→Low</option>
+                                    <option value="amount-low">Sort: Amount Low→High</option>
+                                    <option value="guest-az">Sort: Guest A→Z</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="data-table-container">
                             <table class="data-table">
                                 <thead>
                                     <tr>
                                         <th>Invoice ID</th>
                                         <th>Guest Name</th>
-                                        <th>Assigned Room(s)</th>
-                                        <th>Check-In Date</th>
+                                        <th>Room(s)</th>
+                                        <th>Check-In</th>
+                                        <th>Method</th>
+                                        <th>Room Tariff (₹)</th>
+                                        <th>GST 5% (₹)</th>
+                                        <th>Extras (₹)</th>
+                                        <th>Total (₹)</th>
                                         <th>Advance (₹)</th>
                                         <th>Balance (₹)</th>
-                                        <th>Extras (₹)</th>
-                                        <th>Invoice Status</th>
+                                        <th>Status</th>
                                         <th>Add Extra</th>
                                         <th>Tax Bill</th>
                                     </tr>
@@ -1364,6 +1422,10 @@
                     <label>Guest GST Number</label>
                     <input type="text" id="editGuestGST" maxlength="15">
                 </div>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label>Recommended By</label>
+                    <input type="text" id="editRecommendedBy" placeholder="e.g. Friend, Agent name, Website">
+                </div>
                 <div class="form-row" style="margin-bottom: 12px;">
                     <div class="form-group">
                         <label>Check-in Date</label>
@@ -1471,9 +1533,6 @@
         </div>
     </div>
 
-<<<<<<< HEAD
-    <!-- Recover Photos modal -->
-=======
     <!-- Guest Photo History Modal -->
     <div id="guestPhotoHistoryModal" class="modal">
         <div class="modal-content customer-modal-large" style="max-width: 1100px; max-height: 90vh; overflow-y: auto; padding: 20px;">
@@ -1487,7 +1546,6 @@
     </div>
 
     <!-- Recover Photos Modal -->
->>>>>>> 74bdb840b9f494e0715150c3c8c3509c81a02765
     <div id="recoverPhotosModal" class="modal">
         <div class="modal-content customer-modal-large" style="max-width: 800px;">
             <div class="modal-header">

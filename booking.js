@@ -331,7 +331,7 @@ function handleNewBooking(e) {
     const checkOut = document.getElementById('bookingCheckOut').value;
     const checkOutTime = toDisplayTime(document.getElementById('bookingCheckOutTime').value);
     const paymentMethod = document.getElementById('bookingPaymentMethod').value;
-    const advance = parseFloat(document.getElementById('bookingAdvance').value);
+    const advance = parseFloat(document.getElementById('bookingAdvance').value || '0');
     const extras = parseFloat(document.getElementById('bookingExtras').value || '0');
     const extraBed = parseFloat(document.getElementById('bookingExtraBed').value || '0');
     const manualRoomRate = parseFloat(document.getElementById('bookingRoomRate').value || '0');
@@ -344,6 +344,7 @@ function handleNewBooking(e) {
     const companyName = document.getElementById('bookingCompanyName') ? document.getElementById('bookingCompanyName').value.trim() : '';
     const guestGST = document.getElementById('bookingGuestGST') ? document.getElementById('bookingGuestGST').value.trim().toUpperCase() : '';
     const bookingSource = paymentMethod === 'Online' && document.getElementById('bookingSource') ? document.getElementById('bookingSource').value : '';
+    const recommendedBy = document.getElementById('bookingRecommendedBy') ? document.getElementById('bookingRecommendedBy').value.trim() : '';
 
     // Validate multi-room selection
     if (!multiRoomBookingSelection || multiRoomBookingSelection.length === 0) {
@@ -351,7 +352,7 @@ function handleNewBooking(e) {
         return;
     }
 
-    if (!guestName || !guestPhone || !idProofType || !idProofNumberRaw || !checkIn || !checkOut || !paymentMethod || Number.isNaN(advance) || Number.isNaN(extras)) {
+    if (!guestName || !guestPhone || !idProofType || !idProofNumberRaw || !checkIn || !checkOut || !paymentMethod) {
         alert('Please fill in all required booking details');
         return;
     }
@@ -424,6 +425,7 @@ function handleNewBooking(e) {
         customerPhoto: customerPhotoData,
         idProofPhoto: idProofPhotoData,
         bookingSource: bookingSource,
+        recommendedBy: capitalizeAllText(recommendedBy),
         checkInWhatsAppSent: false,
         checkoutReminderSent: false
     });
@@ -447,6 +449,12 @@ function handleNewBooking(e) {
     sendCheckInWhatsAppMessage(createdBooking);
 
     upsertGuestRecord(createdBooking.guestName, guestPhone, createdBooking.guestEmail, checkOut, createdBooking.id);
+
+    // Save photos to IndexedDB (local disk) and Firebase (cloud)
+    savePhotoToLocal(createdBooking.id, customerPhotoData, idProofPhotoData)
+        .then(() => console.log(`Photos for ${createdBooking.id} saved to IndexedDB`))
+        .catch(err => console.warn('IndexedDB photo save failed:', err));
+
     saveDataToStorage();
     syncBookingToFirebase(createdBooking);
 
@@ -847,6 +855,7 @@ window.openEditBookingModal = function(bookingId) {
     document.getElementById('editVehicleNumber').value = booking.vehicleNumber || '';
     document.getElementById('editCompanyName').value = booking.companyName || '';
     document.getElementById('editGuestGST').value = booking.guestGST || '';
+    document.getElementById('editRecommendedBy').value = booking.recommendedBy || '';
 
     document.getElementById('editCheckInDate').value = booking.checkIn || '';
     populateTimeToInput(booking.checkInTime, 'editCheckInTime');
@@ -919,6 +928,7 @@ window.saveEditedBooking = function() {
     booking.vehicleNumber = document.getElementById('editVehicleNumber').value.trim();
     booking.companyName = document.getElementById('editCompanyName').value.trim();
     booking.guestGST = document.getElementById('editGuestGST').value.trim().toUpperCase();
+    booking.recommendedBy = document.getElementById('editRecommendedBy').value.trim();
 
     booking.checkIn = document.getElementById('editCheckInDate').value;
     booking.checkInTime = toDisplayTime(document.getElementById('editCheckInTime').value);
@@ -1005,7 +1015,8 @@ window.deleteBooking = async function(bookingId) {
     if (index === -1) return;
     data.bookings.splice(index, 1);
 
-    // Delete the old booking document from Firebase
+    // Delete the old booking document from Firebase and IndexedDB
+    deletePhotoFromLocal(bookingId).catch(err => console.warn('Failed to delete IndexedDB photo:', err));
     if (firebaseEnabled && firebaseDb) {
         try {
             await firebaseDb.collection('bookings').doc(String(bookingId)).delete();
@@ -1026,7 +1037,10 @@ window.deleteBooking = async function(bookingId) {
         data.bookings[i].id = newId;
     }
 
-    // Update Firebase: move docs and sync new ones for renamed bookings
+    // Update Firebase and IndexedDB: move docs and sync new ones for renamed bookings
+    for (const { oldId, newId } of renameMap) {
+        migratePhotoInLocal(oldId, newId).catch(err => console.warn(`IndexedDB migrate ${oldId}→${newId} failed:`, err));
+    }
     if (firebaseEnabled && firebaseDb && renameMap.length > 0) {
         for (const { oldId, newId } of renameMap) {
             try {
@@ -1131,7 +1145,10 @@ window.renumberAllBookings = async function() {
         }
     }
 
-    // Update Firebase: move docs and re-sync with new IDs
+    // Update Firebase and IndexedDB: move docs and re-sync with new IDs
+    for (const { oldId, newId } of renameMap) {
+        migratePhotoInLocal(oldId, newId).catch(err => console.warn(`IndexedDB migrate ${oldId}→${newId} failed:`, err));
+    }
     if (firebaseEnabled && firebaseDb && renameMap.length > 0) {
         for (const { oldId, newId } of renameMap) {
             try {
@@ -1329,13 +1346,27 @@ async function viewBookingPhotos(bookingId) {
     }
 
     modal.style.display = 'flex';
-    customerStatus.textContent = "Loading cloud photos...";
-    idProofStatus.textContent = "Loading cloud photos...";
+    customerStatus.textContent = "Loading photos...";
+    idProofStatus.textContent = "Loading photos...";
     
+    // Priority: in-memory → IndexedDB (local disk) → Firebase (cloud)
     let localCustomer = booking.customerPhotoUrl || booking.customerPhoto;
     let localIdProof = booking.idProofPhotoUrl || booking.idProofPhoto;
 
-    // Fetch from Firestore collection if not cached locally
+    // Try IndexedDB if not in memory
+    if (!localCustomer || !localIdProof) {
+        try {
+            const localPhotos = await getPhotoFromLocal(bookingId);
+            if (localPhotos) {
+                if (localPhotos.customerPhoto && !localCustomer) localCustomer = localPhotos.customerPhoto;
+                if (localPhotos.idProofPhoto && !localIdProof) localIdProof = localPhotos.idProofPhoto;
+            }
+        } catch(e) {
+            console.warn('Could not fetch photos from IndexedDB:', e);
+        }
+    }
+
+    // Fetch from Firestore collection if still missing
     if (!localCustomer || !localIdProof) {
         try {
             if (typeof firebaseDb !== 'undefined' && firebaseDb) {
@@ -1344,6 +1375,12 @@ async function viewBookingPhotos(bookingId) {
                     const picData = doc.data();
                     if (picData.customerPhoto && !localCustomer) localCustomer = picData.customerPhoto;
                     if (picData.idProofPhoto && !localIdProof) localIdProof = picData.idProofPhoto;
+
+                    // Cache cloud photos to IndexedDB for next time
+                    savePhotoToLocal(bookingId, 
+                        localCustomer || null, 
+                        localIdProof || null
+                    ).catch(err => console.warn('Failed to cache cloud photos to IndexedDB:', err));
                 }
             }
         } catch(e) {
@@ -1479,7 +1516,14 @@ window.handleUpdateCustomerPhoto = function(inputElement) {
         booking.customerPhoto = imageData;
         booking.customerPhotoUrl = imageData;
         
-        // Sync to Firebase if available
+        // Save to IndexedDB (local disk)
+        getPhotoFromLocal(bookingId).then(existing => {
+            savePhotoToLocal(bookingId, imageData, existing ? existing.idProofPhoto : (booking.idProofPhoto || null))
+                .then(() => console.log('Customer photo saved to IndexedDB'))
+                .catch(err => console.warn('IndexedDB save failed:', err));
+        });
+        
+        // Sync to Firebase (cloud)
         if (typeof firebaseDb !== 'undefined' && firebaseDb) {
             syncBookingToFirebase(booking)
                 .then(() => {
@@ -1553,7 +1597,14 @@ window.handleUpdateIdProofPhoto = function(inputElement) {
         booking.idProofPhoto = imageData;
         booking.idProofPhotoUrl = imageData;
         
-        // Sync to Firebase if available
+        // Save to IndexedDB (local disk)
+        getPhotoFromLocal(bookingId).then(existing => {
+            savePhotoToLocal(bookingId, existing ? existing.customerPhoto : (booking.customerPhoto || null), imageData)
+                .then(() => console.log('ID proof photo saved to IndexedDB'))
+                .catch(err => console.warn('IndexedDB save failed:', err));
+        });
+        
+        // Sync to Firebase (cloud)
         if (typeof firebaseDb !== 'undefined' && firebaseDb) {
             syncBookingToFirebase(booking)
                 .then(() => {
@@ -1715,6 +1766,11 @@ window.assignPhotoToBooking = async function(orphanedId) {
             targetBooking.hasIdProofPhoto = true;
             targetBooking.idProofPhotoUrl = photoData.idProofPhoto; // Cache locally
         }
+        
+        // Save assigned photos to IndexedDB (local disk)
+        savePhotoToLocal(targetBookingId, photoData.customerPhoto || null, photoData.idProofPhoto || null)
+            .then(() => console.log(`Assigned photos saved to IndexedDB for ${targetBookingId}`))
+            .catch(err => console.warn('IndexedDB save after assignment failed:', err));
         
         saveDataToStorage();
         syncBookingToFirebase(targetBooking); // Resync

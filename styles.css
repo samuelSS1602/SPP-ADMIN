@@ -1472,16 +1472,38 @@ body {
 }
 
 /* ROLE DISPLAY & VIEW RESTRICTIONS */
-.owner-view .receptionist-only {
-    display: none !important;
-}
+/* Note: .receptionist-only elements are visible to ALL roles (owner can do everything) */
 
+/* Hide owner-only elements by default (non-owner login) */
 .owner-only {
     display: none !important;
 }
 
+/* When owner is logged in, restore owner-only elements to their natural display.
+   For page-content sections: they rely on .active for visibility, 
+   so we reset to 'none' and let .active override to 'block'. */
 .owner-view .owner-only {
     display: revert !important;
+}
+
+/* Critical fix: owner-only page-content sections must still respect .active toggling.
+   Without this, all owner-only pages show at once. */
+.owner-view .page-content.owner-only {
+    display: none !important;
+}
+
+.owner-view .page-content.owner-only.active {
+    display: block !important;
+}
+
+/* Same fix for owner-only nav items (sidebar buttons) — they should always show */
+.owner-view .nav-item.owner-only {
+    display: flex !important;
+}
+
+/* Same fix for owner-only cards/elements inside active pages */
+.owner-view .card.owner-only {
+    display: block !important;
 }
 
 /* RESPONSIVE DESIGN - MOBILE FIRST */
@@ -2140,5 +2162,513 @@ input:checked + .slider:before {
         min-width: 36px;
         justify-content: center;
         border-radius: var(--radius-full);
+    }
+}
+
+/* ==========================================================================
+   MISSING CSS FIXES — SECTIONS, DIARY, FORMS, TABLES
+   ========================================================================== */
+
+/* --info color variable (used by upload buttons) */
+:root {
+    --info: #3B82F6;
+}
+
+/* ===== DETAIL SECTIONS (Booking Form Section Dividers) ===== */
+.detail-section {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.detail-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.detail-section h4 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.detail-section h4 i {
+    font-size: 16px;
+    color: var(--secondary);
+    width: 20px;
+    text-align: center;
+}
+
+.detail-section > p {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+/* ===== DIARY PAGE STYLES ===== */
+.diary-date-picker {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 8px 16px;
+}
+
+.diary-date-picker input[type="date"] {
+    padding: 8px 12px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--bg-card);
+    color: var(--text-dark);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.diary-date-picker input[type="date"]:focus {
+    outline: none;
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.diary-instructions {
+    padding: 0;
+}
+
+.diary-instructions p {
+    font-size: 13px;
+    color: var(--text-light);
+    line-height: 1.6;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.diary-instructions p i {
+    color: var(--secondary);
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+.diary-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.diary-floor-section {
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.diary-floor-section:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.diary-floor-section h3 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--secondary);
+}
+
+.diary-rooms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+}
+
+.diary-room-item {
+    background: var(--surface-muted);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    transition: var(--transition-fast);
+}
+
+.diary-room-item:hover {
+    border-color: var(--secondary);
+    box-shadow: var(--shadow-sm);
+}
+
+.diary-room-item label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-light);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.diary-room-item input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--bg-card);
+    color: var(--text-dark);
+    transition: var(--transition-fast);
+}
+
+.diary-room-item input[type="text"]:focus {
+    outline: none;
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.diary-room-item input[type="text"]::placeholder {
+    color: var(--text-light);
+    font-weight: 400;
+    font-style: italic;
+}
+
+/* ===== DATA TABLE RESPONSIVE FIX ===== */
+/* The .data-table-container already handles overflow-x. 
+   Only ensure tables inside cards don't break the page scroll. */
+.data-table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+}
+
+.data-table {
+    width: 100%;
+    min-width: 700px;
+    border-collapse: collapse;
+    background: var(--bg-card);
+    text-align: left;
+}
+
+/* ===== FORM ALIGNMENT IMPROVEMENTS ===== */
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.form-row .form-group {
+    min-width: 0;
+}
+
+/* Three-column form rows */
+.form-row-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+/* ===== PRICING INFO BOX ===== */
+.pricing-info {
+    background: var(--surface-muted);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.pricing-info h4 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pricing-info p {
+    font-size: 13px;
+    color: var(--text-light);
+    line-height: 1.6;
+}
+
+/* ===== GST DISPLAY IN RECEIPTS ===== */
+.gst-info {
+    font-size: 11px;
+    color: var(--text-light);
+    font-weight: 600;
+}
+
+.gst-breakdown {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4px 12px;
+    font-size: 12px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: var(--surface-muted);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+}
+
+/* ===== SELECTED ROOMS DISPLAY (Multi-Room Booking) ===== */
+#selectedRoomsDisplay {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    min-height: 36px;
+}
+
+/* ===== PHOTO VIEWER MODAL ===== */
+#photoViewerModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 2500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+#photoViewerModal .modal-content {
+    max-width: 720px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* ===== RECOVER / ALL PHOTOS MODALS ===== */
+#recoverPhotosModal,
+#allPhotosModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 2500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+#recoverPhotosGrid,
+#allPhotosGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+/* ===== EDIT ADD ROOM MODAL ===== */
+#editAddRoomModal {
+    z-index: 2100;
+}
+
+/* ===== RESPONSIVE FIXES FOR ALL SECTIONS ===== */
+@media (max-width: 900px) {
+    .diary-rooms-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .page-header h2 {
+        font-size: 20px;
+    }
+
+    .diary-date-picker {
+        width: 100%;
+    }
+
+    .content-area {
+        padding: 16px;
+    }
+
+    .card {
+        padding: 16px;
+    }
+
+    /* Month section header stack on mobile */
+    .month-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 14px 16px;
+    }
+
+    .month-header-right {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 768px) {
+    .diary-rooms-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-section h4 {
+        font-size: 14px;
+    }
+
+    #recoverPhotosGrid,
+    #allPhotosGrid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .form-row,
+    .form-row-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .diary-date-picker {
+        flex-wrap: wrap;
+    }
+
+    .filter-row-top {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-month-pills {
+        gap: 6px;
+    }
+
+    .month-pill {
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+
+    .booking-filter-toolbar {
+        padding: 14px 16px;
+    }
+
+    .month-header-left h3 {
+        font-size: 13px;
+    }
+
+    .month-revenue {
+        font-size: 13px;
+    }
+}
+
+/* ==========================================================================
+   PAYMENT & GST PAGE STYLES
+   ========================================================================== */
+
+.payment-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.payment-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    border-left: 4px solid var(--secondary);
+    transition: var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+}
+
+.payment-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.payment-card h4 {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+.payment-amount {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text-dark);
+    line-height: 1.1;
+    margin: 0;
+}
+
+/* ===== ANALYTICS BUTTONS ===== */
+.analytics-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ===== PAGE CONTENT SCROLL FIX ===== */
+/* Ensure active page content doesn't cause horizontal overflow */
+.page-content.active {
+    display: block;
+    animation: contentFade 0.25s ease-out;
+    overflow-x: hidden;
+    min-height: 0;
+}
+
+/* Ensure content-area scrolls properly */
+.content-area {
+    flex: 1;
+    padding: 24px 28px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+@media (max-width: 600px) {
+    .payment-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .payment-card {
+        padding: 16px 18px;
+    }
+
+    .payment-amount {
+        font-size: 22px;
+    }
+
+    .analytics-buttons {
+        flex-direction: column;
+    }
+
+    .analytics-buttons .btn-primary {
+        width: 100%;
+        justify-content: center;
     }
 }
