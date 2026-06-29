@@ -857,6 +857,17 @@ window.openEditBookingModal = function(bookingId) {
     document.getElementById('editGuestGST').value = booking.guestGST || '';
     document.getElementById('editRecommendedBy').value = booking.recommendedBy || '';
 
+    // Populate Payment Method
+    const editPayMethodSelect = document.getElementById('editPaymentMethod');
+    if (editPayMethodSelect) {
+        editPayMethodSelect.value = booking.paymentMethod || 'Cash';
+    }
+    const editBookingSourceSelect = document.getElementById('editBookingSource');
+    if (editBookingSourceSelect) {
+        editBookingSourceSelect.value = booking.bookingSource || '';
+    }
+    toggleEditBookingSource();
+
     document.getElementById('editCheckInDate').value = booking.checkIn || '';
     populateTimeToInput(booking.checkInTime, 'editCheckInTime');
 
@@ -868,6 +879,14 @@ window.openEditBookingModal = function(bookingId) {
 
 window.closeEditBookingModal = function() {
     document.getElementById('editBookingModal').classList.remove('active');
+};
+
+window.toggleEditBookingSource = function() {
+    const method = document.getElementById('editPaymentMethod')?.value;
+    const sourceGroup = document.getElementById('editOnlineBookingSourceGroup');
+    if (sourceGroup) {
+        sourceGroup.style.display = method === 'Online' ? '' : 'none';
+    }
 };
 
 window.saveEditedBooking = function() {
@@ -929,6 +948,20 @@ window.saveEditedBooking = function() {
     booking.companyName = document.getElementById('editCompanyName').value.trim();
     booking.guestGST = document.getElementById('editGuestGST').value.trim().toUpperCase();
     booking.recommendedBy = document.getElementById('editRecommendedBy').value.trim();
+
+    // Save Payment Method
+    const editPayMethodSelect = document.getElementById('editPaymentMethod');
+    if (editPayMethodSelect) {
+        booking.paymentMethod = editPayMethodSelect.value;
+    }
+    if (booking.paymentMethod === 'Online') {
+        const editBookingSourceSelect = document.getElementById('editBookingSource');
+        if (editBookingSourceSelect) {
+            booking.bookingSource = editBookingSourceSelect.value;
+        }
+    } else {
+        booking.bookingSource = '';
+    }
 
     booking.checkIn = document.getElementById('editCheckInDate').value;
     booking.checkInTime = toDisplayTime(document.getElementById('editCheckInTime').value);

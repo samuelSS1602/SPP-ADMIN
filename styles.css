@@ -2672,3 +2672,81 @@ input:checked + .slider:before {
         justify-content: center;
     }
 }
+
+/* ═══════════════════════════════════════════════════ */
+/* GST Bill Printout — Filter Pills                    */
+/* ═══════════════════════════════════════════════════ */
+
+.gst-filter-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.gst-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 50px;
+    background: #fff;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-family: 'Inter', sans-serif;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.gst-pill:hover {
+    border-color: #16a34a;
+    color: #16a34a;
+    background: #f0fdf4;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(22, 163, 74, 0.12);
+}
+
+.gst-pill.active {
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    color: #fff;
+    border-color: #16a34a;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+    transform: translateY(-1px);
+}
+
+.gst-pill.active i {
+    color: #fff;
+}
+
+.gst-pill i {
+    font-size: 12px;
+    transition: color 0.2s ease;
+}
+
+.gst-print-section {
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .gst-filter-pills {
+        gap: 6px;
+    }
+
+    .gst-pill {
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+}
