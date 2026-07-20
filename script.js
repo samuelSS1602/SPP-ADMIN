@@ -156,6 +156,7 @@ async function migratePhotoInLocal(oldBookingId, newBookingId) {
 document.addEventListener('DOMContentLoaded', function () {
     initFirebaseServices();
     hydrateDataFromStorage();
+    correctMistakenBookingStatuses();
     purgeLegacySeedData();
     enforceRequestedRoomSetup();
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
@@ -1728,6 +1729,23 @@ function hydrateDataFromStorage() {
     }
 }
 
+function correctMistakenBookingStatuses() {
+    const booking = data.bookings.find(item => String(item.id || '').toUpperCase() === 'BK243');
+    if (!booking || String(booking.status || '').toLowerCase() !== 'cancelled') return false;
+
+    booking.status = 'completed';
+    if (!booking.actualCheckOutDate) booking.actualCheckOutDate = getLocalISODate();
+    if (!booking.actualCheckOutTime) booking.actualCheckOutTime = toDisplayTime(getCurrentTimeValue());
+
+    saveDataToStorage();
+
+    if (typeof syncBookingToFirebase === 'function') {
+        syncBookingToFirebase(booking);
+    }
+
+    return true;
+}
+
 function purgeLegacySeedData() {
     const legacyBookingIds = new Set(['BK001', 'BK002', 'BK003', 'BK004', 'BK005', 'BK006']);
     const legacyCustomerIds = new Set(['CUST001', 'CUST002', 'CUST003', 'CUST004', 'CUST005', 'CUST006']);
@@ -2944,6 +2962,8 @@ async function fetchAllDataFromFirebase() {
                 data.bookings[idx] = { ...data.bookings[idx], ...fb }; // Cloud overrides local
             }
         });
+
+        correctMistakenBookingStatuses();
 
         updateRoomStatusesFromBookings();
 
