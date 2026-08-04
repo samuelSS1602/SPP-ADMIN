@@ -662,8 +662,8 @@ function showRoomDetails(roomId) {
 
     const booking = getActiveBookingForRoom(roomId);
     const guestProfile = booking ? getGuestProfile(booking) : null;
-    const total = booking ? booking.roomRate + booking.extras : room.price;
-    const balance = booking ? Math.max(booking.roomRate - booking.advance + booking.extras, 0) : 0;
+    const total = booking ? (typeof getBookingTotal === 'function' ? getBookingTotal(booking) : (Number(booking.roomRate || 0) + Number(booking.extras || 0))) : room.price;
+    const balance = booking ? (typeof getBookingBalance === 'function' ? getBookingBalance(booking) : Math.max((Number(booking.roomRate || 0) - Number(booking.advance || 0) + Number(booking.extras || 0)), 0)) : 0;
 
     let content = `
         <div class="customer-detail-header">

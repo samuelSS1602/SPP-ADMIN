@@ -504,6 +504,15 @@ function getBookingBalance(booking) {
     const advance = Number(booking.advance) || 0;
     return Math.max(getBookingTotal(booking) - advance, 0);
 }
+
+// Export for unit testing (Node.js environment)
+if (typeof module !== 'undefined') {
+    module.exports = {
+        calculateBookingDays,
+        getBookingTotal,
+        getBookingBalance
+    };
+}
 function initBookingCameraSection() {
     if (bookingCameraInitialized) return;
 
@@ -932,10 +941,20 @@ window.saveEditedBooking = function() {
     booking.guestName = document.getElementById('editGuestName').value.trim();
     booking.guestPhone = document.getElementById('editGuestPhone').value.trim();
     booking.guestEmail = document.getElementById('editGuestEmail').value.trim();
-    booking.advance = parseFloat(document.getElementById('editAdvanceAmount').value) || 0;
-    booking.roomRate = parseFloat(document.getElementById('editRoomRate').value) || 0;
-    booking.extras = parseFloat(document.getElementById('editExtras').value) || 0;
-    booking.extraBed = parseFloat(document.getElementById('editExtraBed').value) || 0;
+    // Sanitize numeric inputs (allow formatted numbers with commas)
+    function parseNumberInput(id) {
+        const el = document.getElementById(id);
+        if (!el) return 0;
+        let v = el.value;
+        if (typeof v === 'string') v = v.replace(/,/g, '').trim();
+        const n = Number(v);
+        return isNaN(n) ? 0 : n;
+    }
+
+    booking.advance = parseNumberInput('editAdvanceAmount');
+    booking.roomRate = parseNumberInput('editRoomRate');
+    booking.extras = parseNumberInput('editExtras');
+    booking.extraBed = parseNumberInput('editExtraBed');
     
     booking.maleCount = parseInt(document.getElementById('editMaleCount').value) || 0;
     booking.femaleCount = parseInt(document.getElementById('editFemaleCount').value) || 0;
