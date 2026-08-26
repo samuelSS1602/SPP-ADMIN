@@ -895,7 +895,7 @@ function getGuestProfile(booking) {
 function loadPricingPage() {
     let html = '';
     data.rooms.forEach(room => {
-        html += `<tr><td><strong>${room.name}</strong></td><td>Floor ${room.floor}</td><td>${capitalizeFirst(room.type)}</td><td>₹${formatNumber(room.price)}</td><td><input type="number" class="price-input" id="price-input-${room.id}" placeholder="Enter new price" min="100"></td><td><button class="btn-primary receptionist-only" onclick="openPriceModal(${room.id}, '${room.name}', ${room.price})" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-edit"></i> Update</button></td></tr>`;
+        html += `<tr><td><strong>${room.name}</strong></td><td>Floor ${room.floor}</td><td>${capitalizeFirst(room.type)}</td><td>₹${formatNumber(room.price)}</td><td><input type="number" class="price-input owner-only" id="price-input-${room.id}" placeholder="Enter new price" min="100"></td><td><button class="btn-primary owner-only" onclick="openPriceModal(${room.id}, '${room.name}', ${room.price})" style="padding: 8px 12px; font-size: 12px;"><i class="fas fa-edit"></i> Update</button></td></tr>`;
     });
     const tableBody = document.getElementById('pricingTable');
     if (tableBody) tableBody.innerHTML = html;
@@ -904,7 +904,9 @@ function loadPricingPage() {
 
 function loadGuests() {
     let html = '';
-    data.guests.forEach(guest => {
+    [...data.guests].sort((first, second) => {
+        return new Date(second.lastVisit || 0) - new Date(first.lastVisit || 0);
+    }).forEach(guest => {
         // Verify if lastBookingId actually exists in data.bookings
         let currentBookingId = guest.lastBookingId;
         const bookingExists = data.bookings.some(b => b.id === currentBookingId);
@@ -1490,7 +1492,12 @@ function closePriceModal() {
     document.getElementById('priceModal').classList.remove('active');
 }
 
-function updateRoomPrice() {
+async function updateRoomPrice() {
+    if (currentUserRole !== 'owner') {
+        alert('Only the Owner can update room prices.');
+        return;
+    }
+
     const newPrice = parseFloat(document.getElementById('newPriceInput').value);
     const roomId = parseInt(document.getElementById('newPriceInput').dataset.roomId);
 
@@ -1503,10 +1510,34 @@ function updateRoomPrice() {
     if (room) {
         const oldPrice = room.price;
         room.price = newPrice;
-        saveDataToStorage();
+
+        try {
+            if (firebaseEnabled && firebaseDb) {
+                await firebaseDb.collection('rooms').doc(String(room.id)).set({
+                    id: room.id,
+                    name: room.name,
+                    floor: room.floor,
+                    type: room.type,
+                    capacity: room.capacity,
+                    price: room.price,
+                    status: room.status,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+            }
+            saveDataToStorage();
+        } catch (error) {
+            room.price = oldPrice;
+            saveDataToStorage();
+            console.warn('Could not sync room price to Firebase:', error);
+            alert('Price update failed and was reverted. Please try again.');
+            return;
+        }
+
+        addAuditLog('PRICE_UPDATED', `Room ${room.name} | ₹${formatNumber(oldPrice)} → ₹${formatNumber(newPrice)} | Updated by ${currentUserName}`);
         alert(`Room ${room.name} price updated from ₹${formatNumber(oldPrice)} to ₹${formatNumber(newPrice)}`);
         closePriceModal();
         loadPricingPage();
+        loadRooms();
         updateRealtimeDashboardMetrics();
     }
 }
@@ -2963,6 +2994,23 @@ async function fetchAllDataFromFirebase() {
             }
         });
 
+        const roomSnap = await firebaseDb.collection('rooms').get();
+        roomSnap.forEach(doc => {
+            const cloudRoom = doc.data();
+            const room = data.rooms.find(item => String(item.id) === String(cloudRoom.id || doc.id));
+            if (room) {
+                Object.assign(room, cloudRoom);
+            }
+        });
+
+        const auditSnap = await firebaseDb.collection('audit_logs').get();
+        const auditById = new Map((data.auditLogs || []).map(log => [log.id, log]));
+        auditSnap.forEach(doc => {
+            const cloudLog = doc.data();
+            if (cloudLog.id) auditById.set(cloudLog.id, cloudLog);
+        });
+        data.auditLogs = [...auditById.values()];
+
         correctMistakenBookingStatuses();
 
         updateRoomStatusesFromBookings();
@@ -3303,12 +3351,14 @@ function handleGlobalSearch(query) {
 
 // --- REAL-TIME AUDIT LOGGING ---
 function addAuditLog(action, description) {
-    const logId = `LOG${String(data.auditLogs.length + 1).padStart(3, '0')}`;
+    const logId = `LOG${Date.now()}`;
     const newLog = {
         id: logId,
         time: new Date().toISOString(),
         action,
-        description
+        description,
+        userId: firebaseAuth?.currentUser?.uid || null,
+        userName: currentUserName
     };
     data.auditLogs.unshift(newLog);
     if (data.auditLogs.length > 50) data.auditLogs.pop(); // Cap at 50 logs
@@ -3339,7 +3389,10 @@ function renderAuditLogs() {
     }
     
     let html = '';
-    data.auditLogs.slice(0, 10).forEach(log => {
+    [...data.auditLogs]
+        .sort((first, second) => new Date(second.time || 0) - new Date(first.time || 0))
+        .slice(0, 10)
+        .forEach(log => {
         let iconClass = 'fa-history';
         let badgeType = 'booking';
         
@@ -3375,7 +3428,9 @@ function filterAuditLogs() {
     const searchVal = document.getElementById('auditSearchInput').value.toLowerCase();
     const catVal = document.getElementById('auditCategoryFilter').value;
     
-    let filtered = data.auditLogs || [];
+    let filtered = [...(data.auditLogs || [])].sort((first, second) => {
+        return new Date(second.time || 0) - new Date(first.time || 0);
+    });
     
     // 1. Search Query Filter
     if (searchVal) {

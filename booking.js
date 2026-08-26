@@ -58,7 +58,21 @@ function loadBookings() {
 
     let html = '';
     sortedMonths.forEach(monthIdx => {
-        const bookings = grouped[monthIdx];
+        const bookings = grouped[monthIdx].sort((first, second) => {
+            const firstDate = typeof parseBookingDateTime === 'function'
+                ? parseBookingDateTime(first.checkIn, first.checkInTime)
+                : new Date(first.createdAt || first.checkIn || 0);
+            const secondDate = typeof parseBookingDateTime === 'function'
+                ? parseBookingDateTime(second.checkIn, second.checkInTime)
+                : new Date(second.createdAt || second.checkIn || 0);
+            const firstTimestamp = firstDate && !Number.isNaN(firstDate.getTime())
+                ? firstDate.getTime()
+                : new Date(first.createdAt || first.checkIn || 0).getTime();
+            const secondTimestamp = secondDate && !Number.isNaN(secondDate.getTime())
+                ? secondDate.getTime()
+                : new Date(second.createdAt || second.checkIn || 0).getTime();
+            return secondTimestamp - firstTimestamp;
+        });
         const monthRevenue = bookings.reduce((sum, b) => sum + getBookingTotal(b), 0);
         const confirmedCount = bookings.filter(b => b.status === 'confirmed').length;
         const completedCount = bookings.filter(b => b.status === 'completed').length;
@@ -111,7 +125,7 @@ function loadBookings() {
                 actionsHtml += `<button class="btn-primary owner-only" style="padding: 6px 10px; font-size: 11px; background: #F59E0B;" onclick="openEditBookingModal('${booking.id}')" title="Edit"><i class="fas fa-edit"></i></button>`;
                 actionsHtml += `<button class="btn-primary owner-only" style="padding: 6px 10px; font-size: 11px; background: #7F1D1D;" onclick="deleteBooking('${booking.id}')" title="Delete"><i class="fas fa-trash"></i></button>`;
             } else {
-                actionsHtml += `<button class="btn-primary receptionist-only" style="padding: 6px 10px; font-size: 11px; background: #27AE60;" onclick="checkoutBooking('${booking.id}')" title="Checkout"><i class="fas fa-sign-out-alt"></i></button>`;
+                actionsHtml += `<button class="btn-primary checkout-action receptionist-only" style="padding: 6px 10px; font-size: 11px; background: #27AE60;" onclick="checkoutBooking('${booking.id}')" title="Checkout"><i class="fas fa-sign-out-alt"></i></button>`;
                 actionsHtml += `<button class="btn-primary owner-only" style="padding: 6px 10px; font-size: 11px; background: #F59E0B;" onclick="openEditBookingModal('${booking.id}')" title="Edit"><i class="fas fa-edit"></i></button>`;
                 actionsHtml += `<button class="btn-primary receptionist-only" style="padding: 6px 10px; font-size: 11px; background: #EF4444;" onclick="cancelBooking('${booking.id}')" title="Cancel"><i class="fas fa-times"></i></button>`;
             }
@@ -166,6 +180,11 @@ function toggleMonthSection(headerEl) {
 }
 
 function checkoutBooking(bookingId) {
+    if (currentUserRole !== 'receptionist') {
+        alert('Checkout is available to Receptionists only.');
+        return;
+    }
+
     const booking = data.bookings.find(item => item.id === bookingId);
     if (!booking) return;
 
@@ -405,6 +424,7 @@ function handleNewBooking(e) {
         idProofType,
         idProofNumber: idProofValidation.normalized,
         rooms: multiRoomBookingSelection,  // Array of rooms instead of single room
+        createdAt: new Date().toISOString(),
         checkIn,
         checkInTime,
         checkOut,
@@ -1740,7 +1760,11 @@ async function fetchOrphanedPhotos() {
             const hasId = item.data.idProofPhoto ? 'Yes' : 'No';
             
             // Build options for current bookings (last 20 to avoid massive lists)
-            const recentBookings = [...data.bookings].sort((a,b) => b.id.localeCompare(a.id)).slice(0, 30);
+            const recentBookings = [...data.bookings].sort((first, second) => {
+                const firstTimestamp = new Date(first.createdAt || first.checkIn || 0).getTime();
+                const secondTimestamp = new Date(second.createdAt || second.checkIn || 0).getTime();
+                return secondTimestamp - firstTimestamp;
+            }).slice(0, 30);
             let optionsHtml = '<option value="">Select booking to assign...</option>';
             recentBookings.forEach(b => {
                 optionsHtml += `<option value="${b.id}">${b.id} - ${b.guestName} (Room ${b.roomName})</option>`;
