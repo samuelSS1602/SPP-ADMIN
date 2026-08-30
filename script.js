@@ -1924,9 +1924,89 @@ function saveDataToStorage() {
         };
         localStorage.setItem('lodgeAdminData', JSON.stringify(storageData));
     } catch (error) {
-        console.warn('Could not save data:', error);
+        if (error.name === 'QuotaExceededError' || error.code === 22) {
+            console.warn('localStorage quota exceeded, attempting cleanup...');
+            cleanupStorageData();
+            
+            // Retry save after cleanup
+            try {
+                const strippedBookings = data.bookings.map(booking => {
+                    const copy = Object.assign({}, booking);
+                    delete copy.customerPhoto;
+                    delete copy.idProofPhoto;
+                    return copy;
+                });
+
+                const storageData = {
+                    rooms: data.rooms,
+                    bookings: strippedBookings,
+                    customers: data.customers,
+                    guests: data.guests,
+                    diary: data.diary,
+                    staff: data.staff,
+                    housekeepingTasks: data.housekeepingTasks,
+                    notifications: [], // Clear notifications as secondary cleanup
+                    settings: data.settings,
+                    auditLogs: data.auditLogs
+                };
+                data.notifications = []; // Also clear in memory
+                localStorage.setItem('lodgeAdminData', JSON.stringify(storageData));
+                console.warn('Storage saved after cleanup.');
+            } catch (retryError) {
+                console.error('Failed to save data even after cleanup:', retryError);
+            }
+        } else {
+            console.warn('Could not save data:', error);
+        }
     }
 }
+
+// Cleanup old data to free up localStorage space
+function cleanupStorageData() {
+    const today = getLocalISODate();
+    
+    // Remove completed bookings older than 30 days
+    const thirtyDaysAgo = new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const initialBookingCount = data.bookings.length;
+    data.bookings = data.bookings.filter(booking => {
+        if (booking.status === 'completed' || booking.status === 'cancelled') {
+            const checkoutDate = booking.actualCheckOutDate || booking.checkOut;
+            return checkoutDate > thirtyDaysAgo;
+        }
+        return true;
+    });
+    
+    if (data.bookings.length < initialBookingCount) {
+        console.warn(`Removed ${initialBookingCount - data.bookings.length} old bookings`);
+    }
+    
+    // Remove old diary entries (older than 90 days)
+    const ninetyDaysAgo = new Date(new Date().getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const diaryKeys = Object.keys(data.diary);
+    diaryKeys.forEach(date => {
+        if (date < ninetyDaysAgo) {
+            delete data.diary[date];
+        }
+    });
+    
+    // Keep only active customers (those with recent bookings)
+    const activeCustomerIds = new Set(data.bookings.map(b => b.customerId).filter(Boolean));
+    const initialCustomerCount = data.customers.length;
+    data.customers = data.customers.filter(c => activeCustomerIds.has(c.id));
+    
+    if (data.customers.length < initialCustomerCount) {
+        console.warn(`Removed ${initialCustomerCount - data.customers.length} inactive customers`);
+    }
+    
+    // Trim audit logs to 25 (from 50)
+    if (data.auditLogs.length > 25) {
+        data.auditLogs = data.auditLogs.slice(0, 25);
+    }
+    
+    // Clear notifications
+    data.notifications = [];
+}
+
 
 function sendCheckInWhatsAppMessage(booking) {
     if (!booking || booking.checkInWhatsAppSent) return;
@@ -3871,6 +3951,54 @@ function clearAllNotifications() {
 }
 
 // --- CANVAS-BASED SPARKLINE GRAPHS ---
+// Helper function to resolve CSS variables to actual RGB color values
+function resolveCSSVariable(colorStr) {
+    if (!colorStr) return '#2563eb';
+    
+    // If it's already a hex or rgb value, return as-is
+    if (!colorStr.includes('var(')) {
+        return colorStr;
+    }
+    
+    // Extract CSS variable name from 'var(--name)' format
+    const varMatch = colorStr.match(/var\s*\(\s*--([^,)]+)\s*\)/);
+    if (!varMatch) return '#2563eb';
+    
+    const varName = '--' + varMatch[1];
+    const value = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    
+    // If we got a value, return it; otherwise return fallback
+    return value || '#2563eb';
+}
+
+// Helper function to convert hex color to rgba with opacity
+function hexToRgba(hex, opacity = 1) {
+    // If it's already rgba, just adjust opacity if needed
+    if (hex.includes('rgba(') || hex.includes('rgb(')) {
+        return hex;
+    }
+    
+    // Handle hex format: #RRGGBB or #RGB
+    const sanitized = hex.replace('#', '');
+    let r, g, b;
+    
+    if (sanitized.length === 3) {
+        // Expand short form #RGB to #RRGGBB
+        r = parseInt(sanitized[0] + sanitized[0], 16);
+        g = parseInt(sanitized[1] + sanitized[1], 16);
+        b = parseInt(sanitized[2] + sanitized[2], 16);
+    } else if (sanitized.length === 6) {
+        r = parseInt(sanitized.substring(0, 2), 16);
+        g = parseInt(sanitized.substring(2, 4), 16);
+        b = parseInt(sanitized.substring(4, 6), 16);
+    } else {
+        // Fallback to default color if parsing fails
+        return `rgba(37, 99, 235, ${opacity})`;
+    }
+    
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
 function drawSparklines() {
     const occupiedCount = data.rooms.filter(r => r.status === 'occupied').length;
     const availableCount = data.rooms.filter(r => r.status === 'available').length;
@@ -3901,8 +4029,11 @@ function drawSparkline(canvasId, values, color) {
     ctx.clearRect(0, 0, width, height);
     if (values.length < 2) return;
     
+    // Resolve CSS variables to actual color values
+    const resolvedColor = resolveCSSVariable(color);
+    
     ctx.beginPath();
-    ctx.strokeStyle = color || '#2563eb';
+    ctx.strokeStyle = resolvedColor;
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -3925,7 +4056,10 @@ function drawSparkline(canvasId, values, color) {
     ctx.lineTo(0, height);
     ctx.closePath();
     const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, color ? color.replace(')', ', 0.12)') : 'rgba(37, 99, 235, 0.12)');
+    
+    // Convert hex to rgba with opacity for gradient start
+    const rgbaColor = hexToRgba(resolvedColor, 0.12);
+    gradient.addColorStop(0, rgbaColor);
     gradient.addColorStop(1, 'transparent');
     ctx.fillStyle = gradient;
     ctx.fill();
