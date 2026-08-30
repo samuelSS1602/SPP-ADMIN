@@ -1925,7 +1925,7 @@ function saveDataToStorage() {
         localStorage.setItem('lodgeAdminData', JSON.stringify(storageData));
     } catch (error) {
         if (error.name === 'QuotaExceededError' || error.code === 22) {
-            console.warn('localStorage quota exceeded, attempting cleanup...');
+            console.warn('localStorage quota exceeded, attempting minimal cleanup...');
             cleanupStorageData();
             
             // Retry save after cleanup
@@ -1945,13 +1945,13 @@ function saveDataToStorage() {
                     diary: data.diary,
                     staff: data.staff,
                     housekeepingTasks: data.housekeepingTasks,
-                    notifications: [], // Clear notifications as secondary cleanup
+                    notifications: [], // Clear notifications as minimal cleanup
                     settings: data.settings,
-                    auditLogs: data.auditLogs
+                    auditLogs: data.auditLogs.slice(0, 10) // Keep only 10 most recent logs
                 };
                 data.notifications = []; // Also clear in memory
                 localStorage.setItem('lodgeAdminData', JSON.stringify(storageData));
-                console.warn('Storage saved after cleanup.');
+                console.warn('Storage saved after minimal cleanup.');
             } catch (retryError) {
                 console.error('Failed to save data even after cleanup:', retryError);
             }
@@ -1961,51 +1961,27 @@ function saveDataToStorage() {
     }
 }
 
-// Cleanup old data to free up localStorage space
+// Cleanup old data to free up localStorage space - MINIMAL APPROACH
+// Preserves all active bookings and customers
 function cleanupStorageData() {
-    const today = getLocalISODate();
-    
-    // Remove completed bookings older than 30 days
-    const thirtyDaysAgo = new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const initialBookingCount = data.bookings.length;
-    data.bookings = data.bookings.filter(booking => {
-        if (booking.status === 'completed' || booking.status === 'cancelled') {
-            const checkoutDate = booking.actualCheckOutDate || booking.checkOut;
-            return checkoutDate > thirtyDaysAgo;
-        }
-        return true;
-    });
-    
-    if (data.bookings.length < initialBookingCount) {
-        console.warn(`Removed ${initialBookingCount - data.bookings.length} old bookings`);
-    }
-    
-    // Remove old diary entries (older than 90 days)
+    // Only clear old diary entries (older than 90 days)
     const ninetyDaysAgo = new Date(new Date().getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const diaryKeys = Object.keys(data.diary);
+    let removedDiaryEntries = 0;
+    
     diaryKeys.forEach(date => {
         if (date < ninetyDaysAgo) {
             delete data.diary[date];
+            removedDiaryEntries++;
         }
     });
     
-    // Keep only active customers (those with recent bookings)
-    const activeCustomerIds = new Set(data.bookings.map(b => b.customerId).filter(Boolean));
-    const initialCustomerCount = data.customers.length;
-    data.customers = data.customers.filter(c => activeCustomerIds.has(c.id));
-    
-    if (data.customers.length < initialCustomerCount) {
-        console.warn(`Removed ${initialCustomerCount - data.customers.length} inactive customers`);
+    if (removedDiaryEntries > 0) {
+        console.warn(`Removed ${removedDiaryEntries} old diary entries`);
     }
-    
-    // Trim audit logs to 25 (from 50)
-    if (data.auditLogs.length > 25) {
-        data.auditLogs = data.auditLogs.slice(0, 25);
-    }
-    
-    // Clear notifications
-    data.notifications = [];
 }
+
+// --- ANALYTICS / REPORTS INTERVAL TOGGLES ---
 
 
 function sendCheckInWhatsAppMessage(booking) {
