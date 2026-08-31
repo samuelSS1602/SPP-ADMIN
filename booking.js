@@ -181,7 +181,9 @@ function toggleMonthSection(headerEl) {
 
 function checkoutBooking(bookingId) {
     if (currentUserRole !== 'receptionist') {
-        alert('Checkout is available to Receptionists only.');
+        if (typeof showToast === 'function') {
+            showToast({ title: 'Access Restricted', message: 'Checkout is available to Receptionists only.', type: 'warning' });
+        }
         return;
     }
 
@@ -189,7 +191,9 @@ function checkoutBooking(bookingId) {
     if (!booking) return;
 
     if (booking.status === 'completed') {
-        alert('This booking is already checked out');
+        if (typeof showToast === 'function') {
+            showToast({ title: 'Already Checked Out', message: 'This booking is already checked out.', type: 'warning' });
+        }
         return;
     }
 
@@ -244,7 +248,13 @@ function checkoutBooking(bookingId) {
         }
     }
 
-    alert(`Checkout successful. ${roomsDisplay} is now free.`);
+    if (typeof showToast === 'function') {
+        showToast({
+            title: 'Guest Checked Out',
+            message: `Checkout successful. ${roomsDisplay} is now free.`,
+            type: 'success'
+        });
+    }
 }
 
 function openNewBookingPage() {

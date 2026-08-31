@@ -39,6 +39,63 @@ let firebaseStorage = null;
 let checkoutReminderTimer = null;
 const LODGE_GST_NUMBER = '33ANCPP8116B1ZF';
 
+function showToast({ title, message, type = 'info', duration = 3200, variant = 'default' }) {
+    const container = document.getElementById('appToastContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    const iconMap = {
+        success: 'fa-circle-check',
+        warning: 'fa-triangle-exclamation',
+        error: 'fa-circle-xmark',
+        info: 'fa-bell',
+        reminder: 'fa-clock'
+    };
+
+    toast.className = `app-toast ${type} ${variant === 'reminder' ? 'reminder' : ''}`.trim();
+
+    if (variant === 'reminder') {
+        toast.innerHTML = `
+            <div class="app-toast-icon"><i class="fas ${iconMap.reminder}"></i></div>
+            <div class="app-toast-content">
+                <div class="app-toast-meta">Checkout due soon</div>
+                <div class="app-toast-title">${title}</div>
+                <div class="app-toast-message">${message}</div>
+                <div class="app-toast-badge">Action needed</div>
+            </div>
+            <button class="app-toast-close" type="button" aria-label="Close notification">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+    } else {
+        toast.innerHTML = `
+            <div class="app-toast-icon"><i class="fas ${iconMap[type] || iconMap.info}"></i></div>
+            <div class="app-toast-content">
+                <div class="app-toast-header">
+                    <span class="app-toast-title">${title}</span>
+                    <button class="app-toast-close" type="button" aria-label="Close notification">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="app-toast-message">${message}</div>
+            </div>
+        `;
+    }
+
+    const closeBtn = toast.querySelector('.app-toast-close');
+    closeBtn.addEventListener('click', () => {
+        toast.classList.add('closing');
+        setTimeout(() => toast.remove(), 180);
+    });
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('closing');
+        setTimeout(() => toast.remove(), 180);
+    }, duration);
+}
+
 // Role-based access control
 let currentUserRole = 'receptionist';
 let currentUserName = 'Receptionist';
@@ -2133,11 +2190,16 @@ function processCheckoutReminders() {
         const oneHourBeforeCheckout = new Date(checkoutDateTime.getTime() - 60 * 60 * 1000);
         if (now < oneHourBeforeCheckout) return;
 
-        const message = buildCheckoutReminderWhatsAppMessage(booking);
-        const shouldSend = confirm(`Checkout reminder is due for ${booking.guestName} (${booking.roomName}). Send WhatsApp now?`);
-        if (!shouldSend) return;
+        if (typeof showToast === 'function') {
+            showToast({
+                title: `${booking.guestName} checkout due`,
+                message: `Room ${booking.roomName || 'N/A'} is due for checkout in the next hour.`,
+                type: 'reminder',
+                duration: 4800,
+                variant: 'reminder'
+            });
+        }
 
-        openWhatsAppMessage(phone, message);
         booking.checkoutReminderSent = true;
         saveDataToStorage();
         syncBookingToFirebase(booking);

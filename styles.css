@@ -1393,6 +1393,205 @@ body {
 .notif-dropdown-item.payment i { color: var(--success); }
 .notif-dropdown-item.alert i { color: var(--danger); }
 
+.app-toast-container {
+    position: fixed;
+    right: 22px;
+    bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 2000;
+    pointer-events: none;
+}
+
+.app-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 300px;
+    max-width: 360px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 18px 45px -20px rgba(15, 23, 42, 0.45);
+    color: var(--text-on-dark);
+    transform: translateX(26px);
+    opacity: 0;
+    animation: toastIn 0.28s ease forwards;
+}
+
+.app-toast.success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.92), rgba(5, 150, 105, 0.96));
+}
+
+.app-toast.warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.96), rgba(217, 119, 6, 0.96));
+}
+
+.app-toast.error {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.94), rgba(190, 24, 93, 0.96));
+}
+
+.app-toast.info {
+    background: linear-gradient(135deg, rgba(23, 63, 58, 0.94), rgba(34, 197, 94, 0.22));
+}
+
+.app-toast.reminder {
+    min-width: 320px;
+    max-width: 390px;
+    padding: 14px 16px 12px 14px;
+    background: linear-gradient(135deg, rgba(11, 22, 32, 0.96), rgba(16, 63, 80, 0.94));
+    border: 1px solid rgba(125, 211, 252, 0.35);
+    box-shadow: 0 24px 50px -24px rgba(14, 116, 144, 0.6);
+}
+
+.app-toast.reminder .app-toast-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: rgba(125, 211, 252, 0.14);
+    color: #dff8ff;
+    position: relative;
+}
+
+.app-toast.reminder .app-toast-icon::after {
+    content: "";
+    position: absolute;
+    right: -5px;
+    top: -5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 0 2px rgba(14, 116, 144, 0.75);
+}
+
+.app-toast.reminder .app-toast-icon i {
+    font-size: 14px;
+    line-height: 1;
+    position: relative;
+    z-index: 1;
+}
+
+.app-toast.reminder .app-toast-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.app-toast.reminder .app-toast-meta {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(191, 219, 254, 0.92);
+    font-weight: 700;
+}
+
+.app-toast.reminder .app-toast-title {
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.app-toast.reminder .app-toast-message {
+    font-size: 11px;
+    color: rgba(224, 242, 254, 0.9);
+}
+
+.app-toast.reminder .app-toast-badge {
+    align-self: flex-start;
+    margin-top: 6px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.16);
+    border: 1px solid rgba(125, 211, 252, 0.3);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #d9f7ff;
+}
+
+.app-toast.reminder .app-toast-close {
+    align-self: flex-start;
+    margin-left: 4px;
+    opacity: 0.8;
+}
+
+.app-toast.closing {
+    animation: toastOut 0.18s ease forwards;
+}
+
+.app-toast-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.14);
+    flex-shrink: 0;
+}
+
+.app-toast-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.app-toast-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.app-toast-title {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.app-toast-message {
+    margin-top: 4px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.app-toast-close {
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.88);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0;
+}
+
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translateX(26px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes toastOut {
+    from {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(26px) scale(0.98);
+    }
+}
+
 /* QR Code Booking verification */
 .qr-code-box {
     display: flex;
