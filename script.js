@@ -108,17 +108,21 @@ let activePage = 'dashboard';
 
 // ===== INDEXEDDB PHOTO STORAGE =====
 // Provides persistent local storage for booking photos (avoids localStorage 5MB limit)
-const PHOTO_DB_NAME = 'LodgeAdminPhotos';
-const PHOTO_DB_VERSION = 1;
-const PHOTO_STORE_NAME = 'booking_photos';
+const PHOTO_DATABASE_NAME = 'LodgeAdminPhotos';
+const PHOTO_DATABASE_VERSION = 2;
+const PHOTO_OBJECT_STORE_NAME = 'booking_photos';
+const APP_DATA_STORE_NAME = 'application_data';
 
 function openPhotoDB() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(PHOTO_DB_NAME, PHOTO_DB_VERSION);
+        const request = indexedDB.open(PHOTO_DATABASE_NAME, PHOTO_DATABASE_VERSION);
         request.onupgradeneeded = function(event) {
             const db = event.target.result;
-            if (!db.objectStoreNames.contains(PHOTO_STORE_NAME)) {
-                db.createObjectStore(PHOTO_STORE_NAME, { keyPath: 'bookingId' });
+            if (!db.objectStoreNames.contains(PHOTO_OBJECT_STORE_NAME)) {
+                db.createObjectStore(PHOTO_OBJECT_STORE_NAME, { keyPath: 'bookingId' });
+            }
+            if (!db.objectStoreNames.contains(APP_DATA_STORE_NAME)) {
+                db.createObjectStore(APP_DATA_STORE_NAME, { keyPath: 'id' });
             }
         };
         request.onsuccess = function(event) {
@@ -131,12 +135,52 @@ function openPhotoDB() {
     });
 }
 
+async function saveFullDataToIndexedDB() {
+    try {
+        const db = await openPhotoDB();
+        await new Promise((resolve, reject) => {
+            const tx = db.transaction(APP_DATA_STORE_NAME, 'readwrite');
+            tx.objectStore(APP_DATA_STORE_NAME).put({
+                id: 'current',
+                data: data,
+                updatedAt: new Date().toISOString()
+            });
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+    } catch (error) {
+        console.warn('Full data IndexedDB save failed:', error);
+    }
+}
+
+async function hydrateFullDataFromIndexedDB() {
+    try {
+        const db = await openPhotoDB();
+        const stored = await new Promise((resolve, reject) => {
+            const tx = db.transaction(APP_DATA_STORE_NAME, 'readonly');
+            const request = tx.objectStore(APP_DATA_STORE_NAME).get('current');
+            request.onsuccess = () => resolve(request.result || null);
+            request.onerror = () => reject(request.error);
+        });
+        db.close();
+
+        if (!stored || !stored.data) return;
+        Object.keys(data).forEach(key => {
+            if (stored.data[key] !== undefined) data[key] = stored.data[key];
+        });
+        console.log('Full data hydrated from IndexedDB');
+    } catch (error) {
+        console.warn('Full data IndexedDB hydration failed:', error);
+    }
+}
+
 async function savePhotoToLocal(bookingId, customerPhoto, idProofPhoto) {
     try {
         const db = await openPhotoDB();
         return new Promise((resolve, reject) => {
-            const tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
-            const store = tx.objectStore(PHOTO_STORE_NAME);
+            const tx = db.transaction(PHOTO_OBJECT_STORE_NAME, 'readwrite');
+            const store = tx.objectStore(PHOTO_OBJECT_STORE_NAME);
             const record = {
                 bookingId: String(bookingId),
                 customerPhoto: customerPhoto || null,
@@ -161,8 +205,8 @@ async function getPhotoFromLocal(bookingId) {
     try {
         const db = await openPhotoDB();
         return new Promise((resolve, reject) => {
-            const tx = db.transaction(PHOTO_STORE_NAME, 'readonly');
-            const store = tx.objectStore(PHOTO_STORE_NAME);
+            const tx = db.transaction(PHOTO_OBJECT_STORE_NAME, 'readonly');
+            const store = tx.objectStore(PHOTO_OBJECT_STORE_NAME);
             const request = store.get(String(bookingId));
             request.onsuccess = () => resolve(request.result || null);
             request.onerror = (e) => {
@@ -181,8 +225,8 @@ async function deletePhotoFromLocal(bookingId) {
     try {
         const db = await openPhotoDB();
         return new Promise((resolve, reject) => {
-            const tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
-            const store = tx.objectStore(PHOTO_STORE_NAME);
+            const tx = db.transaction(PHOTO_OBJECT_STORE_NAME, 'readwrite');
+            const store = tx.objectStore(PHOTO_OBJECT_STORE_NAME);
             const request = store.delete(String(bookingId));
             request.onsuccess = () => resolve(true);
             request.onerror = (e) => {
@@ -213,6 +257,11 @@ async function migratePhotoInLocal(oldBookingId, newBookingId) {
 document.addEventListener('DOMContentLoaded', function () {
     initFirebaseServices();
     hydrateDataFromStorage();
+    hydrateFullDataFromIndexedDB().then(() => {
+        if (document.getElementById('dashboardPage')?.style.display !== 'none') {
+            loadDashboard();
+        }
+    });
     correctMistakenBookingStatuses();
     purgeLegacySeedData();
     enforceRequestedRoomSetup();
@@ -1956,61 +2005,55 @@ function enforceRequestedRoomSetup() {
     saveDataToStorage();
 }
 
-function saveDataToStorage() {
-    try {
-        // Strip base64 photo data from bookings to prevent localStorage quota issues.
-        // Photos are persisted separately in IndexedDB (local) and Firebase (cloud).
-        const strippedBookings = data.bookings.map(booking => {
-            const copy = Object.assign({}, booking);
-            delete copy.customerPhoto;
-            delete copy.idProofPhoto;
-            return copy;
-        });
+function stripPhotoDataForLocalCache(record) {
+    if (!record || typeof record !== 'object') return record;
 
-        const storageData = {
-            rooms: data.rooms,
-            bookings: strippedBookings,
-            customers: data.customers,
-            guests: data.guests,
-            diary: data.diary,
-            staff: data.staff,
-            housekeepingTasks: data.housekeepingTasks,
-            notifications: data.notifications,
-            settings: data.settings,
-            auditLogs: data.auditLogs
-        };
-        localStorage.setItem('lodgeAdminData', JSON.stringify(storageData));
+    const copy = { ...record };
+    Object.keys(copy).forEach(key => {
+        const normalizedKey = key.toLowerCase();
+        const value = copy[key];
+        const isPhotoField = normalizedKey.includes('photo') || normalizedKey.includes('image');
+        const isLargeData = typeof value === 'string' && (value.startsWith('data:image') || value.length > 100000);
+
+        if (isPhotoField && (isLargeData || normalizedKey.includes('photo') || normalizedKey.includes('image'))) {
+            delete copy[key];
+        }
+    });
+    return copy;
+}
+
+function buildLocalStorageSnapshot() {
+    return {
+        rooms: data.rooms,
+        bookings: data.bookings.map(stripPhotoDataForLocalCache),
+        customers: data.customers.map(stripPhotoDataForLocalCache),
+        guests: data.guests.map(stripPhotoDataForLocalCache),
+        diary: data.diary,
+        staff: data.staff,
+        housekeepingTasks: data.housekeepingTasks,
+        notifications: data.notifications,
+        settings: data.settings,
+        auditLogs: data.auditLogs
+    };
+}
+
+function saveDataToStorage() {
+    // IndexedDB stores the complete dataset, including verification photos.
+    saveFullDataToIndexedDB();
+
+    try {
+        localStorage.setItem('lodgeAdminData', JSON.stringify(buildLocalStorageSnapshot()));
     } catch (error) {
         if (error.name === 'QuotaExceededError' || error.code === 22) {
-            console.warn('localStorage quota exceeded, attempting minimal cleanup...');
+            console.warn('localStorage quota exceeded, replacing cache with compact snapshot...');
             cleanupStorageData();
-            
-            // Retry save after cleanup
-            try {
-                const strippedBookings = data.bookings.map(booking => {
-                    const copy = Object.assign({}, booking);
-                    delete copy.customerPhoto;
-                    delete copy.idProofPhoto;
-                    return copy;
-                });
 
-                const storageData = {
-                    rooms: data.rooms,
-                    bookings: strippedBookings,
-                    customers: data.customers,
-                    guests: data.guests,
-                    diary: data.diary,
-                    staff: data.staff,
-                    housekeepingTasks: data.housekeepingTasks,
-                    notifications: [], // Clear notifications as minimal cleanup
-                    settings: data.settings,
-                    auditLogs: data.auditLogs.slice(0, 10) // Keep only 10 most recent logs
-                };
-                data.notifications = []; // Also clear in memory
-                localStorage.setItem('lodgeAdminData', JSON.stringify(storageData));
-                console.warn('Storage saved after minimal cleanup.');
+            try {
+                localStorage.removeItem('lodgeAdminData');
+                localStorage.setItem('lodgeAdminData', JSON.stringify(buildLocalStorageSnapshot()));
+                console.warn('Compact local cache saved.');
             } catch (retryError) {
-                console.error('Failed to save data even after cleanup:', retryError);
+                console.error('Failed to save compact local cache:', retryError);
             }
         } else {
             console.warn('Could not save data:', error);
