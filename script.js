@@ -96,6 +96,28 @@ function showToast({ title, message, type = 'info', duration = 3200, variant = '
     }, duration);
 }
 
+function loadExternalScript(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
+    });
+}
+
+function ensureXlsxLoaded() {
+    return window.XLSX
+        ? Promise.resolve()
+        : loadExternalScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+}
+
+function ensureChartJsLoaded() {
+    return window.Chart
+        ? Promise.resolve()
+        : loadExternalScript('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js');
+}
+
 // Role-based access control
 let currentUserRole = 'receptionist';
 let currentUserName = 'Receptionist';
@@ -2407,7 +2429,8 @@ async function syncBookingToFirebase(booking) {
         });
 }
 
-function downloadDailyRevenue() {
+async function downloadDailyRevenue() {
+    await ensureXlsxLoaded();
     const today = getLocalISODate();
     const todayLabel = formatDate(today);
     const todaysBookings = data.bookings.filter(booking => booking.checkIn === today);
@@ -2451,7 +2474,8 @@ function downloadDailyRevenue() {
     alert('Daily Revenue report downloaded!');
 }
 
-function downloadMonthlyRevenue() {
+async function downloadMonthlyRevenue() {
+    await ensureXlsxLoaded();
         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
         const currentYear = new Date().getFullYear();
 
@@ -2483,7 +2507,8 @@ function downloadMonthlyRevenue() {
         alert('Monthly Revenue report downloaded!');
     }
 
-    function downloadYearlyRevenue() {
+    async function downloadYearlyRevenue() {
+        await ensureXlsxLoaded();
         const yearlyMap = new Map();
 
         data.bookings.forEach(booking => {
@@ -2953,7 +2978,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-    function createCharts() {
+    async function createCharts() {
+        await ensureChartJsLoaded();
         createRevenueChart();
         createOccupancyChart();
     }
@@ -2985,7 +3011,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function createAnalyticsChart() {
+    async function createAnalyticsChart() {
+        await ensureChartJsLoaded();
         if (charts.monthly) charts.monthly.destroy();
         const ctx = document.getElementById('monthlyChart');
         if (!ctx) return;
