@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,10 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://identitytoolkit.googleapis.com">
-    
-    <!-- Favicon -->
     <link rel="icon" type="image/jpeg" href="logo - Copy.jpeg">
-    
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" media="print" onload="this.media='all'">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
@@ -20,7 +16,6 @@
 </head>
 
 <body>
-    
     <div id="loginPage" class="login-container" role="main">
         <div class="login-wrapper">
             <div class="login-content">
@@ -29,20 +24,17 @@
                     <h1>Sri Padmavati Pleasants</h1>
                     <p>Enterprise Management Console</p>
                 </div>
-
                 <form class="login-form" id="loginForm">
                     <div class="form-group">
                         <label for="email">Email Address</label>
                         <input type="email" id="email" placeholder="Enter your email" required>
                         <span class="form-icon"><i class="fas fa-envelope"></i></span>
                     </div>
-
                     <div class="form-group">
                         <label for="password">Password</label>
                         <input type="password" id="password" placeholder="Enter your password" required>
                         <span class="form-icon"><i class="fas fa-lock"></i></span>
                     </div>
-
                     <button type="submit" class="btn-login">Sign In</button>
                 </form>
             </div>
@@ -72,13 +64,9 @@
             </div>
         </div>
     </div>
-
-    <!-- Dashboard Main Wrapper -->
     <div id="dashboardPage" class="dashboard-container" style="display: none;">
         <div id="appToastContainer" class="app-toast-container" aria-live="polite" aria-atomic="true"></div>
         <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileMenu()"></div>
-        
-        <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
             <div>
                 <div class="sidebar-header">
@@ -137,7 +125,6 @@
                     </button>
                 </nav>
             </div>
-
             <div>
                 <button class="logout-btn" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i>
@@ -149,10 +136,7 @@
                 </div>
             </div>
         </aside>
-
-        <!-- Main Content Area -->
         <main class="main-content">
-            <!-- Top Sticky Header -->
             <div class="top-header">
                 <div class="header-left">
                     <button class="mobile-menu-btn" onclick="toggleMobileMenu()" style="display: none; background: none; border: none; font-size: 20px; color: var(--text-dark); cursor: pointer;">
@@ -163,15 +147,11 @@
                         <small id="liveDateTime" style="color: var(--text-light); font-weight: 600;"></small>
                     </div>
                 </div>
-
                 <div class="header-right">
-                    <!-- Global Search -->
                     <div class="global-search-container">
                         <input type="text" id="globalSearchInput" placeholder="Quick Search (Ctrl + K)" oninput="handleGlobalSearch(this.value)">
                         <i class="fas fa-search"></i>
                     </div>
-
-                    <!-- Quick Add Dropdown Button -->
                     <div style="position: relative;">
                         <button class="quick-add-btn" onclick="toggleDropdown('quickAddDropdown')">
                             <i class="fas fa-plus"></i> <span>Quick Add</span> <i class="fas fa-chevron-down" style="font-size: 10px;"></i>
@@ -181,14 +161,11 @@
                             <div class="user-dropdown-item owner-only" onclick="navigateTo('pricing'); hideAllDropdowns()"><i class="fas fa-tag"></i> Modify Pricing</div>
                         </div>
                     </div>
-
-                    <!-- Notifications Dropdown -->
                     <div style="position: relative;">
                         <button id="headerNotifBtn" class="header-notif-btn" onclick="toggleDropdown('notifDropdown')">
                             <i class="fas fa-bell"></i>
                             <span class="header-notif-badge" id="notifBadgeCount">0</span>
                         </button>
-                        <!-- Notifications List -->
                         <div id="notifDropdown" class="notif-dropdown">
                             <div class="notif-dropdown-header">
                                 <span>Recent Notifications</span>
@@ -199,13 +176,9 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Dark Mode Toggle -->
                     <button class="dark-mode-toggle" id="darkModeToggle" onclick="toggleDarkMode()" title="Toggle Dark/Light Mode">
                         <i class="fas fa-moon"></i>
                     </button>
-
-                    <!-- Profile Dropdown -->
                     <div style="position: relative;">
                         <div class="user-profile" onclick="toggleDropdown('userProfileDropdown')">
                             <div class="profile-pic">A</div>
@@ -226,12 +199,8 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Page Views Area -->
             <div class="content-area">
-                <!-- Dashboard Homepage -->
                 <div id="dashboard" class="page-content active">
-                    <!-- KPI Cards Grid -->
                     <div class="metrics-grid">
                         <div class="metric-card">
                             <div class="metric-header">
@@ -250,7 +219,6 @@
                             <div class="metric-value" id="metricOccupiedRooms">0</div>
                             <div class="metric-change" id="metricOccupiedRoomsInfo" style="color: var(--danger)">0 of 9 occupied</div>
                         </div>
-
                         <div class="metric-card">
                             <div class="metric-header">
                                 <span class="metric-label">Available Rooms</span>
@@ -259,7 +227,6 @@
                             <div class="metric-value" id="metricAvailableRooms">0</div>
                             <div class="metric-change" id="metricAvailableRoomsInfo" style="color: var(--success)">0 of 9 available</div>
                         </div>
-
                         <div class="metric-card">
                             <div class="metric-header">
                                 <span class="metric-label">Total Bookings</span>
@@ -268,7 +235,6 @@
                             <div class="metric-value" id="metricTotalBookings">0</div>
                             <div class="metric-change" id="metricTotalBookingsInfo">All time bookings count</div>
                         </div>
-
                         <div class="metric-card">
                             <div class="metric-header">
                                 <span class="metric-label">Today's Check-ins</span>
@@ -277,7 +243,6 @@
                             <div class="metric-value" id="statCheckinsToday">0</div>
                             <div class="metric-change" style="color: var(--secondary)">Arrivals scheduled today</div>
                         </div>
-
                         <div class="metric-card">
                             <div class="metric-header">
                                 <span class="metric-label">Today's Check-outs</span>
@@ -286,7 +251,6 @@
                             <div class="metric-value" id="statCheckoutsToday">0</div>
                             <div class="metric-change" style="color: var(--warning)">Departures scheduled today</div>
                         </div>
-
                         <div class="metric-card owner-only">
                             <div class="metric-header">
                                 <span class="metric-label">Monthly Revenue</span>
@@ -296,7 +260,6 @@
                             <div class="metric-change" style="color: var(--success)">This calendar month</div>
                             <canvas class="metric-sparkline" id="sparkRevenue"></canvas>
                         </div>
-
                         <div class="metric-card owner-only">
                             <div class="metric-header">
                                 <span class="metric-label">Pending Payments</span>
@@ -306,8 +269,6 @@
                             <div class="metric-change" id="metricPendingPaymentsInfo" style="color: var(--warning)">Total outstanding balances</div>
                         </div>
                     </div>
-
-                    <!-- Sparkline/Visual Stats Row -->
                     <div class="stats-row" style="display: none;">
                         <div class="stat-box checkin">
                             <div class="stat-icon"><i class="fas fa-sign-in-alt"></i></div>
@@ -338,8 +299,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Charts Grid -->
                     <div class="dashboard-grid">
                         <div class="card owner-only">
                             <div class="card-header">
@@ -354,7 +313,6 @@
                                 <canvas id="revenueChart"></canvas>
                             </div>
                         </div>
-
                         <div class="card">
                             <div class="card-header">
                                 <h3><i class="fas fa-chart-pie" style="color: var(--secondary);"></i> Room Occupancy Status</h3>
@@ -364,8 +322,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Quick Actions grid -->
                     <div class="card" style="margin-bottom: 24px;">
                         <div class="card-header">
                             <h3><i class="fas fa-bolt" style="color: var(--warning)"></i> Frontdesk Quick Actions</h3>
@@ -382,8 +338,6 @@
                             </button>
                         </div>
                     </div>
-
-                    <!-- Export and Audit Section -->
                     <div class="card owner-only" id="downloadAllDataCard" style="margin-bottom: 24px;">
                         <div class="card-header">
                             <h3><i class="fas fa-cloud-download-alt" style="color: var(--secondary);"></i> Bulk PDF Bill Exporter</h3>
@@ -423,8 +377,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Recent Activity Timeline -->
                     <div class="card">
                         <div class="card-header">
                             <h3><i class="fas fa-history" style="color: var(--text-light);"></i> Real-Time Audit Activity Timeline</h3>
@@ -441,8 +393,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Bookings Management -->
                 <div id="bookings" class="page-content">
                     <div class="page-header">
                         <h2>Booking Management</h2>
@@ -458,8 +408,6 @@
                             </button>
                         </div>
                     </div>
-
-                    <!-- Month Filter Toolbar -->
                     <div class="booking-filter-toolbar" id="bookingFilterToolbar">
                         <div class="filter-row-top">
                             <div class="filter-year-nav">
@@ -494,12 +442,8 @@
                             <button class="month-pill" data-month="11" onclick="selectBookingMonth(11, this)">Dec</button>
                         </div>
                     </div>
-
-                    <!-- Booking logs sorted by month -->
                     <div id="bookingsMonthContainer"></div>
                 </div>
-
-                <!-- Create Booking Form -->
                 <div id="new-booking" class="page-content">
                     <div class="page-header">
                         <h2>Create New Booking</h2>
@@ -513,10 +457,8 @@
                             <p>Only rooms currently marked as <strong>Available</strong> can be booked. Multiple rooms can be reserved under a single guest profile.</p>
                         </div>
                     </div>
-                    
                     <div class="card">
                         <form id="newBookingForm">
-                            <!-- Section 1: Guest Profiling -->
                             <div class="detail-section">
                                 <h4><i class="fas fa-user-circle"></i> Guest Profiling</h4>
                                 <div class="form-row" style="margin-top: 15px;">
@@ -550,8 +492,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Section 2: Room Scheduling -->
                             <div class="detail-section">
                                 <h4><i class="fas fa-bed"></i> Room Scheduling & Details</h4>
                                 <div class="form-row" style="margin-top: 15px;">
@@ -585,7 +525,6 @@
                                 <div class="form-group" style="margin-top: 15px;">
                                     <label>Select Available Room *</label>
                                     <select id="bookingRoomId" required style="margin-bottom: 12px;"></select>
-                                    
                                     <div style="background: var(--surface-muted); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                             <span style="font-size: 11px; font-weight: 700; color: var(--text-light); text-transform: uppercase;">Assigned Rooms Selection</span>
@@ -599,8 +538,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Section 3: Identity Documentation -->
                             <div class="detail-section">
                                 <h4><i class="fas fa-id-card"></i> Identity Documentation</h4>
                                 <div class="form-row" style="margin-top: 15px;">
@@ -637,8 +574,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Section 4: Billing Details -->
                             <div class="detail-section">
                                 <h4><i class="fas fa-wallet"></i> Payments & Tariffs</h4>
                                 <div class="form-row" style="margin-top: 15px;">
@@ -690,17 +625,13 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Section 5: ID Capture Verification -->
                             <div class="detail-section">
                                 <h4><i class="fas fa-camera"></i> Live Photo Verification Feed</h4>
                                 <p style="font-size: 12px; color: var(--text-light); margin-bottom: 12px;">Webcam integration is required to record photo verification details of both the guest profile and physical ID document.</p>
                                 
                                 <input type="hidden" id="bookingCustomerPhotoData">
                                 <input type="hidden" id="bookingIdProofPhotoData">
-
                                 <div class="camera-verification-grid">
-                                    <!-- Camera feed -->
                                     <div>
                                         <div class="camera-live-box" style="border: 2px solid var(--border-light); border-radius: var(--radius-md); overflow: hidden; background: #000; position: relative;">
                                             <video id="bookingCameraPreview" autoplay playsinline muted style="width: 100%; height: 200px; object-fit: cover; display: none;"></video>
@@ -718,8 +649,6 @@
                                             </button>
                                         </div>
                                     </div>
-
-                                    <!-- Captures -->
                                     <div class="camera-cards-grid">
                                         <div class="capture-card">
                                             <h5>Guest Portrait Profile</h5>
@@ -737,7 +666,6 @@
                                                 <input type="file" id="uploadCustomerPhotoInput" accept="image/*" style="display: none;" onchange="handlePhotoUpload(this, 'customer')">
                                             </div>
                                         </div>
-
                                         <div class="capture-card">
                                             <h5>ID Proof Scan</h5>
                                             <div class="capture-preview" id="idProofPhotoPreviewWrap" style="height: 120px; border-radius: var(--radius-sm);">
@@ -757,13 +685,10 @@
                                     </div>
                                 </div>
                             </div>
-
                             <button type="submit" class="btn-login" style="width: 100%; margin-top: 20px; padding: 15px; font-size: 15px;">Book Stay and Check-In</button>
                         </form>
                     </div>
                 </div>
-
-                <!-- Room Diary View -->
                 <div id="diary" class="page-content">
                     <div class="page-header">
                         <h2>Room Diary & Reservations</h2>
@@ -773,16 +698,13 @@
                             <input type="date" id="diaryDate" onchange="loadDiary(this.value)">
                         </div>
                     </div>
-
                     <div class="card" style="margin-bottom: 20px;">
                         <div class="diary-instructions">
                             <p><i class="fas fa-info-circle"></i> Quick reservation book. Type occupant names on specific room inputs below. Changes are saved automatically when clicking outside input fields.</p>
                         </div>
                     </div>
-
                     <div class="card">
                         <div class="diary-grid">
-                            <!-- Floor 1 -->
                             <div class="diary-floor-section">
                                 <h3><i class="fas fa-building" style="color: var(--secondary);"></i> Floor 1</h3>
                                 <div class="diary-rooms-grid">
@@ -808,8 +730,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Floor 2 -->
                             <div class="diary-floor-section">
                                 <h3><i class="fas fa-building" style="color: var(--secondary);"></i> Floor 2</h3>
                                 <div class="diary-rooms-grid">
@@ -834,23 +754,18 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Room Management View -->
                 <div id="rooms" class="page-content">
                     <div class="page-header">
                         <h2>Room Control Panel</h2>
                     </div>
-
                     <div class="floor-section">
                         <h3 class="floor-title"><i class="fas fa-building"></i> Floor F1 (5 Rooms)</h3>
                         <div class="rooms-grid" id="floor1Rooms"></div>
                     </div>
-
                     <div class="floor-section">
                         <h3 class="floor-title"><i class="fas fa-building"></i> Floor F2 (4 Rooms)</h3>
                         <div class="rooms-grid" id="floor2Rooms"></div>
                     </div>
-
                     <div class="card">
                         <div class="room-legend">
                             <h4>Room Status Legend</h4>
@@ -875,14 +790,10 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Pricing Management View -->
                 <div id="pricing" class="page-content">
                     <div class="page-header">
                         <h2>Room Pricing & Tariff Structure</h2>
                     </div>
-                    
-                    <!-- Surcharge Rules (Owner Only) -->
                     <div class="card owner-only" style="margin-bottom: 24px;">
                         <div class="card-header">
                             <h3><i class="fas fa-crown" style="color: var(--warning);"></i> Dynamic Surge Pricing & Surcharge Rules</h3>
@@ -941,8 +852,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Guests Database CRM View -->
                 <div id="guests" class="page-content">
                     <div class="page-header">
                         <h2>Guests Database CRM</h2>
@@ -966,8 +875,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Interactive Audit Logs Explorer (Owner Only) -->
                 <div id="audit-logs-tab" class="page-content owner-only">
                     <div class="page-header">
                         <h2>Audit Trails & Security Logs</h2>
@@ -980,7 +887,6 @@
                             </button>
                         </div>
                     </div>
-                    
                     <div class="card">
                         <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
                             <div class="form-group" style="flex-grow: 1; min-width: 200px; margin-bottom: 0;">
@@ -996,7 +902,6 @@
                                 </select>
                             </div>
                         </div>
-                        
                         <div class="data-table-container">
                             <table class="data-table">
                                 <thead>
@@ -1007,21 +912,15 @@
                                     </tr>
                                 </thead>
                                 <tbody id="auditLogsExplorerTable">
-                                    <!-- Populated dynamically in script.js -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-
-
-
-                <!-- Payments and Financials -->
                 <div id="payments" class="page-content owner-only">
                     <div class="page-header">
                         <h2>Payments & GST Ledger</h2>
                     </div>
-                    
                     <div class="payment-summary">
                         <div class="payment-card" style="border-left-color: var(--secondary)">
                             <h4>Total Revenue (Gross)</h4>
@@ -1044,13 +943,10 @@
                             <p class="payment-amount" style="color: #F59E0B;" id="paymentTotalGST">₹0</p>
                         </div>
                     </div>
-
                     <div class="card">
                         <div class="card-header">
                             <h3>Lodge Guest Invoices & Billing Records</h3>
                         </div>
-
-                        <!-- Filter & Sort Toolbar -->
                         <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
                             <div class="form-group" style="flex: 1; min-width: 180px; margin-bottom: 0;">
                                 <input type="text" id="paymentSearchInput" placeholder="Search by guest name or invoice..." oninput="filterPaymentsTable()" style="height: 40px; padding: 0 12px;">
@@ -1082,8 +978,6 @@
                                 </select>
                             </div>
                         </div>
-
-                        <!-- GST Bill Printout Section -->
                         <div class="gst-print-section" style="background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
                                 <i class="fas fa-print" style="font-size: 20px; color: #16a34a;"></i>
@@ -1126,7 +1020,6 @@
                                 </button>
                             </div>
                         </div>
-
                         <div class="data-table-container">
                             <table class="data-table">
                                 <thead>
@@ -1152,8 +1045,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Analytics / Reports Center -->
                 <div id="analytics" class="page-content owner-only">
                     <div class="page-header">
                         <h2>Analytics & Reports Center</h2>
@@ -1169,8 +1060,6 @@
                             </button>
                         </div>
                     </div>
-                
-                    <!-- Trading-Style Daily Sales Calendar Heatmap -->
                     <div class="card owner-only" style="margin-bottom: 24px;">
                         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                             <h3><i class="fas fa-calendar-alt" style="color: var(--secondary);"></i> Trading-Style Daily Sales Heatmap</h3>
@@ -1184,16 +1073,12 @@
                                 </button>
                             </div>
                         </div>
-                        
                         <div style="padding: 15px;">
                             <div class="revenue-calendar-weekdays" style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; font-size: 11px; color: var(--text-light); margin-bottom: 8px;">
                                 <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
                             </div>
                             <div id="salesCalendarGrid" class="revenue-calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;">
-                                <!-- Calendar days populated dynamically -->
                             </div>
-                            
-                            <!-- Heatmap legend -->
                             <div style="display: flex; justify-content: flex-end; align-items: center; gap: 6px; font-size: 11px; margin-top: 15px; color: var(--text-light);">
                                 <span>No Sales</span>
                                 <div style="width: 12px; height: 12px; background: var(--border-light); border-radius: 2px;"></div>
@@ -1205,8 +1090,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Custom reports cards -->
                     <div class="analytics-grid">
                         <div class="card">
                             <div class="card-header">
@@ -1216,7 +1099,6 @@
                                 <canvas id="monthlyChart"></canvas>
                             </div>
                         </div>
-
                         <div class="card">
                             <div class="card-header">
                                 <h3>Lodge Performance Summary</h3>
@@ -1250,13 +1132,10 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Settings Module -->
                 <div id="settings-tab" class="page-content">
                     <div class="page-header">
                         <h2>Console System Settings</h2>
                     </div>
-                    
                     <div class="settings-container">
                         <nav class="settings-nav">
                             <button class="settings-nav-item active" onclick="showSettingsPanel('settingsLodge', this)">Lodge Profile</button>
@@ -1264,9 +1143,7 @@
                             <button class="settings-nav-item" onclick="showSettingsPanel('settingsPermissions', this)">User Permissions</button>
                             <button class="settings-nav-item" onclick="showSettingsPanel('settingsBackups', this)">System Backup & Restore</button>
                         </nav>
-                        
                         <div class="settings-content">
-                            <!-- Lodge Profile Panel -->
                             <div id="settingsLodge" class="settings-panel active">
                                 <h3>Lodge General Information</h3>
                                 <form id="settingsLodgeForm" onsubmit="saveLodgeSettings(event)">
@@ -1291,8 +1168,6 @@
                                     <button type="submit" class="btn-primary" style="margin-top: 10px;">Save Profile Settings</button>
                                 </form>
                             </div>
-
-                            <!-- Pricing Rules Panel -->
                             <div id="settingsPricing" class="settings-panel">
                                 <h3>Pricing Configuration</h3>
                                 <form id="settingsPricingForm" onsubmit="savePricingSettings(event)">
@@ -1313,8 +1188,6 @@
                                     <button type="submit" class="btn-primary" style="margin-top: 10px;">Save Pricing Configurations</button>
                                 </form>
                             </div>
-
-                            <!-- User Permissions Panel -->
                             <div id="settingsPermissions" class="settings-panel">
                                 <h3>User Roles & Permissions (Mock)</h3>
                                 <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
@@ -1328,8 +1201,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Backup and Recovery -->
                             <div id="settingsBackups" class="settings-panel">
                                 <h3>System Caching & Recovery</h3>
                                 <div class="pricing-info" style="margin-bottom: 20px;">
@@ -1347,10 +1218,6 @@
             </div>
         </main>
     </div>
-
-    <!-- Modals Layout Area -->
-
-    <!-- Receipt Drawer Modal -->
     <div id="receiptModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1364,8 +1231,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Edit Base Tariff Price modal -->
     <div id="priceModal" class="modal">
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
@@ -1385,8 +1250,6 @@
             <button class="btn-primary" onclick="updateRoomPrice()" style="width: 100%; margin-top: 15px;">Update Price</button>
         </div>
     </div>
-
-    <!-- Edit Booking Details Modal -->
     <div class="modal" id="editBookingModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1423,7 +1286,6 @@
                         </button>
                     </div>
                     <div id="editRoomsList" style="background: var(--surface-muted); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
-                        <!-- Rooms listed here -->
                     </div>
                 </div>
                 <div class="form-row" style="margin-bottom: 12px;">
@@ -1523,8 +1385,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Add Room during Edit Booking Modal -->
     <div id="editAddRoomModal" class="modal">
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
@@ -1540,8 +1400,6 @@
             <button class="btn-primary" onclick="confirmEditAddRoom()" style="width: 100%; margin-top: 15px;">Confirm Room Assignment</button>
         </div>
     </div>
-
-    <!-- Extra Charges modal -->
     <div id="extraAmountModal" class="modal">
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
@@ -1561,8 +1419,6 @@
             <button class="btn-primary" onclick="updateExtraAmount()" style="width: 100%; margin-top: 15px;">Confirm Extra Charge</button>
         </div>
     </div>
-
-    <!-- Room Details & Controls Drawer Modal -->
     <div id="roomDetailsModal" class="modal">
         <div class="modal-content customer-modal-large">
             <div class="modal-header" style="margin-bottom: 10px;">
@@ -1572,8 +1428,6 @@
             <div id="roomDetailsContent"></div>
         </div>
     </div>
-
-    <!-- Image proof Viewer Modal -->
     <div id="photoViewerModal" class="modal">
         <div class="modal-content customer-modal-large" style="max-width: 800px; text-align: center;">
             <div class="modal-header">
@@ -1605,8 +1459,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Guest Photo History Modal -->
     <div id="guestPhotoHistoryModal" class="modal">
         <div class="modal-content customer-modal-large" style="max-width: 1100px; max-height: 90vh; overflow-y: auto; padding: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -1617,8 +1469,6 @@
             <button class="btn-primary" onclick="closeGuestPhotoHistoryModal()" style="margin-top: 15px; width: 100%; padding: 12px; font-size: 14px;">Close</button>
         </div>
     </div>
-
-    <!-- Recover Photos Modal -->
     <div id="recoverPhotosModal" class="modal">
         <div class="modal-content customer-modal-large" style="max-width: 800px;">
             <div class="modal-header">
@@ -1630,12 +1480,9 @@
                 <i class="fas fa-spinner fa-spin"></i> Scanning cloud databases...
             </div>
             <div id="recoverPhotosGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 15px; max-height: 400px; overflow-y: auto;">
-                <!-- Populate dynamically -->
             </div>
         </div>
     </div>
-
-    <!-- View All Photos Gallery -->
     <div id="allPhotosModal" class="modal">
         <div class="modal-content customer-modal-large" style="max-width: 1200px;">
             <div class="modal-header">
@@ -1646,12 +1493,9 @@
                 <i class="fas fa-spinner fa-spin"></i> Loading photos catalog...
             </div>
             <div id="allPhotosGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; max-height: 500px; overflow-y: auto; padding: 5px;">
-                <!-- Populated dynamically -->
             </div>
         </div>
     </div>
-
-    <!-- Password Change Modal -->
     <div id="changePasswordModal" class="modal">
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
@@ -1675,10 +1519,6 @@
             </form>
         </div>
     </div>
-
-
-
-    <!-- System Configurations scripts -->
     <script>
         window.firebaseConfig = {
             apiKey: "AIzaSyD1d53LVXEVRscJl5dWS8LDoPi7s6x2C1I",
@@ -1690,13 +1530,10 @@
             measurementId: "G-J41F52DYHD"
         };
     </script>
-    <!-- Firebase Libraries -->
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
-    
-    <!-- Application Logic Modules -->
     <script src="receipt.js?v=2.0"></script>
     <script src="booking.js?v=2.0"></script>
     <script src="script.js?v=2.0"></script>
