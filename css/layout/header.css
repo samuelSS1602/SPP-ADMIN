@@ -1,0 +1,217 @@
+/* MAIN CONTENT AREA */
+.main-content {
+    grid-column: 2;
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    transition: var(--transition-normal);
+    background: rgba(245, 247, 243, 0.42);
+}
+
+/* HEADER DESIGN */
+.top-header {
+    background: var(--bg-card);
+    padding: 16px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+    border-bottom: 1px solid var(--border-light);
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-left h2 {
+    font-family: 'Manrope', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-dark);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+/* Global Search Input Header */
+.global-search-container {
+    position: relative;
+    width: 220px;
+}
+
+.global-search-container input {
+    width: 100%;
+    padding: 8px 12px 8px 32px;
+    font-size: 13px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    background-color: var(--surface-muted);
+    color: var(--text-dark);
+    transition: var(--transition-fast);
+}
+
+.global-search-container input:focus {
+    width: 280px;
+    background-color: var(--bg-card);
+    border-color: var(--secondary);
+    outline: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.global-search-container i {
+    position: absolute;
+    left: 11px;
+    top: 10px;
+    color: var(--text-light);
+    font-size: 13px;
+}
+
+/* Quick Add Button Dropdown style */
+.quick-add-btn {
+    padding: 8px 14px;
+    font-size: 12px;
+    border-radius: var(--radius-md);
+    background-color: var(--secondary);
+    color: white;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: var(--transition-fast);
+    box-shadow: 0 2px 6px rgba(37,99,235,0.2);
+}
+
+.quick-add-btn:hover {
+    background-color: var(--accent);
+}
+
+/* Notifications dropdown badge */
+.header-notif-btn {
+    position: relative;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+}
+
+.header-notif-btn:hover {
+    color: var(--text-dark);
+}
+
+.header-notif-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background-color: var(--danger);
+    color: white;
+    font-size: 9px;
+    font-weight: bold;
+    min-width: 14px;
+    height: 14px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+}
+
+/* Dark Mode Toggle styling */
+.dark-mode-toggle {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 18px;
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+}
+
+.dark-mode-toggle:hover {
+    color: var(--text-dark);
+    transform: rotate(15deg);
+}
+
+/* User Profile Badge */
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-full);
+    padding: 4px 12px 4px 4px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.user-profile:hover {
+    border-color: var(--text-light);
+}
+
+.profile-pic {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    box-shadow: var(--shadow-sm);
+}
+
+.content-area {
+    flex: 1;
+    padding: 28px 30px 40px;
+    overflow-y: auto;
+}
+
+.page-content {
+    display: none;
+}
+
+.page-content.active {
+    display: block;
+    animation: contentFade 0.25s ease-out;
+}
+
+@keyframes contentFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.page-header h2 {
+    font-family: 'Manrope', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-dark);
+}
+

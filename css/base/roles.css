@@ -1,0 +1,39 @@
+/* ROLE DISPLAY & VIEW RESTRICTIONS */
+/* Note: .receptionist-only elements are visible to ALL roles (owner can do everything) */
+
+/* Hide owner-only elements by default (non-owner login) */
+.owner-only {
+    display: none !important;
+}
+
+/* When owner is logged in, restore owner-only elements to their natural display.
+   For page-content sections: they rely on .active for visibility, 
+   so we reset to 'none' and let .active override to 'block'. */
+.owner-view .owner-only {
+    display: revert !important;
+}
+
+/* Critical fix: owner-only page-content sections must still respect .active toggling.
+   Without this, all owner-only pages show at once. */
+.owner-view .page-content.owner-only {
+    display: none !important;
+}
+
+.owner-view .page-content.owner-only.active {
+    display: block !important;
+}
+
+/* Same fix for owner-only nav items (sidebar buttons) — they should always show */
+.owner-view .nav-item.owner-only {
+    display: flex !important;
+}
+
+.owner-view .checkout-action {
+    display: none !important;
+}
+
+/* Same fix for owner-only cards/elements inside active pages */
+.owner-view .card.owner-only {
+    display: block !important;
+}
+

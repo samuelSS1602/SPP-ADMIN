@@ -1,0 +1,386 @@
+/* ==========================================================================
+   BOOKING FILTER TOOLBAR & MONTH SECTIONS STYLE
+   ========================================================================== */
+
+.booking-filter-toolbar {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-normal);
+}
+
+.filter-row-top {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.filter-year-nav {
+    display: flex;
+    align-items: center;
+    background: var(--surface-muted);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 4px 8px;
+    height: 42px;
+}
+
+.year-nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.year-nav-btn:hover {
+    background: var(--border-light);
+    color: var(--text-dark);
+}
+
+.year-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-dark);
+    min-width: 60px;
+    text-align: center;
+}
+
+.filter-status-select select {
+    height: 42px;
+    padding: 0 16px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    color: var(--text-dark);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    outline: none;
+}
+
+.filter-status-select select:focus {
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.filter-reset-btn {
+    height: 42px;
+    padding: 0 16px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--surface-muted);
+    color: var(--text-dark);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition-fast);
+}
+
+.filter-reset-btn:hover {
+    background: var(--border-light);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.filter-reset-btn:active {
+    transform: translateY(0);
+}
+
+.filter-month-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    border-top: 1px solid var(--border-light);
+    padding-top: 16px;
+}
+
+.month-pill {
+    background: var(--surface-muted);
+    border: 1px solid var(--border-light);
+    color: var(--text-light);
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.month-pill:hover {
+    background: var(--border-light);
+    color: var(--text-dark);
+}
+
+.month-pill.active {
+    background: var(--secondary);
+    color: white;
+    border-color: var(--secondary);
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+}
+
+.month-pill.active:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+/* Month sections log containers */
+.month-booking-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: var(--transition-normal);
+}
+
+.month-booking-section:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.month-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: var(--surface-muted);
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer;
+    user-select: none;
+    transition: var(--transition-fast);
+}
+
+.month-section-header:hover {
+    background: var(--border-light);
+}
+
+.month-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.month-toggle-icon {
+    font-size: 14px;
+    color: var(--text-light);
+    transition: transform 0.25s ease;
+}
+
+.month-booking-section.collapsed .month-toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.month-header-left h3 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.month-booking-count {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-light);
+    background: rgba(0, 0, 0, 0.05);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+}
+
+.dark-theme .month-booking-count {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.month-header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.month-stats-chips {
+    display: flex;
+    gap: 6px;
+}
+
+.month-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+}
+
+.month-chip.confirmed {
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--secondary);
+}
+
+.month-chip.completed {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.month-chip.cancelled {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+.month-revenue {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--success);
+}
+
+.month-section-body {
+    transition: max-height 0.3s ease;
+}
+
+.month-booking-section.collapsed .month-section-body {
+    display: none;
+}
+
+/* Zero padding full bleed table scroll area inside monthly body */
+.month-section-body .card {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+    overflow-x: auto;
+}
+
+
+/* ==========================================================================
+   BOOKING CARDS (CRM-style grid inside each month section)
+   ========================================================================== */
+.booking-card-grid {
+    padding: 18px;
+}
+
+.booking-card {
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+/* Status accent along the top edge */
+.booking-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--booking-accent, var(--border-light));
+}
+
+.booking-card.status-confirmed,
+.booking-card.status-pending,
+.booking-card.status-paid { --booking-accent: var(--success); }
+.booking-card.status-completed { --booking-accent: var(--accent); }
+.booking-card.status-cancelled { --booking-accent: var(--danger); }
+
+.booking-card .guest-card-title > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.booking-card .status-badge {
+    font-size: 10px;
+    padding: 3px 9px;
+}
+
+.booking-stay-strip {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.booking-stay-strip strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.booking-stay-strip strong + small {
+    margin-top: 2px;
+}
+
+.booking-card .guest-card-actions {
+    flex-wrap: wrap;
+}
+
+.booking-card .compact-action {
+    flex: 1 1 auto;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    font-size: 12px;
+}
+
+.booking-state-pill[disabled] {
+    cursor: default;
+    opacity: 1;
+}
+
+.booking-state-pill.cancelled {
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+    background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+
+.booking-state-pill.completed {
+    color: var(--success);
+    border-color: color-mix(in srgb, var(--success) 35%, transparent);
+    background: color-mix(in srgb, var(--success) 8%, transparent);
+}
+
+.booking-danger-action:hover {
+    color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+.booking-card.status-cancelled .guest-avatar {
+    filter: grayscale(1);
+    opacity: 0.7;
+}
+
+@media (max-width: 600px) {
+    .booking-card-grid {
+        padding: 12px;
+        grid-template-columns: 1fr;
+    }
+
+    .booking-stay-strip {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .booking-stay-strip > span:first-child {
+        grid-column: 1 / -1;
+    }
+}

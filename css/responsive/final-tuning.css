@@ -1,0 +1,109 @@
+/* FINAL RESPONSIVE LAYOUT TUNING */
+.data-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+    min-width: 680px;
+}
+
+@media (max-width: 900px) {
+    .content-area {
+        padding: 22px 20px 32px;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .metrics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .metric-card {
+        padding: 16px;
+    }
+
+    .metric-value {
+        font-size: 24px;
+    }
+}
+
+@media (max-width: 600px) {
+    .content-area {
+        padding: 18px 14px 28px;
+    }
+
+    .page-header {
+        align-items: flex-start;
+        margin-bottom: 18px;
+    }
+
+    .page-header h2 {
+        font-size: 20px;
+    }
+
+    .metrics-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .metric-label {
+        font-size: 10px;
+    }
+
+    .metric-value {
+        font-size: 21px;
+    }
+
+    .card {
+        padding: 16px;
+        border-radius: 10px;
+    }
+
+    .card-header {
+        align-items: flex-start;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .card-header h3 {
+        font-size: 12px;
+    }
+
+    .form-row {
+        gap: 12px;
+    }
+
+    .modal-content {
+        width: calc(100% - 24px);
+        max-height: calc(100vh - 24px);
+        padding: 18px;
+    }
+
+    .room-grid,
+    .rooms-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .btn-primary,
+    .btn-secondary,
+    .filter-reset-btn {
+        min-height: 40px;
+    }
+}
+
+@media (max-width: 380px) {
+    .metrics-grid,
+    .room-grid,
+    .rooms-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .header-right {
+        gap: 7px;
+    }
+}
+

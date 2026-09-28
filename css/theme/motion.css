@@ -1,0 +1,154 @@
+/*
+ * Sri Padmavati Pleasants - Motion & render performance layer
+ * Loaded last. Animations use only opacity/transform (GPU-composited) and use
+ * fill-mode "backwards" so no transform lingers afterwards (hover effects keep working).
+ */
+
+:root {
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes pageEnter {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+}
+
+@keyframes riseIn {
+    from { opacity: 0; transform: translateY(14px) scale(0.985); }
+    to   { opacity: 1; transform: none; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.96); }
+    to   { opacity: 1; transform: none; }
+}
+
+@keyframes dropIn {
+    from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+}
+
+@keyframes growBar {
+    from { transform: scaleY(0); }
+    to   { transform: scaleY(1); }
+}
+
+/* ---------- Page switches ---------- */
+.page-content.active {
+    animation: pageEnter 0.38s var(--ease-out) backwards;
+}
+
+/* ---------- Staggered card entrance ---------- */
+.metrics-grid > .metric-card,
+.guest-card-grid > .guest-card,
+.rooms-grid > *,
+.payment-summary > *,
+.dashboard-grid > .card,
+.diary-rooms-grid > *,
+.month-booking-section {
+    animation: riseIn 0.46s var(--ease-out) backwards;
+}
+
+/* Only the first dozen get a delay, so long lists never wait on animation */
+:is(.metrics-grid, .guest-card-grid, .rooms-grid, .payment-summary, .dashboard-grid, .diary-rooms-grid) > :nth-child(2)  { animation-delay: 0.03s; }
+:is(.metrics-grid, .guest-card-grid, .rooms-grid, .payment-summary, .dashboard-grid, .diary-rooms-grid) > :nth-child(3)  { animation-delay: 0.06s; }
+:is(.metrics-grid, .guest-card-grid, .rooms-grid, .payment-summary, .dashboard-grid, .diary-rooms-grid) > :nth-child(4)  { animation-delay: 0.09s; }
+:is(.metrics-grid, .guest-card-grid, .rooms-grid, .payment-summary, .dashboard-grid, .diary-rooms-grid) > :nth-child(5)  { animation-delay: 0.12s; }
+:is(.metrics-grid, .guest-card-grid, .rooms-grid, .payment-summary, .dashboard-grid, .diary-rooms-grid) > :nth-child(6)  { animation-delay: 0.15s; }
+:is(.metrics-grid, .guest-card-grid, .rooms-grid, .payment-summary, .dashboard-grid, .diary-rooms-grid) > :nth-child(7)  { animation-delay: 0.18s; }
+:is(.metrics-grid, .guest-card-grid, .rooms-grid, .payment-summary, .dashboard-grid, .diary-rooms-grid) > :nth-child(8)  { animation-delay: 0.21s; }
+:is(.metrics-grid, .guest-card-grid, .rooms-grid, .payment-summary, .dashboard-grid, .diary-rooms-grid) > :nth-child(9)  { animation-delay: 0.24s; }
+:is(.metrics-grid, .guest-card-grid, .rooms-grid, .payment-summary, .dashboard-grid, .diary-rooms-grid) > :nth-child(10) { animation-delay: 0.27s; }
+:is(.metrics-grid, .guest-card-grid, .rooms-grid, .payment-summary, .dashboard-grid, .diary-rooms-grid) > :nth-child(11) { animation-delay: 0.30s; }
+:is(.metrics-grid, .guest-card-grid, .rooms-grid, .payment-summary, .dashboard-grid, .diary-rooms-grid) > :nth-child(12) { animation-delay: 0.33s; }
+
+/* ---------- Render performance for long lists ---------- */
+/* Off-screen cards skip layout and paint until they are scrolled near */
+.booking-card,
+.guest-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 330px;
+}
+
+/* Avatar photos fade in over the green avatar background once decoded */
+.guest-avatar img[decoding="async"] {
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+.guest-avatar img[decoding="async"].is-loaded { opacity: 1; }
+
+/* ---------- Modals & dropdowns ---------- */
+.modal { animation: fadeIn 0.2s ease; }
+.modal .modal-content { animation: modalIn 0.34s var(--ease-out); }
+
+.user-dropdown.active,
+.notif-dropdown.active {
+    animation: dropIn 0.18s var(--ease-out);
+    transform-origin: top right;
+}
+
+/* ---------- Micro-interactions ---------- */
+:is(.btn-primary, .btn-secondary, .quick-add-btn, .preset-btn, .month-pill, .room-filter-pill,
+    .gst-pill, .btn-control, .btn-download-all, .compact-action, .btn-login, .logout-btn):active:not(:disabled) {
+    transform: scale(0.97);
+    transition-duration: 0.06s;
+}
+
+.nav-item i { transition: transform 0.2s var(--ease-out), color 0.2s ease; }
+.nav-item:hover i { transform: translateX(2px) scale(1.08); }
+
+.nav-item.active::before {
+    animation: growBar 0.3s var(--ease-out);
+    transform-origin: center;
+}
+
+.metric-icon,
+.card-header h3 i { transition: transform 0.25s var(--ease-spring); }
+.metric-card:hover .metric-icon { transform: scale(1.1) rotate(-4deg); }
+
+.header-notif-btn:hover i { animation: bellRing 0.6s ease; }
+
+@keyframes bellRing {
+    0%, 100% { transform: rotate(0); }
+    20% { transform: rotate(14deg); }
+    40% { transform: rotate(-10deg); }
+    60% { transform: rotate(6deg); }
+    80% { transform: rotate(-3deg); }
+}
+
+.month-toggle-icon { transition: transform 0.25s var(--ease-out); }
+.month-booking-section:not(.collapsed) .month-section-body { animation: fadeIn 0.25s ease; }
+
+/* ---------- Login ---------- */
+.login-wrapper { animation: modalIn 0.6s var(--ease-out) backwards; }
+.side-features > div { animation: riseIn 0.5s var(--ease-out) backwards; }
+.side-features > div:nth-child(1) { animation-delay: 0.25s; }
+.side-features > div:nth-child(2) { animation-delay: 0.32s; }
+.side-features > div:nth-child(3) { animation-delay: 0.39s; }
+.side-features > div:nth-child(4) { animation-delay: 0.46s; }
+
+/* ---------- Mobile sidebar slide ---------- */
+@media (max-width: 900px) {
+    .sidebar { transition: left 0.32s var(--ease-out), box-shadow 0.32s ease; }
+    .sidebar-overlay.active { animation: fadeIn 0.25s ease; }
+}
+
+/* ---------- Respect "reduce motion" ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-delay: 0s !important;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+
+/* Cards streamed in after first paint appear without the entrance animation */
+.guest-card-grid > .no-enter-animation { animation: none; }

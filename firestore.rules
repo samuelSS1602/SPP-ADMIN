@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Firestore security rules for the Sri Padmavati Pleasants admin console.
+// Only signed-in staff (Firebase Authentication users) may read or write data.
+// Publish: Firebase Console > Firestore Database > Rules > paste this file > Publish.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    match /bookings/{bookingId}        { allow read, write: if isSignedIn(); }
+    match /booking_photos/{bookingId}  { allow read, write: if isSignedIn(); }
+    match /customers/{customerId}      { allow read, write: if isSignedIn(); }
+    match /rooms/{roomId}              { allow read, write: if isSignedIn(); }
+    match /diaryReminder/{entryId}     { allow read, write: if isSignedIn(); }
+    match /audit_logs/{logId}          { allow read, write: if isSignedIn(); }
+
+    // Everything else is closed.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

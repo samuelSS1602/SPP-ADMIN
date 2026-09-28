@@ -1,0 +1,61 @@
+/* 
+ * Sri Padmavati Pleasants - Modern Enterprise CSS Design System
+ * Inspired by Notion, Linear, Stripe, and modern hotel dashboards
+ */
+
+:root {
+    /* Color Palette */
+    --primary: #173f3a;         /* Deep lodge green */
+    --primary-light: #245b50;   /* Forest green */
+    --secondary: #b86b35;       /* Terracotta */
+    --accent: #d49455;          /* Warm brass */
+    
+    --success: #10b981;         /* Emerald Green */
+    --warning: #f59e0b;         /* Amber */
+    --danger: #ef4444;          /* Soft Red */
+    
+    /* Backgrounds & Surfaces */
+    --bg-main: #f5f7f3;         /* Soft botanical white */
+    --bg-gradient: radial-gradient(circle at 100% 0%, #fff8ec 0%, #f5f7f3 48%, #eaf1ed 100%);
+    --bg-card: #ffffff;         /* Pure white cards */
+    --surface-muted: #edf2ee;   /* Off-white */
+    
+    /* Borders & Typography colors */
+    --border-light: #d9e3dc;
+    --glass-border: rgba(255, 255, 255, 0.7);
+    --text-dark: #18312d;       /* Active text color */
+    --text-light: #60756e;      /* Muted botanical text */
+    --text-on-dark: #f8fafc;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -1px rgba(15, 23, 42, 0.02);
+    --shadow-lg: 0 14px 32px -14px rgba(23, 63, 58, 0.22), 0 4px 12px -5px rgba(23, 63, 58, 0.08);
+    --shadow-xl: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+    
+    /* Radius & Transitions */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 12px;
+    --radius-full: 9999px;
+    --transition-normal: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark Mode Mappings */
+.dark-theme {
+    --bg-main: #0b0f19;
+    --bg-gradient: radial-gradient(circle at top left, #17153a 0%, #0b0f19 70%);
+    --bg-card: #131c2e;
+    --surface-muted: #1e293b;
+    --border-light: #223049;
+    --glass-border: rgba(255, 255, 255, 0.03);
+    --text-dark: #f8fafc;
+    --text-light: #94a3b8;
+    
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 10px 30px -10px rgba(0, 0, 0, 0.35);
+    --shadow-xl: 0 20px 50px -12px rgba(0, 0, 0, 0.5);
+}
+

@@ -1,0 +1,101 @@
+/* ==========================================================================
+   PAYMENT & GST PAGE STYLES
+   ========================================================================== */
+
+.payment-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.payment-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    border-left: 4px solid var(--secondary);
+    transition: var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+}
+
+.payment-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.payment-card h4 {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+.payment-amount {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text-dark);
+    line-height: 1.1;
+    margin: 0;
+}
+
+/* ===== ANALYTICS BUTTONS ===== */
+.analytics-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ===== PAGE CONTENT SCROLL FIX ===== */
+/* Ensure active page content doesn't cause horizontal overflow */
+.page-content.active {
+    display: block;
+    animation: contentFade 0.25s ease-out;
+    overflow-x: hidden;
+    min-height: 0;
+}
+
+/* Ensure content-area scrolls properly */
+.content-area {
+    flex: 1;
+    padding: 24px 28px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+@media (max-width: 600px) {
+    .payment-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .payment-card {
+        padding: 16px 18px;
+    }
+
+    .payment-amount {
+        font-size: 22px;
+    }
+
+    .analytics-buttons {
+        flex-direction: column;
+    }
+
+    .analytics-buttons .btn-primary {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+
+/* Row that loads the next batch of invoices when it scrolls into view */
+.table-load-more td {
+    text-align: center;
+    padding: 18px;
+    color: var(--text-light);
+    font-size: 12px;
+}

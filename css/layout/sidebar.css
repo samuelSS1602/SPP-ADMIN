@@ -1,0 +1,139 @@
+/* DASHBOARD LAYOUT */
+.dashboard-container {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: 100vh;
+}
+
+/* SIDEBAR STYLES */
+.sidebar {
+    background: #0b0f19; /* Solid Dark Sidebar */
+    border-right: 1px solid #1a2336;
+    color: #94a3b8;
+    padding: 24px 16px;
+    position: fixed;
+    width: 240px;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: var(--transition-normal);
+}
+
+.sidebar-header {
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #1a2336;
+}
+
+.brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-logo {
+    max-width: 32px;
+    height: auto;
+    border-radius: var(--radius-sm);
+    border: 1px solid #1a2336;
+}
+
+.brand-text h3 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+}
+
+.brand-text p {
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 20px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    transition: var(--transition-fast);
+}
+
+.nav-item i {
+    font-size: 15px;
+    width: 18px;
+    text-align: center;
+    color: #64748b;
+}
+
+.nav-item:hover {
+    background-color: #162035;
+    color: #ffffff;
+}
+
+.nav-item:hover i {
+    color: var(--accent);
+}
+
+.nav-item.active {
+    background: #1e293b;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.nav-item.active i {
+    color: var(--secondary);
+}
+
+/* Sidebar Footer Options */
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    color: #f1f5f9;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    border: none;
+    background: #ef444420;
+    width: 100%;
+    text-align: left;
+    transition: var(--transition-fast);
+    margin-top: 10px;
+}
+
+.logout-btn:hover {
+    background-color: var(--danger);
+    color: white;
+}
+
+.footer-credit {
+    text-align: center;
+    font-size: 10px;
+    color: #475569;
+    padding-top: 15px;
+    border-top: 1px solid #1a2336;
+}
+
