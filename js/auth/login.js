@@ -31,7 +31,7 @@ async function handleLogin(e) {
 
             showDashboard();
             applyRoleRestrictions();
-            syncAllBookingsToFirebase();
+            startRealtimeSync();
 
             // Reset button state just in case it's shown again after logout
             loginBtn.innerHTML = originalBtnHtml;
@@ -138,6 +138,7 @@ async function logout() {
         document.getElementById('loginForm').reset();
         destroyCharts();
         stopCheckoutReminderService();
+        stopRealtimeSync();
 
         // Reset role state
         currentUserRole = 'receptionist';

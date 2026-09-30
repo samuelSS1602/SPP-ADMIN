@@ -26,14 +26,6 @@ function initFirebaseServices() {
     }
 }
 
-function syncAllBookingsToFirebase() {
-    if (!firebaseEnabled || !firebaseDb) return;
-
-    data.bookings.forEach(booking => {
-        syncBookingToFirebase(booking);
-    });
-}
-
 async function syncBookingToFirebase(booking) {
     if (!firebaseEnabled || !firebaseDb || !booking || !booking.id) return;
 
