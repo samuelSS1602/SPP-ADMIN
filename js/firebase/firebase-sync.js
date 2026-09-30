@@ -44,6 +44,9 @@ async function syncBookingToFirebase(booking) {
     const cloudBooking = {};
     for (const key in booking) {
         if (key === 'customerPhoto' || key === 'idProofPhoto') continue;
+        // customerPhotoUrl / idProofPhotoUrl hold a locally cached copy of the booking_photos image.
+        // Writing it here made every booking document hundreds of KB, too big for the app to download.
+        if ((key === 'customerPhotoUrl' || key === 'idProofPhotoUrl') && String(booking[key]).startsWith('data:')) continue;
         if (booking[key] !== undefined) {
             cloudBooking[key] = booking[key];
         }
