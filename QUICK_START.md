@@ -1,3 +1,5 @@
+> **Note (v2):** the console is now a React + Vite app. Run `npm install` then `npm run dev`; see README.md for setup. The file-based instructions below describe the older version.
+
 # Sri Padmavati Pleasant - Quick Start Guide
 
 ## 🚀 Start Using in 30 Seconds

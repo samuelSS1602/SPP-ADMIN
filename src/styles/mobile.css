@@ -1,0 +1,276 @@
+/* =========================================================
+   Touch & phone layer for the React version.
+   Loaded after the original stylesheets; it only adds to them.
+   ========================================================= */
+
+html { -webkit-text-size-adjust: 100%; }
+body { -webkit-tap-highlight-color: transparent; }
+body.modal-open { overflow: hidden; }
+
+button, .nav-item, .month-section-header, .guest-card, .room-card, .user-dropdown-item, .notif-dropdown-item {
+    touch-action: manipulation;
+}
+
+a[href^="tel:"] { color: inherit; text-decoration: underline dotted; text-underline-offset: 2px; }
+
+/* ---------- Things only phones see ---------- */
+.bottom-nav,
+.mobile-search-btn,
+.mobile-search-bar { display: none; }
+
+/* Revenue heatmap: tap a day to pin its tooltip (hover does not exist on touch screens) */
+.revenue-calendar-day.tooltip-open .revenue-calendar-tooltip { visibility: visible; opacity: 1; }
+
+/* ---------- Full-screen photo viewer ---------- */
+.expand-photo-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+}
+.expand-photo-stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    touch-action: pinch-zoom pan-x pan-y;
+}
+.expand-photo-stage img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+.expand-photo-loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; }
+.expand-photo-title {
+    position: absolute;
+    top: max(20px, env(safe-area-inset-top));
+    left: 20px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px 14px;
+    border-radius: 6px;
+    max-width: calc(100% - 100px);
+    word-break: break-word;
+}
+.expand-photo-close {
+    position: absolute;
+    top: max(20px, env(safe-area-inset-top));
+    right: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #333;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.receipt-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* =========================================================
+   Tablets and phones (≤ 900px)
+   ========================================================= */
+@media (max-width: 900px) {
+    /* Bottom tab bar */
+    .bottom-nav {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 950;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border-light);
+        box-shadow: 0 -6px 20px -12px rgba(15, 23, 42, 0.25);
+        padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    }
+    .bottom-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        min-height: 48px;
+        border: 0;
+        background: none;
+        color: var(--text-light);
+        font: inherit;
+        font-size: 10px;
+        font-weight: 700;
+        border-radius: 12px;
+        cursor: pointer;
+    }
+    .bottom-nav-item i { font-size: 17px; }
+    .bottom-nav-item.active { color: var(--secondary); background: color-mix(in srgb, var(--secondary) 10%, transparent); }
+    .bottom-nav-item.primary i {
+        width: 38px;
+        height: 30px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--secondary), var(--accent));
+        color: #fff;
+        font-size: 15px;
+    }
+
+    .content-area { padding-bottom: calc(90px + env(safe-area-inset-bottom)) !important; }
+    .app-toast-container { bottom: calc(80px + env(safe-area-inset-bottom)); right: 12px; left: 12px; }
+    .app-toast { max-width: none; }
+
+    /* Header: search moves to a toggle that opens a bar under the header */
+    .top-header { flex-wrap: wrap; row-gap: 10px; }
+    .header-left { min-width: 0; flex: 1; }
+    .header-left h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mobile-search-btn { display: inline-flex; }
+    .mobile-search-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        background: var(--surface-muted);
+        color: var(--text-light);
+    }
+    .mobile-search-bar input {
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        background: transparent;
+        color: var(--text-dark);
+        font-size: 16px;
+        outline: none;
+    }
+    .mobile-search-bar button { border: 0; background: none; color: var(--text-light); font-size: 16px; padding: 4px 6px; cursor: pointer; }
+
+    .sidebar { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+    .nav-item { min-height: 44px; }
+
+    .page-header-actions { flex-wrap: wrap; }
+
+    /* Dropdowns fit the screen */
+    .user-dropdown, .notif-dropdown { max-width: calc(100vw - 24px); }
+    .notif-dropdown { position: fixed !important; left: 12px; right: 12px; top: 64px; width: auto !important; }
+}
+
+/* =========================================================
+   Phones (≤ 700px): tables become cards, modals become sheets
+   ========================================================= */
+@media (max-width: 700px) {
+    /* Avoid iOS zoom-on-focus */
+    input, select, textarea { font-size: 16px !important; }
+
+    .responsive-table { min-width: 0 !important; }
+    .responsive-table thead { display: none; }
+    .responsive-table,
+    .responsive-table tbody,
+    .responsive-table tr,
+    .responsive-table td { display: block; width: 100%; }
+    .responsive-table tr {
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 10px 14px;
+        margin-bottom: 10px;
+        box-shadow: var(--shadow-sm);
+    }
+    .responsive-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        border: 0 !important;
+        padding: 6px 0 !important;
+        text-align: right;
+        white-space: normal !important;
+    }
+    .responsive-table td[data-label]::before {
+        content: attr(data-label);
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-light);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        text-align: left;
+        flex-shrink: 0;
+    }
+    .responsive-table td[colspan] { justify-content: center; text-align: center; }
+    .responsive-table tr.table-load-more { border-style: dashed; }
+    .responsive-table input.price-input { max-width: 160px; }
+    body:not(.owner-view) .responsive-table td.owner-cell { display: none; }
+
+    .payments-filters > .form-group { width: 100% !important; flex: 1 1 100% !important; }
+    .audit-category-group { width: 100% !important; }
+
+    /* Bottom-sheet modals */
+    .modal { align-items: flex-end; }
+    .modal-content {
+        width: 100% !important;
+        max-width: none !important;
+        max-height: 92vh !important;
+        border-radius: 18px 18px 0 0 !important;
+        padding: 18px 16px calc(18px + env(safe-area-inset-bottom)) !important;
+        animation: sheetUp 0.25s ease-out;
+    }
+    .modal-content::before {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 4px;
+        border-radius: 4px;
+        background: var(--border-light);
+        margin: -6px auto 12px;
+    }
+    .modal-body { max-height: none !important; }
+    .modal-actions { flex-wrap: wrap; }
+    .modal-actions > button { flex: 1 1 auto; justify-content: center; }
+    .drawer-modal .modal-content { border-radius: 18px 18px 0 0 !important; }
+
+    .receipt-scroll .receipt-a4-container { min-width: 640px; }
+    .receipt-editor > div { gap: 10px !important; }
+
+    .gst-date-arrow { display: none !important; }
+    .gst-print-footer > button { width: 100%; justify-content: center; }
+
+    /* Header: the tab bar already has "New", so the title gets the room */
+    .quick-add-wrap { display: none; }
+    #liveDateTime { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px !important; }
+    .header-right { gap: 8px !important; }
+    .guest-count-group { align-items: flex-end; }
+
+    .room-status-actions > button { flex: 1 1 calc(50% - 10px) !important; justify-content: center; }
+    .guest-count-group { flex-wrap: wrap; }
+    .camera-flip-btn span { display: none; }
+    .quick-actions-grid { grid-template-columns: 1fr 1fr !important; }
+    .analytics-buttons { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+    .analytics-buttons .btn-primary { justify-content: center; }
+}
+
+@keyframes sheetUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modal-content { animation: none; }
+}

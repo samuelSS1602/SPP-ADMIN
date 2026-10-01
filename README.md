@@ -66,26 +66,44 @@ A professional, modern hotel management system designed for Sri Padmavati Pleasa
 
 ## File Structure
 
+The console is a React app built with Vite. It uses the same Firebase project (`adminlodge`) and the same Firestore collections as before: `bookings`, `booking_photos`, `customers`, `rooms`, `diaryReminder` and `audit_logs`.
+
 ```
-sri-padmavati-pleasant/
-├── index.html          # Main HTML file (all pages included)
-├── styles.css          # Complete styling
-├── script.js           # All JavaScript functionality
-└── README.md           # This file
+├── index.html              # Vite entry page
+├── public/                 # Logo images
+├── src/
+│   ├── main.jsx, App.jsx   # Start-up, login / console switch
+│   ├── pages/              # One component per sidebar page
+│   ├── modals/             # Receipt, checkout, edit booking, photos, ...
+│   ├── components/         # Sidebar, header, phone tab bar, cards, charts
+│   ├── services/           # Booking, room, payment, report and auth logic
+│   ├── firebase/           # Firestore writes and live sync
+│   ├── store/              # In-memory data, localStorage / IndexedDB cache
+│   ├── lib/                # Pure helpers (totals, invoices, formatting)
+│   └── styles/             # Original design system + mobile.css
+├── tests/                  # node --test unit tests
+└── firestore.rules
 ```
 
 ## How to Use
 
 ### 1. Setup
-1. Download all three files: `index.html`, `styles.css`, and `script.js`
-2. Place them in the same directory
-3. Open `index.html` in a modern web browser
-   - Chrome (recommended)
-   - Firefox
-   - Safari
-   - Edge
+Requires Node.js 18 or newer.
 
-**Note**: For local use, you can simply open `index.html` directly. No server required!
+```bash
+npm install
+npm run dev        # http://localhost:5173 (also reachable from phones on the same Wi-Fi)
+npm test           # unit tests
+npm run build      # production build in dist/ (deploy dist/ to Vercel/Netlify/any static host)
+```
+
+Vercel detects the Vite project automatically (build command `npm run build`, output `dist`).
+
+### On a phone
+- A bottom tab bar gives one-tap access to Home, Bookings, New booking and Rooms; **More** (or a swipe from the left edge) opens the full menu.
+- Tables (payments, pricing, audit logs) turn into cards, and dialogs open as bottom sheets.
+- The booking camera can switch between front and rear camera for scanning ID cards.
+- The page you are on is kept in the address (`#/bookings`), so the phone's back button moves between pages.
 
 ### 2. Basic Navigation
 - **Left Sidebar**: Click any menu item to navigate to different sections

@@ -2,7 +2,7 @@
 
 ## 1. Project Overview
 
-Sri Padmavati Pleasants Admin is a front-desk and lodge management dashboard for handling bookings, room status, guest records, payments, invoices, and basic analytics. The application is built as a lightweight static web app using HTML, CSS, and JavaScript.
+Sri Padmavati Pleasants Admin is a front-desk and lodge management dashboard for handling bookings, room status, guest records, payments, invoices, and basic analytics. The application is a React (Vite) single-page app backed by Firebase Authentication and Firestore.
 
 The project is designed for a small hotel or lodge operation where staff can quickly:
 - manage room availability and occupancy
