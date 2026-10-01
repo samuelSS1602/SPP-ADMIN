@@ -11,7 +11,6 @@ import './styles/legacy/components/cards.css';
 import './styles/legacy/pages/rooms.css';
 import './styles/legacy/components/tables-buttons.css';
 import './styles/legacy/components/modals.css';
-import './styles/legacy/components/kanban.css';
 import './styles/legacy/pages/settings.css';
 import './styles/legacy/components/dropdowns-toasts.css';
 import './styles/legacy/base/roles.css';
