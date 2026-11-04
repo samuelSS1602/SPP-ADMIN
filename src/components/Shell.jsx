@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useUI } from '../ui/UIContext.jsx';
+import { usePointerTilt } from './hooks.js';
 import Sidebar from './Sidebar.jsx';
 import TopHeader from './TopHeader.jsx';
 import BottomNav from './BottomNav.jsx';
@@ -58,13 +59,51 @@ function useSidebarSwipe(sidebarOpen, setSidebarOpen) {
     }, [sidebarOpen, setSidebarOpen]);
 }
 
+// Slowly drifting colour behind the glass panels; follows the mouse a little on desktop
+function GlassBackdrop() {
+    const ref = useRef(null);
+    useEffect(() => {
+        const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        let frame = 0;
+        let x = 0;
+        let y = 0;
+        const flush = () => {
+            frame = 0;
+            ref.current?.style.setProperty('--mx', x.toFixed(3));
+            ref.current?.style.setProperty('--my', y.toFixed(3));
+        };
+        const onMove = e => {
+            if (!finePointer.matches || reduceMotion.matches) return;
+            x = e.clientX / window.innerWidth - 0.5;
+            y = e.clientY / window.innerHeight - 0.5;
+            if (!frame) frame = requestAnimationFrame(flush);
+        };
+        document.addEventListener('pointermove', onMove, { passive: true });
+        return () => {
+            document.removeEventListener('pointermove', onMove);
+            cancelAnimationFrame(frame);
+        };
+    }, []);
+
+    return (
+        <div className="glass-backdrop" ref={ref} aria-hidden="true">
+            <span className="glass-blob b1"><i /></span>
+            <span className="glass-blob b2"><i /></span>
+            <span className="glass-blob b3"><i /></span>
+        </div>
+    );
+}
+
 export default function Shell() {
     const { page, sidebarOpen, setSidebarOpen, contentRef } = useUI();
     const ActivePage = PAGES[page] || DashboardPage;
     useSidebarSwipe(sidebarOpen, setSidebarOpen);
+    usePointerTilt();
 
     return (
         <div id="dashboardPage" className="dashboard-container" style={{ display: 'grid' }}>
+            <GlassBackdrop />
             <div className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`} id="sidebarOverlay" onClick={() => setSidebarOpen(false)} />
             <Sidebar />
             <main className="main-content">

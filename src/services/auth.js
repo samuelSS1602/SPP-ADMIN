@@ -16,7 +16,12 @@ export function bootstrapApp() {
     bootstrapped = true;
     initFirebaseServices();
     hydrateDataFromStorage();
-    hydrateFullDataFromIndexedDB().then(found => { if (found) notify(); });
+    // IndexedDB resolves after the setup below and replaces data.rooms, so the nine rooms are enforced again
+    hydrateFullDataFromIndexedDB().then(found => {
+        if (!found) return;
+        enforceRequestedRoomSetup();
+        notify();
+    });
     correctMistakenBookingStatuses();
     purgeLegacySeedData();
     enforceRequestedRoomSetup();

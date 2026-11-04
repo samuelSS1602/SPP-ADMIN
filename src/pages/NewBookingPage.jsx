@@ -7,7 +7,7 @@ import { getIdProofInputRules, normalizeIdInputLive, validateBookingIdProof } fr
 import { createBooking } from '../services/bookings.js';
 import { MAX_UPLOAD_BYTES, readImageFile } from '../services/photos.js';
 import CameraCapture from '../components/CameraCapture.jsx';
-import Modal, { ModalHeader } from '../components/Modal.jsx';
+import LodgeView from '../components/LodgeView.jsx';
 
 const EMPTY_FORM = {
     guestName: '', guestPhone: '', guestEmail: '',
@@ -34,52 +34,33 @@ function initialForm() {
 }
 
 const toSelection = room => ({ roomId: room.id, roomName: room.name, floor: room.floor, price: room.price });
+const byRoomName = (first, second) => String(first.name).localeCompare(String(second.name), undefined, { numeric: true });
 
-function ExtraRoomModal({ selection, onAdd, onRemove, onClose }) {
-    const [roomId, setRoomId] = useState('');
-    const availableRooms = data.rooms.filter(room => room.status === 'available' && !selection.some(r => r.roomId === room.id));
-
-    const confirmAdd = () => {
-        const id = parseInt(roomId, 10);
-        if (!id) {
-            alert('Please select a room');
-            return;
-        }
-        const room = findRoom(id);
-        if (!room || room.status !== 'available') {
-            alert('Selected room is no longer available');
-            onClose();
-            return;
-        }
-        onAdd(toSelection(room));
-        onClose();
-    };
-
+// Tap-to-pick room tiles grouped by floor; only available rooms can be picked
+function RoomTiles({ selection, onToggle }) {
+    const floors = [...new Set(data.rooms.map(room => room.floor))].sort((a, b) => a - b);
     return (
-        <Modal id="extraRoomModal" onClose={onClose} contentStyle={{ maxWidth: 400 }}>
-            <ModalHeader title="Select Additional Room for Same Guest" onClose={onClose} />
-            <p style={{ fontSize: 13, color: 'var(--text-light)' }}>These rooms are currently selected:</p>
-            <div style={{ background: 'var(--surface-muted)', padding: 10, borderRadius: 4, margin: '8px 0 15px' }}>
-                {selection.map((r, idx) => (
-                    <div key={r.roomId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-light)' }}>
-                        <span><strong>{r.roomName}</strong> (Floor {r.floor})</span>
-                        <span>₹{formatNumber(r.price)}{idx > 0 && (
-                            <button type="button" style={{ padding: '2px 6px', color: 'red', marginLeft: 6 }} onClick={() => onRemove(r.roomId)}>Remove</button>
-                        )}</span>
+        <div className="room-tile-floors" id="bookingRoomTiles">
+            {floors.map(floor => (
+                <div className="room-tile-floor" key={floor}>
+                    <span className="room-tile-floor-label">Floor {floor}</span>
+                    <div className="room-tiles">
+                        {data.rooms.filter(room => room.floor === floor).sort(byRoomName).map(room => {
+                            const selected = selection.some(r => r.roomId === room.id);
+                            const free = room.status === 'available';
+                            return (
+                                <button key={room.id} type="button" className={`room-tile ${room.status} ${selected ? 'selected' : ''}`}
+                                    disabled={!free && !selected} aria-pressed={selected} onClick={() => onToggle(room.id)}>
+                                    <span className="room-tile-check"><i className="fas fa-check" /></span>
+                                    <span><strong>{room.name}</strong><small>{capitalizeFirst(room.type)} · {room.capacity} <i className="fas fa-user" /></small></span>
+                                    <span className="room-tile-price">{free ? `₹${formatNumber(room.price)}` : capitalizeFirst(room.status)}</span>
+                                </button>
+                            );
+                        })}
                     </div>
-                ))}
-            </div>
-            <select id="extraRoomSelect" value={roomId} onChange={e => setRoomId(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 12 }}>
-                <option value="">-- Select room to add --</option>
-                {availableRooms.map(room => (
-                    <option key={room.id} value={room.id}>{room.name} - Floor {room.floor} - ₹{formatNumber(room.price)}</option>
-                ))}
-            </select>
-            <div style={{ display: 'flex', gap: 8 }}>
-                <button type="button" className="btn-primary" onClick={confirmAdd} style={{ flex: 1, justifyContent: 'center' }}>Add Room</button>
-                <button type="button" className="btn-primary" style={{ flex: 1, justifyContent: 'center', background: '#95A5A6' }} onClick={onClose}>Cancel</button>
-            </div>
-        </Modal>
+                </div>
+            ))}
+        </div>
     );
 }
 
@@ -113,7 +94,6 @@ export default function NewBookingPage() {
     const [form, setForm] = useState(initialForm);
     const [selection, setSelection] = useState([]);
     const [photos, setPhotos] = useState({ customer: '', idProof: '' });
-    const [extraRoomOpen, setExtraRoomOpen] = useState(false);
     const cameraRef = useRef(null);
     const rateInputRef = useRef(null);
 
@@ -122,7 +102,7 @@ export default function NewBookingPage() {
     const set = (key, value) => setForm(f => ({ ...f, [key]: value }));
     const bind = key => ({ value: form[key], onChange: e => set(key, e.target.value) });
 
-    const availableRooms = data.rooms.filter(room => room.status === 'available');
+    const hasAvailableRoom = data.rooms.some(room => room.status === 'available');
     const idRules = getIdProofInputRules(form.idProofType);
     const totalRate = selection.reduce((sum, room) => sum + room.price, 0);
     const { roundedRate, surchargeInfo } = calculateSurchargedRate(totalRate, form.checkIn, data.settings || {});
@@ -141,34 +121,22 @@ export default function NewBookingPage() {
         }));
     };
 
-    const onPrimaryRoomChange = value => {
-        const selectedRoomId = parseInt(value, 10);
-        if (!selectedRoomId) {
-            setSelection([]);
-            return;
-        }
-        const room = findRoom(selectedRoomId);
-        if (!room) return;
-        if (selection.some(r => r.roomId === selectedRoomId)) {
-            alert('This room is already selected');
-            return;
-        }
-        setSelection([toSelection(room)]);
-    };
-
-    const openExtraRoom = () => {
-        if (selection.length === 0) {
-            alert('Please select a primary room first');
-            return;
-        }
-        if (!data.rooms.some(room => room.status === 'available' && !selection.some(r => r.roomId === room.id))) {
-            alert('No additional available rooms to add');
-            return;
-        }
-        setExtraRoomOpen(true);
-    };
-
     const removeRoom = roomId => setSelection(current => current.filter(r => r.roomId !== roomId));
+
+    // The first room picked is the primary room; tapping a picked room again removes it
+    const toggleRoom = roomId => {
+        const id = parseInt(roomId, 10);
+        if (selection.some(r => r.roomId === id)) {
+            removeRoom(id);
+            return;
+        }
+        const room = findRoom(id);
+        if (!room || room.status !== 'available') {
+            alert('Selected room is no longer available');
+            return;
+        }
+        setSelection(current => [...current, toSelection(room)]);
+    };
 
     const onCameraReady = useCallback(api => { cameraRef.current = api; }, []);
 
@@ -351,30 +319,20 @@ export default function NewBookingPage() {
                             ))}
                         </div>
                         <div className="form-group" style={{ marginTop: 15 }}>
-                            <label htmlFor="bookingRoomId">Select Available Room *</label>
-                            <select id="bookingRoomId" required style={{ marginBottom: 12 }} value={selection[0]?.roomId ?? ''} onChange={e => onPrimaryRoomChange(e.target.value)}>
-                                {availableRooms.length || selection.length ? (
-                                    <>
-                                        <option value="">Select available room</option>
-                                        {selection[0] && !availableRooms.some(r => r.id === selection[0].roomId) && (
-                                            <option value={selection[0].roomId}>{selection[0].roomName}</option>
-                                        )}
-                                        {availableRooms.map(room => (
-                                            <option key={room.id} value={room.id}>{room.name} - Floor {room.floor} - {capitalizeFirst(room.type)} - ₹{formatNumber(room.price)}</option>
-                                        ))}
-                                    </>
-                                ) : <option value="">No rooms available</option>}
-                            </select>
+                            <label>Tap Available Rooms *</label>
+                            <LodgeView className="booking-lodge" mode="select" activeIds={selection.map(r => r.roomId)} onPick={toggleRoom} />
+                            <RoomTiles selection={selection} onToggle={toggleRoom} />
+                            {!hasAvailableRoom && selection.length === 0 && (
+                                <small style={{ display: 'block', color: 'var(--danger)', fontWeight: 700, marginBottom: 12 }}>No rooms available</small>
+                            )}
                             <div style={{ background: 'var(--surface-muted)', padding: 15, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
                                     <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase' }}>Assigned Rooms Selection</span>
-                                    <button type="button" className="btn-primary" onClick={openExtraRoom} style={{ fontSize: 10, padding: '4px 10px' }}>
-                                        <i className="fas fa-plus" /> Add Extra Room
-                                    </button>
+                                    {selection.length > 1 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--secondary)' }}>{selection.length} rooms</span>}
                                 </div>
                                 <div id="selectedRoomsDisplay">
                                     {selection.length === 0 ? (
-                                        <small style={{ color: 'var(--text-light)' }}>First room will be added when you select it above</small>
+                                        <small style={{ color: 'var(--text-light)' }}>Tap a room above to add it. Tap more rooms to book them for the same guest.</small>
                                     ) : (
                                         <>
                                             {selection.map((room, idx) => (
@@ -533,9 +491,6 @@ export default function NewBookingPage() {
                     <button type="submit" className="btn-login" style={{ width: '100%', marginTop: 20, padding: 15, fontSize: 15 }}>Book Stay and Check-In</button>
                 </form>
             </div>
-            {extraRoomOpen && (
-                <ExtraRoomModal selection={selection} onAdd={room => setSelection(s => [...s, room])} onRemove={removeRoom} onClose={() => setExtraRoomOpen(false)} />
-            )}
         </div>
     );
 }

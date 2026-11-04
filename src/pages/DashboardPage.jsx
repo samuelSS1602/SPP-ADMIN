@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { data, useStoreVersion } from '../store/store.js';
 import { useUI } from '../ui/UIContext.jsx';
 import { formatNumber, getLocalISODate } from '../lib/format.js';
@@ -6,17 +6,26 @@ import { getBookingTotal } from '../lib/bookingCalc.js';
 import { computeDashboardMetrics, getLast7DaysRevenueData } from '../services/metrics.js';
 import { addAuditLog, sortedAuditLogs } from '../services/audit.js';
 import { bookingsInCheckInRange, downloadAllBookingData, downloadPresetRange } from '../services/reports.js';
-import ChartCanvas from '../components/ChartCanvas.jsx';
+import { useCountUp } from '../components/hooks.js';
+import { OccupancyRing3D, RevenueBars3D } from '../components/Charts3D.jsx';
+import LodgeView from '../components/LodgeView.jsx';
 import Sparkline from '../components/Sparkline.jsx';
 
-function MetricCard({ label, icon, iconColor, value, valueId, info, infoId, infoColor, className = '', children }) {
+const rupees = amount => `₹${formatNumber(amount)}`;
+
+function CountUp({ value, format }) {
+    const shown = useCountUp(value);
+    return format(shown === value ? value : Math.round(shown));
+}
+
+function MetricCard({ label, icon, iconColor, value, format = String, valueId, info, infoId, infoColor, className = '', children }) {
     return (
-        <div className={`metric-card ${className}`.trim()}>
+        <div className={`metric-card ${className}`.trim()} data-tilt>
             <div className="metric-header">
                 <span className="metric-label">{label}</span>
                 <i className={`fas ${icon} metric-icon`} style={iconColor ? { color: iconColor } : undefined} />
             </div>
-            <div className="metric-value" id={valueId}>{value}</div>
+            <div className="metric-value" id={valueId}><CountUp value={value} format={format} /></div>
             <div className="metric-change" id={infoId} style={infoColor ? { color: infoColor } : undefined}>{info}</div>
             {children}
         </div>
@@ -109,26 +118,11 @@ function BulkPdfExporter() {
 }
 
 export default function DashboardPage() {
-    const version = useStoreVersion();
-    const { navigate } = useUI();
+    useStoreVersion();
+    const { navigate, openModal } = useUI();
     const [chartInterval, setChartInterval] = useState('day');
     const m = computeDashboardMetrics();
-
-    const revenueConfig = useMemo(() => {
-        const weekly = getLast7DaysRevenueData();
-        return {
-            type: 'line',
-            data: { labels: weekly.labels, datasets: [{ label: 'Daily Revenue', data: weekly.values, borderColor: '#D4AF37', backgroundColor: 'rgba(212, 175, 55, 0.05)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#D4AF37' }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-        };
-    }, [version]);
-
-    const occupancyConfig = useMemo(() => ({
-        type: 'doughnut',
-        data: { labels: ['Occupied', 'Available', 'Cleaning'], datasets: [{ data: [m.occupiedRooms, m.availableRooms, m.cleaningRooms], backgroundColor: ['#E74C3C', '#27AE60', '#F39C12'], borderColor: '#fff', borderWidth: 2 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), [version]);
+    const weekly = getLast7DaysRevenueData();
 
     const today = getLocalISODate();
     const revenueToday = data.bookings.filter(b => b.checkIn === today).reduce((sum, b) => sum + getBookingTotal(b), 0);
@@ -142,24 +136,32 @@ export default function DashboardPage() {
     return (
         <div id="dashboard" className="page-content active">
             <div className="metrics-grid">
-                <MetricCard label="Total Rooms" icon="fa-door-closed" valueId="metricTotalRooms" value={String(m.totalRooms)}
+                <MetricCard label="Total Rooms" icon="fa-door-closed" valueId="metricTotalRooms" value={m.totalRooms}
                     info={`${m.totalRooms} configured rooms`} infoColor="var(--secondary)" />
-                <MetricCard label="Occupied Rooms" icon="fa-bed" iconColor="var(--danger)" valueId="metricOccupiedRooms" value={String(m.occupiedRooms)}
+                <MetricCard label="Occupied Rooms" icon="fa-bed" iconColor="var(--danger)" valueId="metricOccupiedRooms" value={m.occupiedRooms}
                     infoId="metricOccupiedRoomsInfo" info={`${m.occupiedRooms} of ${m.totalRooms} rooms occupied`} infoColor="var(--danger)" />
-                <MetricCard label="Available Rooms" icon="fa-door-open" iconColor="var(--success)" valueId="metricAvailableRooms" value={String(m.availableRooms)}
+                <MetricCard label="Available Rooms" icon="fa-door-open" iconColor="var(--success)" valueId="metricAvailableRooms" value={m.availableRooms}
                     infoId="metricAvailableRoomsInfo" info={`${m.availableRooms} of ${m.totalRooms} available`} infoColor="var(--success)" />
-                <MetricCard label="Total Bookings" icon="fa-calendar-check" iconColor="var(--secondary)" valueId="metricTotalBookings" value={String(m.totalBookings)}
+                <MetricCard label="Total Bookings" icon="fa-calendar-check" iconColor="var(--secondary)" valueId="metricTotalBookings" value={m.totalBookings}
                     infoId="metricTotalBookingsInfo" info="Total bookings on record" />
-                <MetricCard label="Today's Check-ins" icon="fa-sign-in-alt" iconColor="var(--secondary)" valueId="statCheckinsToday" value={String(m.checkInsToday)}
+                <MetricCard label="Today's Check-ins" icon="fa-sign-in-alt" iconColor="var(--secondary)" valueId="statCheckinsToday" value={m.checkInsToday}
                     info="Arrivals scheduled today" infoColor="var(--secondary)" />
-                <MetricCard label="Today's Check-outs" icon="fa-sign-out-alt" iconColor="var(--warning)" valueId="statCheckoutsToday" value={String(m.checkOutsToday)}
+                <MetricCard label="Today's Check-outs" icon="fa-sign-out-alt" iconColor="var(--warning)" valueId="statCheckoutsToday" value={m.checkOutsToday}
                     info="Departures scheduled today" infoColor="var(--warning)" />
                 <MetricCard className="owner-only" label="Monthly Revenue" icon="fa-chart-line" iconColor="var(--success)" valueId="statMonthlyRevenue"
-                    value={`₹${formatNumber(m.monthlyRevenue)}`} info="This calendar month" infoColor="var(--success)">
+                    value={m.monthlyRevenue} format={rupees} info="This calendar month" infoColor="var(--success)">
                     <Sparkline id="sparkRevenue" values={[12000, 15000, 8000, 24000, 19000, 22000, revenueToday]} color="var(--success)" />
                 </MetricCard>
                 <MetricCard className="owner-only" label="Pending Payments" icon="fa-wallet" iconColor="var(--warning)" valueId="metricPendingPayments"
-                    value={`₹${formatNumber(m.pendingPayments)}`} infoId="metricPendingPaymentsInfo" info="Outstanding frontdesk balance" infoColor="var(--warning)" />
+                    value={m.pendingPayments} format={rupees} infoId="metricPendingPaymentsInfo" info="Outstanding frontdesk balance" infoColor="var(--warning)" />
+            </div>
+
+            <div className="card lodge-card">
+                <div className="card-header">
+                    <h3><i className="fas fa-cube" style={{ color: 'var(--secondary)' }} /> Live Lodge View</h3>
+                    <span className="lodge-card-hint">Drag to rotate · tap a room</span>
+                </div>
+                <LodgeView onPick={roomId => openModal('roomDetails', { roomId })} />
             </div>
 
             <div className="stats-row" style={{ display: 'none' }}>
@@ -179,17 +181,17 @@ export default function DashboardPage() {
                             ))}
                         </div>
                     </div>
-                    <div style={{ position: 'relative', height: 280 }}>
-                        <ChartCanvas id="revenueChart" config={revenueConfig} redrawKey={chartInterval} />
-                    </div>
+                    <RevenueBars3D labels={weekly.labels} values={weekly.values} replayKey={chartInterval} />
                 </div>
                 <div className="card">
                     <div className="card-header">
                         <h3><i className="fas fa-chart-pie" style={{ color: 'var(--secondary)' }} /> Room Occupancy Status</h3>
                     </div>
-                    <div style={{ position: 'relative', height: 280 }}>
-                        <ChartCanvas id="occupancyChart" config={occupancyConfig} />
-                    </div>
+                    <OccupancyRing3D occupied={m.occupiedRooms} total={m.totalRooms} segments={[
+                        { label: 'Occupied', value: m.occupiedRooms, color: 'var(--danger)' },
+                        { label: 'Available', value: m.availableRooms, color: 'var(--success)' },
+                        { label: 'Cleaning', value: m.cleaningRooms, color: 'var(--warning)' }
+                    ]} />
                 </div>
             </div>
 
@@ -198,15 +200,15 @@ export default function DashboardPage() {
                     <h3><i className="fas fa-bolt" style={{ color: 'var(--warning)' }} /> Frontdesk Quick Actions</h3>
                 </div>
                 <div className="quick-actions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 16 }}>
-                    <button type="button" className="btn-primary receptionist-only" onClick={() => navigate('new-booking')}
+                    <button type="button" className="btn-primary keycap receptionist-only" onClick={() => navigate('new-booking')}
                         style={{ height: 60, justifyContent: 'center', background: 'linear-gradient(135deg, var(--secondary), var(--accent))' }}>
                         <i className="fas fa-plus-circle" style={{ fontSize: 16 }} /> <span>New Booking</span>
                     </button>
-                    <button type="button" className="btn-primary" onClick={() => navigate('diary')}
+                    <button type="button" className="btn-primary keycap" onClick={() => navigate('diary')}
                         style={{ height: 60, justifyContent: 'center', background: 'linear-gradient(135deg, var(--warning), #fbbf24)' }}>
                         <i className="fas fa-book-open" style={{ fontSize: 16 }} /> <span>Room Diary</span>
                     </button>
-                    <button type="button" className="btn-primary" onClick={() => navigate('rooms')}
+                    <button type="button" className="btn-primary keycap" onClick={() => navigate('rooms')}
                         style={{ height: 60, justifyContent: 'center', background: 'linear-gradient(135deg, var(--success), #34d399)' }}>
                         <i className="fas fa-door-open" style={{ fontSize: 16 }} /> <span>Room Control</span>
                     </button>

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { login } from '../services/auth.js';
+import { useIsMobile } from '../components/hooks.js';
+import LodgeView from '../components/LodgeView.jsx';
 
 const STAGE_LABELS = {
     'signing-in': 'Signing In...',
@@ -10,6 +12,7 @@ export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [stage, setStage] = useState(null);
+    const isMobile = useIsMobile();
 
     const handleSubmit = async e => {
         e.preventDefault();
@@ -19,6 +22,7 @@ export default function LoginPage() {
 
     return (
         <div id="loginPage" className="login-container" role="main">
+            <div className="login-glow" aria-hidden="true"><span /><span /><span /></div>
             <div className="login-wrapper">
                 <div className="login-content">
                     <div className="login-header">
@@ -46,6 +50,8 @@ export default function LoginPage() {
                     </form>
                 </div>
                 <div className="login-side">
+                    {/* Decorative: shows no room statuses before sign-in. Skipped on phones to save data. */}
+                    {!isMobile && <LodgeView className="login-lodge" mode="hero" />}
                     <div className="side-content">
                         <h2>Sri Padmavati Pleasants</h2>
                         <p>Redesigned enterprise dashboard providing front-desk operations, room controls, real-time sync, and financial analytics.</p>

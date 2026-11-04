@@ -44,7 +44,7 @@ export function computePerformanceSummary() {
             if (b.rooms && Array.isArray(b.rooms)) roomsBookedToday += b.rooms.length;
             else if (b.roomId) roomsBookedToday += 1;
         });
-    const avgOccRate = Math.min(100, Math.round((roomsBookedToday / 9) * 100));
+    const avgOccRate = Math.min(100, Math.round((roomsBookedToday / (data.rooms.length || 1)) * 100));
 
     let totalDays = 0;
     let validBookingsCount = 0;

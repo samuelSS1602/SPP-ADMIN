@@ -24,6 +24,7 @@ import './styles/legacy/responsive/final-tuning.css';
 import './styles/legacy/pages/gst-print.css';
 import './styles/legacy/theme/premium.css';
 import './styles/legacy/theme/motion.css';
+import './styles/legacy/theme/depth3d.css';
 // Touch/phone layer added with the React version
 import './styles/mobile.css';
 
