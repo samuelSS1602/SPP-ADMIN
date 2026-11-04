@@ -2,14 +2,15 @@
 // Keeps this browser in step with the cloud (and the mobile app) while signed in.
 // Firestore listeners push every change made elsewhere straight into `data` and re-render.
 // The cloud is the source of truth for bookings, audit logs and customers.
-import { collection, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { toISODateFromDate } from '../lib/format.js';
 import { fb, isCloudReady } from './client.js';
 import { cloudPath } from './dataScope.js';
 import { applyDiaryChanges, applyRoomChanges, mergeCloudBookings } from './merge.js';
 import { data } from '../store/store.js';
-import { commit, keepLocalOnlyBookingsAside, saveDataToStorage } from '../store/persistence.js';
+import { commit, keepLocalOnlyBookingsAside } from '../store/persistence.js';
 import { deletePhotoFromLocal } from '../store/indexedDb.js';
-import { correctMistakenBookingStatuses, updateRoomStatusesFromBookings } from '../store/migrations.js';
+import { updateRoomStatusesFromBookings } from '../store/migrations.js';
 import { rebuildGuestsFromBookings } from '../services/guests.js';
 
 let realtimeUnsubscribers = [];
@@ -87,19 +88,43 @@ function handleCustomersSnapshot(snapshot) {
     scheduleRealtimeRefresh();
 }
 
+// Every document a listener returns counts against Firestore's free 50,000 reads a day, and every
+// login starts the listeners again, so the ever-growing collections are narrowed to what is shown.
+const AUDIT_LOG_LIMIT = 200;
+const DIARY_DAYS_BACK = 90;
+
+/**
+ * Starts the live listeners. The returned promise resolves once every collection has been read
+ * from the server (or after 30 s, e.g. offline), so sign-in can wait for complete data. The
+ * listeners' first answer is the initial load; there is no separate fetch reading everything twice.
+ */
 export function startRealtimeSync() {
     stopRealtimeSync();
-    if (!isCloudReady()) return;
-    const listen = (name, handler) => {
-        realtimeUnsubscribers.push(onSnapshot(collection(fb.db, cloudPath(name)), handler, error => {
+    if (!isCloudReady()) return Promise.resolve();
+    const listen = (name, handler, constraints = []) => new Promise(resolve => {
+        const ref = collection(fb.db, cloudPath(name));
+        let applied = false;
+        realtimeUnsubscribers.push(onSnapshot(constraints.length ? query(ref, ...constraints) : ref, { includeMetadataChanges: true }, snapshot => {
+            // Skip events where only the sync state changed; the documents are the same as last time.
+            if (!applied || snapshot.docChanges().length) {
+                applied = true;
+                handler(snapshot);
+            }
+            if (!snapshot.metadata.fromCache) resolve();
+        }, error => {
             console.warn(`Live sync for ${name} stopped:`, error);
+            resolve();
         }));
-    };
-    listen('bookings', handleBookingsSnapshot);
-    listen('rooms', handleRoomsSnapshot);
-    listen('audit_logs', handleAuditSnapshot);
-    listen('diaryReminder', handleDiarySnapshot);
-    listen('customers', handleCustomersSnapshot);
+    });
+    const diaryFrom = toISODateFromDate(new Date(Date.now() - DIARY_DAYS_BACK * 24 * 60 * 60 * 1000));
+    const ready = Promise.all([
+        listen('bookings', handleBookingsSnapshot),
+        listen('rooms', handleRoomsSnapshot),
+        listen('audit_logs', handleAuditSnapshot, [orderBy('time', 'desc'), limit(AUDIT_LOG_LIMIT)]),
+        listen('diaryReminder', handleDiarySnapshot, [where('date', '>=', diaryFrom)]),
+        listen('customers', handleCustomersSnapshot)
+    ]);
+    return Promise.race([ready, new Promise(resolve => setTimeout(resolve, 30000))]);
 }
 
 export function stopRealtimeSync() {
@@ -130,59 +155,4 @@ export function runWithRealtimePaused(action) {
             }, 1500);
         }
     };
-}
-
-// One-off pull on sign-in so an empty device is populated before the dashboard shows
-export async function fetchAllDataFromFirebase() {
-    if (!isCloudReady()) return;
-    try {
-        console.log('Fetching cloud data...');
-        const getAll = async name => (await getDocs(collection(fb.db, cloudPath(name)))).docs;
-
-        // Customers (cloud overrides local)
-        (await getAll('customers')).map(d => d.data()).filter(c => c.id).forEach(fc => {
-            const idx = data.customers.findIndex(c => c.id === fc.id);
-            if (idx === -1) data.customers.push(fc);
-            else data.customers[idx] = { ...data.customers[idx], ...fc };
-        });
-
-        // Bookings (cloud overrides local)
-        (await getAll('bookings')).map(d => d.data()).filter(b => b.id).forEach(fbk => {
-            const idx = data.bookings.findIndex(b => b.id === fbk.id);
-            if (idx === -1) data.bookings.push(fbk);
-            else data.bookings[idx] = { ...data.bookings[idx], ...fbk };
-        });
-
-        (await getAll('rooms')).forEach(d => {
-            const cloudRoom = d.data();
-            const room = data.rooms.find(item => String(item.id) === String(cloudRoom.id || d.id));
-            if (room) Object.assign(room, cloudRoom);
-        });
-
-        const auditById = new Map((data.auditLogs || []).map(log => [log.id, log]));
-        (await getAll('audit_logs')).forEach(d => {
-            const cloudLog = d.data();
-            if (cloudLog.id) auditById.set(cloudLog.id, cloudLog);
-        });
-        data.auditLogs = [...auditById.values()];
-
-        correctMistakenBookingStatuses();
-        updateRoomStatusesFromBookings();
-
-        // Room diary reminders
-        if (!data.diary) data.diary = {};
-        (await getAll('diaryReminder')).forEach(d => {
-            const entry = d.data();
-            if (entry.date && entry.roomId) {
-                if (!data.diary[entry.date]) data.diary[entry.date] = {};
-                data.diary[entry.date][entry.roomId] = entry.guestName;
-            }
-        });
-
-        rebuildGuestsFromBookings();
-        saveDataToStorage();
-        console.log('Cloud sync complete!');
-    } catch (error) {
-        console.error('Could not fetch remote data:', error);
-    }
 }

@@ -1,6 +1,6 @@
 import { EmailAuthProvider, reauthenticateWithCredential, signInWithEmailAndPassword, signOut, updatePassword } from 'firebase/auth';
 import { fb, initFirebaseServices } from '../firebase/client.js';
-import { fetchAllDataFromFirebase, startRealtimeSync, stopRealtimeSync } from '../firebase/realtime.js';
+import { startRealtimeSync, stopRealtimeSync } from '../firebase/realtime.js';
 import { notify, OWNER_EMAIL, session } from '../store/store.js';
 import { hydrateDataFromStorage, hydrateFullDataFromIndexedDB } from '../store/persistence.js';
 import { correctMistakenBookingStatuses, enforceRequestedRoomSetup, purgeLegacySeedData } from '../store/migrations.js';
@@ -84,9 +84,10 @@ export async function login(email, password, onStage) {
         // (the owner can switch to the sandbox in Settings > Test Data).
         if (dataScope.test !== isTester) await loadDataScope(isTester);
 
-        // Pull all cloud data first so an empty device is populated
+        // Wait for the live listeners' first cloud read so an empty device is populated
         onStage?.('fetching');
-        await fetchAllDataFromFirebase();
+        await startRealtimeSync();
+        correctMistakenBookingStatuses();
 
         session.loggedIn = true;
         session.role = isOwner ? 'owner' : 'receptionist';
@@ -95,7 +96,6 @@ export async function login(email, password, onStage) {
         session.email = fb.auth.currentUser.email;
 
         startCheckoutReminderService();
-        startRealtimeSync();
         notify();
         return true;
     } catch (error) {

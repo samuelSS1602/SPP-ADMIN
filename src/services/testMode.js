@@ -1,7 +1,7 @@
 import { collection, getDocs, writeBatch } from 'firebase/firestore';
 import { fb, isCloudReady } from '../firebase/client.js';
 import { cloudPath, dataScope, SANDBOX_COLLECTIONS, setTestScope } from '../firebase/dataScope.js';
-import { fetchAllDataFromFirebase, startRealtimeSync, stopRealtimeSync } from '../firebase/realtime.js';
+import { startRealtimeSync, stopRealtimeSync } from '../firebase/realtime.js';
 import { notify, resetDataToDefaults, session } from '../store/store.js';
 import { hydrateDataFromStorage, hydrateFullDataFromIndexedDB, saveDataToStorage } from '../store/persistence.js';
 import { clearTestPhotosFromLocal } from '../store/indexedDb.js';
@@ -24,8 +24,7 @@ export async function setOwnerTestView(on) {
     if (session.role !== 'owner' || Boolean(on) === dataScope.test) return;
     stopRealtimeSync();
     await loadDataScope(on);
-    await fetchAllDataFromFirebase();
-    startRealtimeSync();
+    await startRealtimeSync();
     notify();
 }
 
@@ -55,8 +54,7 @@ export async function resetTestData() {
         alert(`Could not clear all test data: ${error.message || error}`);
         return false;
     } finally {
-        await fetchAllDataFromFirebase();
-        startRealtimeSync();
+        await startRealtimeSync();
         notify();
     }
 }
