@@ -15,6 +15,7 @@ import {
 } from '../lib/whatsapp.js';
 import { addAuditLog } from './audit.js';
 import { addNotification } from './notifications.js';
+import { notifyOwnerOfBooking } from './ownerPush.js';
 import { upsertGuestRecord } from './guests.js';
 import { showToast } from './toast.js';
 
@@ -136,7 +137,9 @@ export function createBooking(form, selection, idProofNormalized) {
         .catch(err => console.warn('IndexedDB photo save failed:', err));
 
     saveDataToStorage();
-    syncBookingToFirebase(booking);
+    // The push function reads the booking from Firestore, so ask for it once the write is done.
+    const synced = syncBookingToFirebase(booking);
+    if (session.role === 'receptionist') synced.then(() => notifyOwnerOfBooking(booking.id));
     addAuditLog('New Booking', `Booking ${bookingId} created for guest ${booking.guestName} in room(s) ${bookedRoomNames.join(', ')}.`);
     addNotification('new-booking', 'New Booking Created', `Guest ${booking.guestName} reserved Room ${bookedRoomNames.join(', ')}.`);
     notify();

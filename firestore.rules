@@ -17,6 +17,10 @@ service cloud.firestore {
     match /diaryReminder/{entryId}     { allow read, write: if isSignedIn(); }
     match /audit_logs/{logId}          { allow read, write: if isSignedIn(); }
 
+    // Push tokens of the owner's phones (doc id = token). A phone may add or remove its own token,
+    // but nobody can list them; only the /api/notify-booking function (admin SDK) reads them.
+    match /owner_devices/{token}       { allow create, update, delete: if isSignedIn(); }
+
     // Everything else is closed.
     match /{document=**} { allow read, write: if false; }
   }
