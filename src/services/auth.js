@@ -5,6 +5,8 @@ import { notify, OWNER_EMAIL, session } from '../store/store.js';
 import { hydrateDataFromStorage, hydrateFullDataFromIndexedDB } from '../store/persistence.js';
 import { correctMistakenBookingStatuses, enforceRequestedRoomSetup, purgeLegacySeedData } from '../store/migrations.js';
 import { seedConsoleDefaults } from './settings.js';
+import { dataScope, isTesterEmail } from '../firebase/dataScope.js';
+import { loadDataScope } from './testMode.js';
 import { fixBookingStatus, processCheckoutReminders } from './bookings.js';
 
 let checkoutReminderTimer = null;
@@ -74,15 +76,22 @@ export async function login(email, password, onStage) {
         onStage?.('signing-in');
         await signInWithEmailAndPassword(fb.auth, email.trim().toLowerCase(), password);
 
+        const loggedInEmail = fb.auth.currentUser.email.toLowerCase();
+        const isOwner = loggedInEmail === OWNER_EMAIL;
+        const isTester = isTesterEmail(loggedInEmail);
+
+        // The testing login works only on the sandbox; everyone else starts on live data
+        // (the owner can switch to the sandbox in Settings > Test Data).
+        if (dataScope.test !== isTester) await loadDataScope(isTester);
+
         // Pull all cloud data first so an empty device is populated
         onStage?.('fetching');
         await fetchAllDataFromFirebase();
 
-        const loggedInEmail = fb.auth.currentUser.email.toLowerCase();
-        const isOwner = loggedInEmail === OWNER_EMAIL;
         session.loggedIn = true;
         session.role = isOwner ? 'owner' : 'receptionist';
-        session.userName = isOwner ? 'Owner' : 'Receptionist';
+        session.tester = isTester;
+        session.userName = isOwner ? 'Owner' : (isTester ? 'Tester' : 'Receptionist');
         session.email = fb.auth.currentUser.email;
 
         startCheckoutReminderService();
@@ -108,6 +117,7 @@ export async function logout() {
     stopRealtimeSync();
     session.loggedIn = false;
     session.role = 'receptionist';
+    session.tester = false;
     session.userName = 'Receptionist';
     session.email = '';
     notify();

@@ -10,12 +10,29 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    match /bookings/{bookingId}        { allow read, write: if isSignedIn(); }
-    match /booking_photos/{bookingId}  { allow read, write: if isSignedIn(); }
-    match /customers/{customerId}      { allow read, write: if isSignedIn(); }
-    match /rooms/{roomId}              { allow read, write: if isSignedIn(); }
-    match /diaryReminder/{entryId}     { allow read, write: if isSignedIn(); }
-    match /audit_logs/{logId}          { allow read, write: if isSignedIn(); }
+    function isOwner() {
+      return isSignedIn() && request.auth.token.email == 'sppowner@gmail.com';
+    }
+
+    // The testing login: it may only use the sandbox below, never live data.
+    function isTester() {
+      return isSignedIn() && request.auth.token.email == 'spp1@gmail.com';
+    }
+
+    function isLiveStaff() {
+      return isSignedIn() && !isTester();
+    }
+
+    match /bookings/{bookingId}        { allow read, write: if isLiveStaff(); }
+    match /booking_photos/{bookingId}  { allow read, write: if isLiveStaff(); }
+    match /customers/{customerId}      { allow read, write: if isLiveStaff(); }
+    match /rooms/{roomId}              { allow read, write: if isLiveStaff(); }
+    match /diaryReminder/{entryId}     { allow read, write: if isLiveStaff(); }
+    match /audit_logs/{logId}          { allow read, write: if isLiveStaff(); }
+
+    // Test copy of every collection above (sandbox/test/bookings, sandbox/test/rooms, ...).
+    // The tester works here; the owner may switch to it to review and reset the test data.
+    match /sandbox/{document=**}       { allow read, write: if isTester() || isOwner(); }
 
     // Push tokens of the owner's phones (doc id = token). A phone may add or remove its own token,
     // but nobody can list them; only the /api/notify-booking function (admin SDK) reads them.

@@ -122,11 +122,11 @@ export default function TopHeader() {
                 <div style={{ position: 'relative' }}>
                     <div className="user-profile" onClick={() => toggle('profile')} role="button" tabIndex={0}
                         onKeyDown={e => { if (e.key === 'Enter') toggle('profile'); }}>
-                        <div className="profile-pic">{isOwner ? 'O' : 'R'}</div>
+                        <div className="profile-pic">{isOwner ? 'O' : (session.tester ? 'T' : 'R')}</div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <div style={{ fontWeight: 700, fontSize: 12 }} id="profileRoleName">{session.userName}</div>
                             <small style={{ color: 'var(--text-light)', fontSize: 9 }} id="profileEmail">{session.email || 'admin@sripadmavati.com'}</small>
-                            <div id="roleBadge" className={`role-badge ${session.role}`}>{isOwner ? '👑 Owner' : '🛎️ Receptionist'}</div>
+                            <div id="roleBadge" className={`role-badge ${session.role}`}>{isOwner ? '👑 Owner' : (session.tester ? '🧪 Tester' : '🛎️ Receptionist')}</div>
                         </div>
                     </div>
                     <div id="userProfileDropdown" className={`user-dropdown ${openDropdown === 'profile' ? 'active' : ''}`} style={{ top: 45, right: 0 }}>

@@ -20,11 +20,38 @@ const STALE_TOKEN_ERRORS = new Set([
 ]);
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+// The testing login's bookings live in the sandbox (src/firebase/dataScope.js); keep these in step.
+const TESTER_EMAILS = ['spp1@gmail.com'];
+const SANDBOX_ROOT = 'sandbox/test/';
+
+class ConfigError extends Error {}
+
+/** Reads the service-account key from the env var, tolerating the usual copy-paste variations. */
+function serviceAccountFromEnv() {
+    let raw = String(process.env.FIREBASE_SERVICE_ACCOUNT || '').replace(/^﻿/, '').trim();
+    if (!raw) throw new ConfigError('FIREBASE_SERVICE_ACCOUNT is not set on Vercel.');
+    let account;
+    try {
+        account = JSON.parse(raw);
+        if (typeof account === 'string') account = JSON.parse(account); // pasted with extra quotes
+    } catch {
+        // Never echo the value: it contains the private key.
+        throw new ConfigError('FIREBASE_SERVICE_ACCOUNT is not valid JSON. Paste the whole downloaded key file, from { to }.');
+    }
+    const missing = ['project_id', 'client_email', 'private_key'].filter(key => !account || !account[key]);
+    if (missing.length) throw new ConfigError(`FIREBASE_SERVICE_ACCOUNT is missing: ${missing.join(', ')}.`);
+    account.private_key = account.private_key.replace(/\\n/g, '\n');
+    return account;
+}
+
 function firebaseApp() {
     if (getApps().length) return getApps()[0];
-    const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
-    if (!raw) return null;
-    return initializeApp({ credential: cert(JSON.parse(raw)) });
+    const account = serviceAccountFromEnv();
+    try {
+        return initializeApp({ credential: cert(account) });
+    } catch (error) {
+        throw new ConfigError(`The service-account key was rejected: ${error.message}`);
+    }
 }
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -45,20 +72,39 @@ export default async function handler(req, res) {
         res.setHeader('Allow', 'POST');
         return res.status(405).json({ error: 'Use POST.' });
     }
+    try {
+        return await notifyOwner(req, res);
+    } catch (error) {
+        if (error instanceof ConfigError) return res.status(500).json({ error: error.message });
+        console.error('notify-booking failed:', error);
+        return res.status(500).json({ error: `Push failed: ${error.message || error}` });
+    }
+}
 
+async function notifyOwner(req, res) {
     const app = firebaseApp();
-    if (!app) return res.status(500).json({ error: 'Push is not configured (FIREBASE_SERVICE_ACCOUNT missing).' });
 
     // Only signed-in console staff may trigger a notification.
     const idToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    let caller;
     try {
         if (!idToken) throw new Error('missing token');
-        await getAuth(app).verifyIdToken(idToken);
+        caller = await getAuth(app).verifyIdToken(idToken);
     } catch {
         return res.status(401).json({ error: 'Sign in required.' });
     }
+    // A booking made by the testing login lives in the sandbox and is announced as a test.
+    const isTest = TESTER_EMAILS.includes(String(caller.email || '').toLowerCase());
+    const bookings = (isTest ? SANDBOX_ROOT : '') + 'bookings';
 
-    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    let body = req.body || {};
+    if (typeof body === 'string') {
+        try {
+            body = JSON.parse(body || '{}');
+        } catch {
+            return res.status(400).json({ error: 'Body must be JSON.' });
+        }
+    }
     const bookingId = String(body.bookingId || '').trim();
     if (!bookingId || bookingId.includes('/')) return res.status(400).json({ error: 'bookingId is required.' });
 
@@ -67,7 +113,7 @@ export default async function handler(req, res) {
     let booking = null;
     for (let attempt = 0; attempt < 4 && !booking; attempt++) {
         if (attempt > 0) await sleep(750);
-        const snap = await db.collection('bookings').doc(bookingId).get();
+        const snap = await db.collection(bookings).doc(bookingId).get();
         if (snap.exists) booking = snap.data();
     }
     if (!booking) return res.status(404).json({ error: `Booking ${bookingId} not found.` });
@@ -81,7 +127,7 @@ export default async function handler(req, res) {
     // One push per booking even if both apps (or a retry) ask. Booking ids are reused after a
     // delete and renumber, so the creation time is part of the key.
     try {
-        await db.collection('push_log').doc(`${bookingId}|${booking.createdAt}`).create({ bookingId, sentAt: new Date().toISOString() });
+        await db.collection('push_log').doc(`${isTest ? 'test|' : ''}${bookingId}|${booking.createdAt}`).create({ bookingId, test: isTest, sentAt: new Date().toISOString() });
     } catch (error) {
         if (error.code === 6 /* ALREADY_EXISTS */) return res.status(200).json({ sent: 0, skipped: 'already sent' });
         throw error;
@@ -96,14 +142,15 @@ export default async function handler(req, res) {
     const result = await getMessaging(app).sendEachForMulticast({
         tokens,
         notification: {
-            title: `New booking ${bookingId}`,
+            title: `${isTest ? '🧪 TEST booking' : 'New booking'} ${bookingId}`,
             body: [booking.guestName, rooms && `Room ${rooms}`, checkIn && `Check-in ${checkIn}`].filter(Boolean).join(' · ')
         },
-        data: { bookingId },
+        data: { bookingId, test: String(isTest) },
         android: {
             priority: 'high',
             // Same channel and tag the app uses for its own alert, so the phone shows the booking once.
-            notification: { channelId: 'new_bookings', tag: `booking-${bookingId}`, icon: 'ic_stat_booking', color: '#0F3B33' }
+            // Test and live bookings can share an id, so their tags differ.
+            notification: { channelId: 'new_bookings', tag: `booking-${isTest ? 'test-' : ''}${bookingId}`, icon: 'ic_stat_booking', color: '#0F3B33' }
         }
     });
 

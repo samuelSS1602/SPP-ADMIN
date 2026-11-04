@@ -1,9 +1,14 @@
+import { dataScope, localKey } from '../firebase/dataScope.js';
+
 // Persistent local storage for booking photos and the full dataset (avoids the localStorage 5MB limit).
 // Database name, version and store names are unchanged so caches from the previous app are reused.
 const PHOTO_DATABASE_NAME = 'LodgeAdminPhotos';
 const PHOTO_DATABASE_VERSION = 2;
 const PHOTO_OBJECT_STORE_NAME = 'booking_photos';
 const APP_DATA_STORE_NAME = 'application_data';
+
+// Test bookings reuse ids like BK001, so their cached photos get a separate key.
+const photoKey = bookingId => (dataScope.test ? `test:${bookingId}` : String(bookingId));
 
 function openPhotoDB() {
     return new Promise((resolve, reject) => {
@@ -30,7 +35,7 @@ export async function saveFullDataToIndexedDB(snapshot) {
         const db = await openPhotoDB();
         await new Promise((resolve, reject) => {
             const tx = db.transaction(APP_DATA_STORE_NAME, 'readwrite');
-            tx.objectStore(APP_DATA_STORE_NAME).put({ id: 'current', data: snapshot, updatedAt: new Date().toISOString() });
+            tx.objectStore(APP_DATA_STORE_NAME).put({ id: localKey('current'), data: snapshot, updatedAt: new Date().toISOString() });
             tx.oncomplete = resolve;
             tx.onerror = () => reject(tx.error);
         });
@@ -45,7 +50,7 @@ export async function loadFullDataFromIndexedDB() {
         const db = await openPhotoDB();
         const stored = await new Promise((resolve, reject) => {
             const tx = db.transaction(APP_DATA_STORE_NAME, 'readonly');
-            const request = tx.objectStore(APP_DATA_STORE_NAME).get('current');
+            const request = tx.objectStore(APP_DATA_STORE_NAME).get(localKey('current'));
             request.onsuccess = () => resolve(request.result || null);
             request.onerror = () => reject(request.error);
         });
@@ -63,7 +68,7 @@ export async function savePhotoToLocal(bookingId, customerPhoto, idProofPhoto) {
         return new Promise((resolve, reject) => {
             const tx = db.transaction(PHOTO_OBJECT_STORE_NAME, 'readwrite');
             const request = tx.objectStore(PHOTO_OBJECT_STORE_NAME).put({
-                bookingId: String(bookingId),
+                bookingId: photoKey(bookingId),
                 customerPhoto: customerPhoto || null,
                 idProofPhoto: idProofPhoto || null,
                 updatedAt: new Date().toISOString()
@@ -86,7 +91,7 @@ export async function getPhotoFromLocal(bookingId) {
         const db = await openPhotoDB();
         return new Promise(resolve => {
             const tx = db.transaction(PHOTO_OBJECT_STORE_NAME, 'readonly');
-            const request = tx.objectStore(PHOTO_OBJECT_STORE_NAME).get(String(bookingId));
+            const request = tx.objectStore(PHOTO_OBJECT_STORE_NAME).get(photoKey(bookingId));
             request.onsuccess = () => resolve(request.result || null);
             request.onerror = e => {
                 console.warn('IndexedDB get failed:', e.target.error);
@@ -105,7 +110,7 @@ export async function deletePhotoFromLocal(bookingId) {
         const db = await openPhotoDB();
         return new Promise(resolve => {
             const tx = db.transaction(PHOTO_OBJECT_STORE_NAME, 'readwrite');
-            const request = tx.objectStore(PHOTO_OBJECT_STORE_NAME).delete(String(bookingId));
+            const request = tx.objectStore(PHOTO_OBJECT_STORE_NAME).delete(photoKey(bookingId));
             request.onsuccess = () => resolve(true);
             request.onerror = e => {
                 console.warn('IndexedDB delete failed:', e.target.error);
@@ -116,6 +121,22 @@ export async function deletePhotoFromLocal(bookingId) {
     } catch (err) {
         console.warn('deletePhotoFromLocal error:', err);
         return false;
+    }
+}
+
+/** Removes every cached test-booking photo (Reset test data). Live photos are untouched. */
+export async function clearTestPhotosFromLocal() {
+    try {
+        const db = await openPhotoDB();
+        await new Promise(resolve => {
+            const tx = db.transaction(PHOTO_OBJECT_STORE_NAME, 'readwrite');
+            tx.objectStore(PHOTO_OBJECT_STORE_NAME).delete(IDBKeyRange.bound('test:', 'test:￿'));
+            tx.oncomplete = resolve;
+            tx.onerror = () => resolve();
+        });
+        db.close();
+    } catch (err) {
+        console.warn('clearTestPhotosFromLocal error:', err);
     }
 }
 

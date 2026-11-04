@@ -4,6 +4,7 @@
 // The cloud is the source of truth for bookings, audit logs and customers.
 import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { fb, isCloudReady } from './client.js';
+import { cloudPath } from './dataScope.js';
 import { applyDiaryChanges, applyRoomChanges, mergeCloudBookings } from './merge.js';
 import { data } from '../store/store.js';
 import { commit, keepLocalOnlyBookingsAside, saveDataToStorage } from '../store/persistence.js';
@@ -90,7 +91,7 @@ export function startRealtimeSync() {
     stopRealtimeSync();
     if (!isCloudReady()) return;
     const listen = (name, handler) => {
-        realtimeUnsubscribers.push(onSnapshot(collection(fb.db, name), handler, error => {
+        realtimeUnsubscribers.push(onSnapshot(collection(fb.db, cloudPath(name)), handler, error => {
             console.warn(`Live sync for ${name} stopped:`, error);
         }));
     };
@@ -136,7 +137,7 @@ export async function fetchAllDataFromFirebase() {
     if (!isCloudReady()) return;
     try {
         console.log('Fetching cloud data...');
-        const getAll = async name => (await getDocs(collection(fb.db, name))).docs;
+        const getAll = async name => (await getDocs(collection(fb.db, cloudPath(name)))).docs;
 
         // Customers (cloud overrides local)
         (await getAll('customers')).map(d => d.data()).filter(c => c.id).forEach(fc => {

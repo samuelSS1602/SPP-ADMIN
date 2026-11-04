@@ -1,5 +1,6 @@
 import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
 import { fb, isCloudReady } from './client.js';
+import { cloudPath } from './dataScope.js';
 
 // Booking documents and their photos live in separate collections:
 //   bookings/{id}        — booking fields only (photos stripped, hasCustomerPhoto/hasIdProofPhoto flags)
@@ -9,7 +10,7 @@ export async function syncBookingToFirebase(booking) {
 
     if ((booking.customerPhoto && String(booking.customerPhoto).startsWith('data:image')) ||
         (booking.idProofPhoto && String(booking.idProofPhoto).startsWith('data:image'))) {
-        setDoc(doc(fb.db, 'booking_photos', String(booking.id)), {
+        setDoc(doc(fb.db, cloudPath('booking_photos'), String(booking.id)), {
             customerPhoto: booking.customerPhoto || null,
             idProofPhoto: booking.idProofPhoto || null,
             updatedAt: serverTimestamp()
@@ -28,7 +29,7 @@ export async function syncBookingToFirebase(booking) {
     if (booking.idProofPhoto || booking.idProofPhotoUrl) cloudBooking.hasIdProofPhoto = true;
     cloudBooking.updatedAt = serverTimestamp();
 
-    return setDoc(doc(fb.db, 'bookings', String(booking.id)), cloudBooking, { merge: true })
+    return setDoc(doc(fb.db, cloudPath('bookings'), String(booking.id)), cloudBooking, { merge: true })
         .catch(error => console.warn(`Failed to sync booking ${booking.id} to Firebase:`, error));
 }
 
@@ -47,12 +48,12 @@ export function roomCloudDoc(room) {
 
 export function syncRoomToFirebase(room) {
     if (!isCloudReady()) return Promise.resolve();
-    return setDoc(doc(fb.db, 'rooms', String(room.id)), roomCloudDoc(room), { merge: true });
+    return setDoc(doc(fb.db, cloudPath('rooms'), String(room.id)), roomCloudDoc(room), { merge: true });
 }
 
 export function syncDiaryEntryToFirebase(date, roomId, guestName) {
     if (!isCloudReady()) return;
-    setDoc(doc(fb.db, 'diaryReminder', `${date}_${roomId}`), {
+    setDoc(doc(fb.db, cloudPath('diaryReminder'), `${date}_${roomId}`), {
         date,
         roomId,
         guestName,
@@ -62,23 +63,23 @@ export function syncDiaryEntryToFirebase(date, roomId, guestName) {
 
 export async function getBookingPhotosDoc(bookingId) {
     if (!isCloudReady()) return null;
-    const snap = await getDoc(doc(fb.db, 'booking_photos', String(bookingId)));
+    const snap = await getDoc(doc(fb.db, cloudPath('booking_photos'), String(bookingId)));
     return snap.exists() ? snap.data() : null;
 }
 
 export async function getAllBookingPhotoDocs() {
-    const snap = await getDocs(collection(fb.db, 'booking_photos'));
+    const snap = await getDocs(collection(fb.db, cloudPath('booking_photos')));
     return snap.docs.map(item => ({ id: item.id, data: item.data() }));
 }
 
 export function setBookingPhotosDoc(bookingId, photoData, options) {
-    return setDoc(doc(fb.db, 'booking_photos', String(bookingId)), photoData, options || {});
+    return setDoc(doc(fb.db, cloudPath('booking_photos'), String(bookingId)), photoData, options || {});
 }
 
 export function deleteBookingPhotosDoc(bookingId) {
-    return deleteDoc(doc(fb.db, 'booking_photos', String(bookingId)));
+    return deleteDoc(doc(fb.db, cloudPath('booking_photos'), String(bookingId)));
 }
 
 export function deleteBookingDoc(bookingId) {
-    return deleteDoc(doc(fb.db, 'bookings', String(bookingId)));
+    return deleteDoc(doc(fb.db, cloudPath('bookings'), String(bookingId)));
 }

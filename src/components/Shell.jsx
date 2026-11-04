@@ -4,6 +4,7 @@ import { usePointerTilt } from './hooks.js';
 import Sidebar from './Sidebar.jsx';
 import TopHeader from './TopHeader.jsx';
 import BottomNav from './BottomNav.jsx';
+import TestModeBanner from './TestModeBanner.jsx';
 import ModalHost from '../modals/ModalHost.jsx';
 import DashboardPage from '../pages/DashboardPage.jsx';
 import BookingsPage from '../pages/BookingsPage.jsx';
@@ -107,6 +108,7 @@ export default function Shell() {
             <div className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`} id="sidebarOverlay" onClick={() => setSidebarOpen(false)} />
             <Sidebar />
             <main className="main-content">
+                <TestModeBanner />
                 <TopHeader />
                 <div className="content-area" ref={contentRef}>
                     <ActivePage key={page} />

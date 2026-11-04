@@ -35,12 +35,27 @@ export const data = {
     auditLogs: []
 };
 
+/** Empties the in-memory dataset, e.g. before loading the other one of live / test data. */
+export function resetDataToDefaults() {
+    data.rooms = ROOM_TEMPLATE.map(room => ({ ...room, price: 2500, status: 'available' }));
+    data.bookings = [];
+    data.customers = [];
+    data.guests = [];
+    data.diary = {};
+    data.staff = [];
+    data.housekeepingTasks = [];
+    data.notifications = [];
+    data.settings = { ...DEFAULT_SETTINGS };
+    data.auditLogs = [];
+}
+
 export const OWNER_EMAIL = 'sppowner@gmail.com';
 
 // Signed-in user
 export const session = {
     loggedIn: false,
     role: 'receptionist',
+    tester: false, // the testing login (works only on the sandbox, see firebase/dataScope.js)
     userName: 'Receptionist',
     email: ''
 };

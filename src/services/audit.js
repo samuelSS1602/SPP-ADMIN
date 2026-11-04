@@ -2,6 +2,7 @@ import { collection, doc, getDocs, serverTimestamp, setDoc, writeBatch } from 'f
 import { data, notify, session } from '../store/store.js';
 import { saveDataToStorage } from '../store/persistence.js';
 import { fb, isCloudReady } from '../firebase/client.js';
+import { cloudPath } from '../firebase/dataScope.js';
 
 export function addAuditLog(action, description) {
     const logId = `LOG${Date.now()}`;
@@ -21,7 +22,7 @@ export function addAuditLog(action, description) {
 
     // Sync to Firestore only for a signed-in user (Firestore rules reject anonymous writes)
     if (isCloudReady() && fb.auth?.currentUser) {
-        setDoc(doc(fb.db, 'audit_logs', logId), { ...newLog, updatedAt: serverTimestamp() }, { merge: true })
+        setDoc(doc(fb.db, cloudPath('audit_logs'), logId), { ...newLog, updatedAt: serverTimestamp() }, { merge: true })
             .catch(e => console.warn('Could not sync audit log to Firebase:', e));
     }
 }
@@ -79,7 +80,7 @@ export function clearAuditLogs() {
     notify();
 
     if (isCloudReady()) {
-        getDocs(collection(fb.db, 'audit_logs')).then(snapshot => {
+        getDocs(collection(fb.db, cloudPath('audit_logs'))).then(snapshot => {
             const batch = writeBatch(fb.db);
             snapshot.docs.forEach(item => batch.delete(item.ref));
             return batch.commit();

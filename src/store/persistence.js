@@ -1,7 +1,9 @@
 import { data, DEFAULT_SETTINGS, notify } from './store.js';
 import { loadFullDataFromIndexedDB, saveFullDataToIndexedDB } from './indexedDb.js';
+import { dataScope, localKey } from '../firebase/dataScope.js';
 
-const LOCAL_STORAGE_KEY = 'lodgeAdminData';
+// Live and test data are cached under separate keys (see dataScope.js).
+const storageKey = () => localKey('lodgeAdminData');
 
 export function stripPhotoDataForLocalCache(record) {
     if (!record || typeof record !== 'object') return record;
@@ -46,14 +48,14 @@ export function saveDataToStorage() {
     saveFullDataToIndexedDB(data);
 
     try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(buildLocalStorageSnapshot()));
+        localStorage.setItem(storageKey(), JSON.stringify(buildLocalStorageSnapshot()));
     } catch (error) {
         if (error.name === 'QuotaExceededError' || error.code === 22) {
             console.warn('localStorage quota exceeded, replacing cache with compact snapshot...');
             cleanupStorageData();
             try {
-                localStorage.removeItem(LOCAL_STORAGE_KEY);
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(buildLocalStorageSnapshot()));
+                localStorage.removeItem(storageKey());
+                localStorage.setItem(storageKey(), JSON.stringify(buildLocalStorageSnapshot()));
             } catch (retryError) {
                 console.error('Failed to save compact local cache:', retryError);
             }
@@ -71,7 +73,7 @@ export function commit() {
 
 export function hydrateDataFromStorage() {
     try {
-        const storedRaw = localStorage.getItem(LOCAL_STORAGE_KEY);
+        const storedRaw = localStorage.getItem(storageKey());
         if (!storedRaw) return;
         const sData = JSON.parse(storedRaw);
         if (!sData || typeof sData !== 'object') return;
@@ -88,13 +90,15 @@ export function hydrateDataFromStorage() {
         data.auditLogs = sData.auditLogs || [];
     } catch (e) {
         console.error('Failed to parse stored data:', e);
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        localStorage.removeItem(storageKey());
     }
 }
 
 export async function hydrateFullDataFromIndexedDB() {
+    const forTest = dataScope.test;
     const stored = await loadFullDataFromIndexedDB();
-    if (!stored) return false;
+    // A login switched between live and test data while this was loading; that copy no longer applies.
+    if (!stored || dataScope.test !== forTest) return false;
     Object.keys(data).forEach(key => {
         if (stored[key] !== undefined) data[key] = stored[key];
     });
@@ -104,7 +108,7 @@ export async function hydrateFullDataFromIndexedDB() {
 
 export function keepLocalOnlyBookingsAside(localOnly) {
     try {
-        localStorage.setItem('lodgeAdminLocalOnlyBookings', JSON.stringify(localOnly.map(stripPhotoDataForLocalCache)));
+        localStorage.setItem(localKey('lodgeAdminLocalOnlyBookings'), JSON.stringify(localOnly.map(stripPhotoDataForLocalCache)));
     } catch (error) {
         console.warn('Could not keep local-only bookings:', error);
     }

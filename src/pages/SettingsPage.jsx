@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
-import { data } from '../store/store.js';
+import { data, session, useStoreVersion } from '../store/store.js';
+import { dataScope, TESTER_EMAILS } from '../firebase/dataScope.js';
+import { resetTestData, setOwnerTestView } from '../services/testMode.js';
 import { usePersistentState } from '../ui/UIContext.jsx';
 import { exportFullSystemBackup, importSystemBackup, saveLodgeSettings, savePricingSettings } from '../services/settings.js';
 
@@ -94,9 +96,50 @@ function PricingTaxForm() {
     );
 }
 
+// Owner: switch between live and test data. Owner (in test view) and tester: wipe the test data.
+function TestDataPanel() {
+    useStoreVersion();
+    const [busy, setBusy] = useState(false);
+    const isOwner = session.role === 'owner';
+    const run = async action => {
+        setBusy(true);
+        try {
+            await action();
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: 13 }}>
+            <div className="pricing-info">
+                <p>The testing login (<strong>{TESTER_EMAILS.join(', ')}</strong>) works on a separate test copy of the lodge.
+                    Its bookings never change live rooms, booking numbers or reports. The owner still gets a 🧪 TEST notification for each test booking.</p>
+            </div>
+            {isOwner && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700 }}>
+                    <input type="checkbox" checked={dataScope.test} disabled={busy}
+                        onChange={e => run(() => setOwnerTestView(e.target.checked))} />
+                    View test data instead of live data {busy && '(switching…)'}
+                </label>
+            )}
+            {dataScope.test && (
+                <div>
+                    <button type="button" className="btn-primary" disabled={busy} style={{ background: 'var(--danger)' }}
+                        onClick={() => run(resetTestData)}>
+                        <i className="fas fa-trash-restore" /> Reset test data
+                    </button>
+                    <p style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 6 }}>Deletes every test booking, photo, room status, diary entry and log. Live data is not affected.</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function SettingsPage() {
     const [panel, setPanel] = usePersistentState('settings.panel', 'settingsLodge');
     const fileRef = useRef(null);
+    const panels = (session.role === 'owner' || session.tester) ? [...PANELS, ['settingsTestData', 'Test Data']] : PANELS;
 
     return (
         <div id="settings-tab" className="page-content active">
@@ -105,7 +148,7 @@ export default function SettingsPage() {
             </div>
             <div className="settings-container">
                 <nav className="settings-nav">
-                    {PANELS.map(([id, label]) => (
+                    {panels.map(([id, label]) => (
                         <button key={id} type="button" className={`settings-nav-item ${panel === id ? 'active' : ''}`} onClick={() => setPanel(id)}>{label}</button>
                     ))}
                 </nav>
@@ -135,6 +178,12 @@ export default function SettingsPage() {
                                     <p style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 4 }}>Restricted capabilities: cannot delete bookings, cannot view revenue totals, cannot edit base pricing variables.</p>
                                 </div>
                             </div>
+                        </div>
+                    )}
+                    {panel === 'settingsTestData' && panels.some(([id]) => id === 'settingsTestData') && (
+                        <div id="settingsTestData" className="settings-panel active">
+                            <h3>Test Data</h3>
+                            <TestDataPanel />
                         </div>
                     )}
                     {panel === 'settingsBackups' && (
